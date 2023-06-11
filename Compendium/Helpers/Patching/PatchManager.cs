@@ -3,7 +3,7 @@
 using HarmonyLib;
 
 using helpers;
-using helpers.Events;
+using helpers.Random;
 
 using System;
 using System.Collections.Generic;
@@ -29,7 +29,7 @@ namespace Compendium.Helpers.Patching
         {
             Plugin.OnUnloaded.Add(OnUnloadedHandler);
 
-            Harmony = new Harmony(helpers.RandomGenerator.CryptoNonZeroString(20));
+            Harmony = new Harmony(RandomGeneration.Default.GetReadableString(20));
 
             foreach (var type in Assembly
                 .GetExecutingAssembly()
@@ -214,6 +214,6 @@ namespace Compendium.Helpers.Patching
             }
         }
 
-        private static void OnUnloadedHandler(EventArgsCollection eventArgsCollection) => UnpatchAll();
+        private static void OnUnloadedHandler() => UnpatchAll();
     }
 }

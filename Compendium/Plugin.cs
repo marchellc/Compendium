@@ -3,6 +3,8 @@
 using helpers;
 using helpers.Events;
 using helpers.Extensions;
+using helpers.Translations;
+
 using PluginAPI.Core;
 using PluginAPI.Core.Attributes;
 
@@ -76,6 +78,9 @@ namespace Compendium
                    }
                });
 
+            Translations.Translation.RegisterAll();
+            Translator.Load();
+
             Info("Loaded!");
 
             OnLoaded.Invoke();
@@ -84,7 +89,8 @@ namespace Compendium
         [PluginUnload]
         public void Unload()
         {
-            HandlerInstance.SaveConfig(this, nameof(ConfigInstance));
+            SaveConfig();
+
             OnUnloaded.Invoke();
 
             Instance = null;
@@ -95,12 +101,22 @@ namespace Compendium
         [PluginReload]
         public void Reload()
         {
-            HandlerInstance.LoadConfig(this, nameof(ConfigInstance));
+            LoadConfig();
             OnReloaded.Invoke();
         }
 
-        public static void SaveConfig() => Handler?.SaveConfig(Instance, nameof(ConfigInstance));
-        public static void LoadConfig() => Handler?.SaveConfig(Instance, nameof(ConfigInstance));
+        public static void SaveConfig()
+        {
+            Handler?.SaveConfig(Instance, nameof(ConfigInstance));
+            Translator.Save();
+        }
+
+        public static void LoadConfig()
+        {
+            Handler?.LoadConfig(Instance, nameof(ConfigInstance));
+            Translator.Load();
+        }
+        
         public static void ModifyConfig(Action<Config> action)
         {
             action?.Invoke(Config);
@@ -109,12 +125,14 @@ namespace Compendium
 
         public static void Debug(object message)
         {
-            if (!Config.LogSettings.ShowDebug) return;
-            Log.Debug(message?.ToString() ?? "Null Message!", helpers.Log.ResolveCaller());
+            if (!Config.LogSettings.ShowDebug) 
+                return;
+
+            Log.Debug(message?.ToString() ?? "Null Message!", helpers.Log.ResolveCaller(2));
         }
 
-        public static void Error(object message) => Log.Error(message?.ToString() ?? "Null Message!", helpers.Log.ResolveCaller());
-        public static void Warn(object message) => Log.Warning(message?.ToString() ?? "Null Message!", helpers.Log.ResolveCaller());
-        public static void Info(object message) => Log.Info(message?.ToString() ?? "Null Message!", helpers.Log.ResolveCaller());
+        public static void Error(object message) => Log.Error(message?.ToString() ?? "Null Message!", helpers.Log.ResolveCaller(2));
+        public static void Warn(object message) => Log.Warning(message?.ToString() ?? "Null Message!", helpers.Log.ResolveCaller(2));
+        public static void Info(object message) => Log.Info(message?.ToString() ?? "Null Message!", helpers.Log.ResolveCaller(2));
     }
 }

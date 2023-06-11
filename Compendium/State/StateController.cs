@@ -1,6 +1,5 @@
 ﻿using Compendium.Attributes;
 using Compendium.Helpers.Events;
-using Compendium.Helpers.Timing;
 using Compendium.State.Base;
 using Compendium.State.Interfaced;
 
@@ -31,9 +30,6 @@ namespace Compendium.State
         private static readonly Dictionary<uint, HashSet<IState>> _playerStates = new Dictionary<uint, HashSet<IState>>();
         private static readonly Dictionary<string, CustomTimeIntervalStateData> _delayedExecutions = new Dictionary<string, CustomTimeIntervalStateData>();
 
-        public static readonly Type IStateInterfaceType = typeof(IState);
-        public static readonly Type IRequiredStateInterfaceType = typeof(IRequiredState);
-
         public static readonly EventProvider OnStateAdded = new EventProvider();
         public static readonly EventProvider OnStateRemoved = new EventProvider();
         public static readonly EventProvider OnStateUpdated = new EventProvider();
@@ -45,8 +41,11 @@ namespace Compendium.State
                 .GetExecutingAssembly()
                 .GetTypes())
             {
-                if (type.IsAssignableFrom(IStateInterfaceType)) _knownStates.Add(type);
-                if (type.IsAssignableFrom(IRequiredStateInterfaceType)) _requiredStates.Add(type);
+                if (Reflection.HasInterface<IState>(type, true)) 
+                    _knownStates.Add(type);
+
+                if (Reflection.HasInterface<IRequiredState>(type, true)) 
+                    _requiredStates.Add(type);
             }
 
             ServerEventType.PlayerJoined.GetProvider()?.Add(OnPlayerJoined);
@@ -55,7 +54,7 @@ namespace Compendium.State
             ServerEventType.PlayerSpawn.GetProvider()?.Add(OnPlayerSpawned);
             ServerEventType.PlayerDeath.GetProvider()?.Add(OnPlayerDied);
 
-            FrameUpdateHelper.OnUpdateEvent.Add(OnUpdate);
+            Reflection.AddHandler<Action>(typeof(StaticUnityMethods), "OnUpdate", OnUpdate);
         }
 
         public static TState GetState<TState>(this ReferenceHub hub) where TState : IState => GetState(hub, typeof(TState)).As<TState>();
@@ -90,14 +89,30 @@ namespace Compendium.State
             }
         }
 
-        public static TState AddState<TState>(this ReferenceHub hub) where TState : IState, new() { if (!HasState<TState>(hub)) return AddState(hub, new TState()).As<TState>(); else return GetState<TState>(hub); }
+        public static TState AddState<TState>(this ReferenceHub hub) where TState : IState, new() 
+        {
+            if (!HasState<TState>(hub)) 
+                return AddState(hub, new TState()).As<TState>(); 
+            else 
+                return GetState<TState>(hub); 
+        }
+
         public static IState[] AddStates(this ReferenceHub hub, params Type[] types) => AddStates(hub, types.Select(x => Reflection.Instantiate<IState>(x)).ToArray());
         public static IState AddState(this ReferenceHub hub, Type type) => AddState(hub, Reflection.Instantiate<IState>(type));
-        public static IState[] AddStates(this ReferenceHub hub, params IState[] states) { states.ForEach(x => hub.AddState(x)); return states; }
+
+        public static IState[] AddStates(this ReferenceHub hub, params IState[] states) 
+        { 
+            states.ForEach(x => hub.AddState(x)); 
+            return states; 
+        }
+
         public static IState AddState(this ReferenceHub hub, IState state)
         {
-            if (!_playerStates.TryGetValue(hub.netId, out var states)) states = (_playerStates[hub.netId] = new HashSet<IState>());
-            if (states.Any(x => x.GetType() == state.GetType())) return null;
+            if (!_playerStates.TryGetValue(hub.netId, out var states)) 
+                states = (_playerStates[hub.netId] = new HashSet<IState>());
+
+            if (states.Any(x => x.GetType() == state.GetType())) 
+                return null;
 
             states.Add(state);
             state.SetPlayer(hub);
@@ -114,8 +129,10 @@ namespace Compendium.State
 
         private static void NotifyPlayer(ReferenceHub hub, string name, bool addedOrRemoved)
         {
-            if (addedOrRemoved) hub.characterClassManager.ConsolePrint($"[State Controller] Added a new player state: {name}", "green");
-            else hub.characterClassManager.ConsolePrint($"[State Controller] Removed a controller state: {name}", "red");
+            if (addedOrRemoved) 
+                hub.characterClassManager.ConsolePrint($"[State Controller] Added a new player state: {name}", "green");
+            else 
+                hub.characterClassManager.ConsolePrint($"[State Controller] Removed a controller state: {name}", "red");
         }
 
         private static void OnUpdate()
@@ -124,11 +141,16 @@ namespace Compendium.State
             {
                 foreach (var state in states)
                 {
-                    if (state.Flags.HasFlag(StateFlags.DisableUpdate)) continue;
+                    if (state.Flags.HasFlag(StateFlags.DisableUpdate)) 
+                        continue;
+
                     if (state is ICustomUpdateTimeState customUpdateTimeState)
                     {
-                        if (!_delayedExecutions.TryGetValue(state.Name, out var customTimeIntervalStateData)) customTimeIntervalStateData = (_delayedExecutions[state.Name] = new CustomTimeIntervalStateData(customUpdateTimeState.UpdateInterval));
-                        if (!customTimeIntervalStateData.CanUpdate()) continue;
+                        if (!_delayedExecutions.TryGetValue(state.Name, out var customTimeIntervalStateData)) 
+                            customTimeIntervalStateData = (_delayedExecutions[state.Name] = new CustomTimeIntervalStateData(customUpdateTimeState.UpdateInterval));
+
+                        if (!customTimeIntervalStateData.CanUpdate())
+                            continue;
 
                         state.Update();
                         customTimeIntervalStateData.OnUpdate(customUpdateTimeState.UpdateInterval);
@@ -141,7 +163,7 @@ namespace Compendium.State
             }
         }
 
-        private static void OnPlayerSpawned(EventArgsCollection eventArgsCollection)
+        private static void OnPlayerSpawned(ObjectCollection eventArgsCollection)
         {
             var hub = eventArgsCollection.Get<Player>("player").ReferenceHub;
             var removeList = ListPool<IState>.Pool.Get();
@@ -151,6 +173,7 @@ namespace Compendium.State
                 foreach (var state in states)
                 {
                     state.HandlePlayerSpawn(eventArgsCollection.Get<RoleTypeId>("role"));
+
                     if (state.Flags.HasFlag(StateFlags.RemoveOnRoleChange))
                     {
                         state.Disable();
@@ -164,7 +187,7 @@ namespace Compendium.State
             ListPool<IState>.Pool.Push(removeList);
         }
 
-        private static void OnPlayerDied(EventArgsCollection eventArgsCollection)
+        private static void OnPlayerDied(ObjectCollection eventArgsCollection)
         {
             var hub = eventArgsCollection.Get<Player>("player").ReferenceHub;
             var removeList = ListPool<IState>.Pool.Get();
@@ -174,6 +197,7 @@ namespace Compendium.State
                 foreach (var state in states)
                 {
                     state.HandlePlayerDeath(eventArgsCollection.Get<DamageHandlerBase>("damageHandler"));
+
                     if (state.Flags.HasFlag(StateFlags.RemoveOnDeath))
                     {
                         state.Disable();
@@ -187,7 +211,7 @@ namespace Compendium.State
             ListPool<IState>.Pool.Push(removeList);
         }
 
-        private static void OnPlayerDamaged(EventArgsCollection eventArgsCollection)
+        private static void OnPlayerDamaged(ObjectCollection eventArgsCollection)
         {
             var hub = eventArgsCollection.Get<Player>("player").ReferenceHub;
             var removeList = ListPool<IState>.Pool.Get();
@@ -197,6 +221,7 @@ namespace Compendium.State
                 foreach (var state in states)
                 {
                     state.HandlePlayerDamage(eventArgsCollection.Get<DamageHandlerBase>("damageHandler"));
+
                     if (state.Flags.HasFlag(StateFlags.RemoveOnDeath))
                     {
                         state.Disable();
@@ -210,21 +235,33 @@ namespace Compendium.State
             ListPool<IState>.Pool.Push(removeList);
         }
 
-        private static void OnPlayerLeft(EventArgsCollection eventArgsCollection)
+        private static void OnPlayerLeft(ObjectCollection eventArgsCollection)
         {
             var netId = eventArgsCollection.Get<Player>("player").NetworkId;
 
-            if (_playerStates.TryGetValue(netId, out var states)) states.ForEach(x => { x.Disable(); x.Unload(); x.SetPlayer(null); } );
+            if (_playerStates.TryGetValue(netId, out var states))
+            {
+                states.ForEach(x =>
+                { 
+                    x.Disable(); 
+                    x.Unload();
+                    x.SetPlayer(null); 
+                });
+            }
+
             _playerStates.Remove(netId);
         }
 
-        private static void OnPlayerJoined(EventArgsCollection eventArgsCollection)
+        private static void OnPlayerJoined(ObjectCollection eventArgsCollection)
         {
             foreach (var stateType in _requiredStates)
             {
                 var stateInstance = Reflection.Instantiate<StateBase>(stateType);
-                if (stateInstance != null) AddState(eventArgsCollection.Get<Player>("player").ReferenceHub, stateInstance);
-                else Plugin.Error($"Failed to create an instance of state type: {stateType.FullName}");
+
+                if (stateInstance != null) 
+                    AddState(eventArgsCollection.Get<Player>("player").ReferenceHub, stateInstance);
+                else 
+                    Plugin.Error($"Failed to create an instance of state type: {stateType.FullName}");
             }
         }
     }

@@ -41,6 +41,9 @@
     <Reference Include="Assembly-CSharp_publicized">
       <HintPath>..\..\..\..\..\..\Program Files (x86)\Steam\steamapps\common\SCP Secret Laboratory Dedicated Server\SCPSL_Data\Managed\Assembly-CSharp_publicized.dll</HintPath>
     </Reference>
+    <Reference Include="BetterCommands">
+      <HintPath>..\..\BetterCommands\BetterCommands\bin\Debug\BetterCommands.dll</HintPath>
+    </Reference>
     <Reference Include="CommandSystem.Core">
       <HintPath>..\..\..\..\..\..\Program Files (x86)\Steam\steamapps\common\SCP Secret Laboratory Dedicated Server\SCPSL_Data\Managed\CommandSystem.Core.dll</HintPath>
     </Reference>
@@ -77,33 +80,71 @@
       <SpecificVersion>False</SpecificVersion>
       <HintPath>..\..\..\..\..\..\Program Files (x86)\Steam\steamapps\common\SCP Secret Laboratory Dedicated Server\SCPSL_Data\Managed\UnityEngine.PerformanceReportingModule.dll</HintPath>
     </Reference>
+    <Reference Include="UnityEngine.PhysicsModule, Version=0.0.0.0, Culture=neutral, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>..\..\..\..\..\..\Program Files (x86)\Steam\steamapps\common\SCP Secret Laboratory Dedicated Server\SCPSL_Data\Managed\UnityEngine.PhysicsModule.dll</HintPath>
+    </Reference>
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Attributes\InitOnLoadAttribute.cs" />
-    <Compile Include="Commands\Timing\EventTimingsCommand.cs" />
-    <Compile Include="Commands\Timing\FrameTimingsCommand.cs" />
-    <Compile Include="Commands\Timing\ShowTimingsCommandParent.cs" />
+    <Compile Include="Common\Freeze\FreezeController.cs" />
     <Compile Include="Common\RemoteKeycard\RemoteKeycardLogic.cs" />
     <Compile Include="Common\RemoteKeycard\RemoteKeycardPatch.cs" />
+    <Compile Include="Common\Rocket\RocketController.cs" />
+    <Compile Include="Common\Voice\Channels\AdminChannel.cs" />
+    <Compile Include="Common\Voice\Channels\CustomVoiceChannel.cs" />
+    <Compile Include="Common\Voice\Channels\ProximityChannel.cs" />
+    <Compile Include="Common\Voice\Channels\ScpChannel.cs" />
+    <Compile Include="Common\Voice\Channels\VoiceChannelBase.cs" />
+    <Compile Include="Common\Voice\ICustomVoiceChannel.cs" />
+    <Compile Include="Common\Voice\IVoiceChannel.cs" />
+    <Compile Include="Common\Voice\StaticChannels.cs" />
+    <Compile Include="Common\Voice\VoiceController.cs" />
+    <Compile Include="Common\Voice\VoiceManager.cs" />
+    <Compile Include="Common\Voice\VoiceOverrides.cs" />
     <Compile Include="Config.cs" />
+    <Compile Include="Extensions\ComponentExtensions.cs" />
+    <Compile Include="Extensions\ReflectionExtensions.cs" />
     <Compile Include="Features\FeatureBase.cs" />
     <Compile Include="Features\FeatureManager.cs" />
     <Compile Include="Features\IFeature.cs" />
-    <Compile Include="Helpers\Commands\CommandHelper.cs" />
+    <Compile Include="Helpers\Caching\CacheData.cs" />
+    <Compile Include="Helpers\Caching\CacheManager.cs" />
     <Compile Include="Helpers\Events\EventConverter.cs" />
+    <Compile Include="Helpers\Hints\HintBuilder.cs" />
     <Compile Include="Helpers\Patching\IPatch.cs" />
     <Compile Include="Helpers\Patching\PatchAttribute.cs" />
     <Compile Include="Helpers\Patching\PatchData.cs" />
     <Compile Include="Helpers\Patching\PatchManager.cs" />
     <Compile Include="Helpers\Patching\PatchType.cs" />
-    <Compile Include="Helpers\Timing\EventTimingHelper.cs" />
-    <Compile Include="Helpers\Timing\FrameTimerHelper.cs" />
-    <Compile Include="Helpers\Timing\FrameUpdateHelper.cs" />
-    <Compile Include="Helpers\Timing\TimingData.cs" />
+    <Compile Include="Helpers\Prefabs\PrefabHelper.cs" />
+    <Compile Include="Helpers\Prefabs\PrefabName.cs" />
+    <Compile Include="Helpers\Staff\StaffHelper.cs" />
+    <Compile Include="Helpers\UserId\UserIdValue.cs" />
+    <Compile Include="Helpers\UserId\UserIdHelper.cs" />
+    <Compile Include="Helpers\UserId\UserIdType.cs" />
+    <Compile Include="Input\InputManager.cs" />
+    <Compile Include="Npc\INpc.cs" />
+    <Compile Include="Npc\NpcBase.cs" />
+    <Compile Include="Npc\NpcConnection.cs" />
+    <Compile Include="Npc\NpcHelper.cs" />
+    <Compile Include="Npc\NpcManager.cs" />
+    <Compile Include="Npc\NpcMovementMode.cs" />
+    <Compile Include="Npc\Targeting\ITarget.cs" />
+    <Compile Include="Npc\Targeting\PlayerTarget.cs" />
+    <Compile Include="Npc\Targeting\PositionTarget.cs" />
     <Compile Include="Plugin.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="Punishments\IPunishment.cs" />
+    <Compile Include="Punishments\IPunishmentHandler.cs" />
+    <Compile Include="Punishments\PunishmentManager.cs" />
+    <Compile Include="Rules\Rule.cs" />
+    <Compile Include="Rules\RuleManager.cs" />
     <Compile Include="Settings\FeatureSettings.cs" />
     <Compile Include="Settings\LogSettings.cs" />
+    <Compile Include="Settings\StaffSettings.cs" />
+    <Compile Include="Settings\TranslationSettings.cs" />
+    <Compile Include="Settings\VoiceSettings.cs" />
     <Compile Include="State\Base\CustomRangedUpdateTimeState.cs" />
     <Compile Include="State\Base\CustomUpdateTimeStateBase.cs" />
     <Compile Include="State\Base\RequiredStateBase.cs" />
@@ -115,8 +156,14 @@
     <Compile Include="State\Interfaced\IState.cs" />
     <Compile Include="State\StateController.cs" />
     <Compile Include="State\StateFlags.cs" />
+    <Compile Include="Translations\Translation.cs" />
+    <Compile Include="Translations\TranslationExtensions.cs" />
   </ItemGroup>
-  <ItemGroup />
+  <ItemGroup>
+    <Folder Include="Punishments\Bans\" />
+    <Folder Include="Punishments\Mutes\" />
+    <Folder Include="Punishments\Warns\" />
+  </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />
   </ItemGroup>

@@ -17,9 +17,13 @@ namespace Compendium.State.Base
 
         public ReferenceHub Player => m_Player;
 
-        public void Disable() => m_IsActive = false;
-        public void Enable() => m_IsActive = true;
-        public void SetActive(bool active) => m_IsActive = active;
+        public void Disable() => SetActive(false);
+        public void Enable() => SetActive(true);
+        public void SetActive(bool active)
+        {
+            m_IsActive = active;
+            OnActiveUpdated();
+        }
 
         public virtual void HandlePlayerSpawn(RoleTypeId newRole) { }
         public virtual void HandlePlayerDeath(DamageHandlerBase damageHandler) { }
@@ -28,6 +32,7 @@ namespace Compendium.State.Base
         public virtual void OnLoaded() { }
         public virtual void OnUnloaded() { }
         public virtual void OnUpdate() { }
+        public virtual void OnActiveUpdated() { }
 
         void IState.Load() => OnLoaded();
         void IState.Unload() => OnUnloaded();
