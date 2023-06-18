@@ -1,4 +1,6 @@
-﻿using Compendium.Attributes;
+﻿using BetterCommands;
+
+using Compendium.Attributes;
 using Compendium.Helpers.Events;
 using Compendium.State.Base;
 using Compendium.State.Interfaced;
@@ -13,11 +15,12 @@ using PlayerStatsSystem;
 
 using PluginAPI.Core;
 using PluginAPI.Enums;
-
+using PluginAPI.Events;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
+using System.Text;
 
 namespace Compendium.State
 {
@@ -41,18 +44,26 @@ namespace Compendium.State
                 .GetExecutingAssembly()
                 .GetTypes())
             {
-                if (Reflection.HasInterface<IState>(type, true)) 
+                if (Reflection.HasInterface<IState>(type) 
+                    && type != typeof(StateBase) 
+                    && type != typeof(CustomUpdateTimeStateBase)
+                    && type != typeof(CustomRangedUpdateTimeState)
+                    && type != typeof(RequiredStateBase))
                     _knownStates.Add(type);
 
-                if (Reflection.HasInterface<IRequiredState>(type, true)) 
+                if (Reflection.HasInterface<IRequiredState>(type)
+                    && type != typeof(StateBase)
+                    && type != typeof(CustomUpdateTimeStateBase)
+                    && type != typeof(CustomRangedUpdateTimeState)
+                    && type != typeof(RequiredStateBase)) 
                     _requiredStates.Add(type);
             }
 
-            ServerEventType.PlayerJoined.GetProvider()?.Add(OnPlayerJoined);
-            ServerEventType.PlayerLeft.GetProvider()?.Add(OnPlayerLeft);
-            ServerEventType.PlayerDamage.GetProvider()?.Add(OnPlayerDamaged);
-            ServerEventType.PlayerSpawn.GetProvider()?.Add(OnPlayerSpawned);
-            ServerEventType.PlayerDeath.GetProvider()?.Add(OnPlayerDied);
+            ServerEventType.PlayerJoined.AddHandler<Action<PlayerJoinedEvent>>(OnPlayerJoined);
+            ServerEventType.PlayerLeft.AddHandler<Action<PlayerLeftEvent>>(OnPlayerLeft);
+            ServerEventType.PlayerDamage.AddHandler<Action<PlayerDamageEvent>>(OnPlayerDamaged);
+            ServerEventType.PlayerSpawn.AddHandler<Action<PlayerSpawnEvent>>(OnPlayerSpawned);
+            ServerEventType.PlayerDeath.AddHandler<Action<PlayerDeathEvent>>(OnPlayerDied);
 
             Reflection.AddHandler<Action>(typeof(StaticUnityMethods), "OnUpdate", OnUpdate);
         }
@@ -121,6 +132,8 @@ namespace Compendium.State
 
             NotifyPlayer(hub, state.Name, true);
 
+            states.Add(state);
+
             return state;
         }
 
@@ -163,16 +176,16 @@ namespace Compendium.State
             }
         }
 
-        private static void OnPlayerSpawned(ObjectCollection eventArgsCollection)
+        private static void OnPlayerSpawned(PlayerSpawnEvent ev)
         {
-            var hub = eventArgsCollection.Get<Player>("player").ReferenceHub;
+            var hub = ev.Player.ReferenceHub;
             var removeList = ListPool<IState>.Pool.Get();
 
             if (hub.TryGetStates(out var states))
             {
                 foreach (var state in states)
                 {
-                    state.HandlePlayerSpawn(eventArgsCollection.Get<RoleTypeId>("role"));
+                    state.HandlePlayerSpawn(ev.Role);
 
                     if (state.Flags.HasFlag(StateFlags.RemoveOnRoleChange))
                     {
@@ -187,16 +200,16 @@ namespace Compendium.State
             ListPool<IState>.Pool.Push(removeList);
         }
 
-        private static void OnPlayerDied(ObjectCollection eventArgsCollection)
+        private static void OnPlayerDied(PlayerDeathEvent ev)
         {
-            var hub = eventArgsCollection.Get<Player>("player").ReferenceHub;
+            var hub = ev.Player.ReferenceHub;
             var removeList = ListPool<IState>.Pool.Get();
 
             if (hub.TryGetStates(out var states))
             {
                 foreach (var state in states)
                 {
-                    state.HandlePlayerDeath(eventArgsCollection.Get<DamageHandlerBase>("damageHandler"));
+                    state.HandlePlayerDeath(ev.DamageHandler);
 
                     if (state.Flags.HasFlag(StateFlags.RemoveOnDeath))
                     {
@@ -211,16 +224,16 @@ namespace Compendium.State
             ListPool<IState>.Pool.Push(removeList);
         }
 
-        private static void OnPlayerDamaged(ObjectCollection eventArgsCollection)
+        private static void OnPlayerDamaged(PlayerDamageEvent ev)
         {
-            var hub = eventArgsCollection.Get<Player>("player").ReferenceHub;
+            var hub = ev.Target.ReferenceHub;
             var removeList = ListPool<IState>.Pool.Get();
 
             if (hub.TryGetStates(out var states))
             {
                 foreach (var state in states)
                 {
-                    state.HandlePlayerDamage(eventArgsCollection.Get<DamageHandlerBase>("damageHandler"));
+                    state.HandlePlayerDamage(ev.DamageHandler);
 
                     if (state.Flags.HasFlag(StateFlags.RemoveOnDeath))
                     {
@@ -235,9 +248,9 @@ namespace Compendium.State
             ListPool<IState>.Pool.Push(removeList);
         }
 
-        private static void OnPlayerLeft(ObjectCollection eventArgsCollection)
+        private static void OnPlayerLeft(PlayerLeftEvent ev)
         {
-            var netId = eventArgsCollection.Get<Player>("player").NetworkId;
+            var netId = ev.Player.NetworkId;
 
             if (_playerStates.TryGetValue(netId, out var states))
             {
@@ -252,17 +265,41 @@ namespace Compendium.State
             _playerStates.Remove(netId);
         }
 
-        private static void OnPlayerJoined(ObjectCollection eventArgsCollection)
+        private static void OnPlayerJoined(PlayerJoinedEvent ev)
         {
+            var hub = ev.Player.ReferenceHub;
+
             foreach (var stateType in _requiredStates)
             {
-                var stateInstance = Reflection.Instantiate<StateBase>(stateType);
+                if (hub.TryGetStates(out var states) && states.Any(state => state.GetType() == stateType))
+                    continue;
 
+                var stateInstance = Reflection.Instantiate<StateBase>(stateType);
                 if (stateInstance != null) 
-                    AddState(eventArgsCollection.Get<Player>("player").ReferenceHub, stateInstance);
+                    AddState(ev.Player.ReferenceHub, stateInstance);
                 else 
                     Plugin.Error($"Failed to create an instance of state type: {stateType.FullName}");
             }
+        }
+
+        [Command("statedebug", BetterCommands.CommandType.PlayerConsole)]
+        public static string StateDebugCommand(ReferenceHub sender)
+        {
+            sender.TryGetStates(out var states);
+
+            if (!states.Any())
+            {
+                return "There are not any registered states.";
+            }
+
+            var builder = new StringBuilder();
+
+            foreach (var state in states)
+            {
+                builder.AppendLine($"State {state.Name} ({state.GetType().FullName}: {state.IsActive} ({state.Flags})");
+            }
+
+            return builder.ToString();
         }
     }
 }

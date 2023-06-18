@@ -10,12 +10,6 @@ using PlayerRoles.Voice;
 using VoiceChat;
 using VoiceChat.Networking;
 
-using BetterCommands.Management;
-
-using UnityEngine;
-
-using Command = BetterCommands.CommandAttribute;
-
 namespace Compendium.Common.Voice
 {
     public static class VoiceManager
@@ -29,15 +23,6 @@ namespace Compendium.Common.Voice
         static VoiceManager()
         {
             PatchManager.ApplyPatch(VoicePatchData);
-        }
-
-        [@Command("voice", CommandType.PlayerConsole)]
-        public static void SwitchCommand(ReferenceHub sender)
-        {
-            if (sender.TryGetState<VoiceController>(out var vc))
-            {
-                vc.SwitchKey(KeyCode.LeftAlt, sender, null);
-            }
         }
 
         private static bool VoicePatch(NetworkConnection conn, VoiceMessage msg)
@@ -59,26 +44,21 @@ namespace Compendium.Common.Voice
                 return false;
 
             speakerRole.VoiceModule.CurrentChannel = sendChannel;
-
-            if (sendChannel != VoiceChatChannel.None 
-                && sendChannel != VoiceChatChannel.Mimicry 
-                && sendChannel != VoiceChatChannel.Radio
-                && sendChannel != VoiceChatChannel.RoundSummary
-                && sendChannel != VoiceChatChannel.Scp1576
-                && sendChannel != VoiceChatChannel.Spectator
-                && sendChannel != VoiceChatChannel.Intercom)
-            {
-                if (msg.Speaker.TryGetState<VoiceController>(out var vcController))
-                {
-                    if (vcController.Receive(speakerRole, msg, sendChannel))
-                    {
-                        return false;
-                    }
-                }
-            }
+            msg.Channel = sendChannel;
 
             ReferenceHub.AllHubs.ForEach(hub =>
             {
+                if (hub.TryGetState<VoiceController>(out var vc))
+                {
+                    if (vc.Receive(speakerRole.VoiceModule.Owner, ref msg, out var shouldSend))
+                    {
+                        if (shouldSend)
+                            hub.connectionToClient.Send(msg);
+
+                        return;
+                    }
+                }
+
                 if (!(hub.roleManager.CurrentRole is IVoiceRole recvRole))
                     return;
 

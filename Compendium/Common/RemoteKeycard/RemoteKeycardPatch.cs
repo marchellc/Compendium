@@ -21,7 +21,7 @@ namespace Compendium.Common.RemoteKeycard
                     && (!mode.HasFlagFast(DoorLockMode.ScpOverride) || !ply.IsSCP(true)) && (mode == DoorLockMode.FullLock 
                     || (__instance.TargetState && !mode.HasFlagFast(DoorLockMode.CanClose)) || (!__instance.TargetState && !mode.HasFlagFast(DoorLockMode.CanOpen))))
                 {
-                    if (!EventManager.ExecuteEvent(ServerEventType.PlayerInteractDoor, ply, __instance, false)) 
+                    if (!EventManager.ExecuteEvent(new PlayerInteractDoorEvent(ply, __instance, false)))
                         return false;
 
                     __instance.LockBypassDenied(ply, colliderId);
@@ -42,7 +42,7 @@ namespace Compendium.Common.RemoteKeycard
                 hasPerms = true;
             }
 
-            if (!EventManager.ExecuteEvent(ServerEventType.PlayerInteractDoor, ply, __instance, hasPerms)) 
+            if (!EventManager.ExecuteEvent(new PlayerInteractDoorEvent(ply, __instance, hasPerms)))
                 return false;
 
             if (hasPerms)
@@ -61,12 +61,12 @@ namespace Compendium.Common.RemoteKeycard
 
         public static bool LockerPatch()
         {
-
+            return true;
         }
 
         public static bool PanelPatch()
         {
-
+            return true;
         }
     }
 }

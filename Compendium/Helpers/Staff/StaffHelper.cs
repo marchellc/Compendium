@@ -1,14 +1,19 @@
-﻿using Compendium.Helpers.Events;
+﻿using Compendium.Attributes;
+using Compendium.Helpers.Events;
+using Compendium.Helpers.Hints;
 using Compendium.Helpers.UserId;
+using Compendium.State;
 
 using helpers;
 using helpers.Extensions;
-using PluginAPI.Core;
-using PluginAPI.Enums;
-using PluginAPI.Helpers;
 
+using PluginAPI.Enums;
+using PluginAPI.Events;
+using PluginAPI.Helpers;
+using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Text;
 
 using Log = PluginAPI.Core.Log;
@@ -23,11 +28,13 @@ namespace Compendium.Helpers.Staff
         public static IReadOnlyDictionary<UserIdValue, string> Staff => m_Staff;
         public static string FilePath => $"{Paths.Configs}/members.txt";
 
-        static StaffHelper()
+        [InitOnLoad(Priority = 200)]
+        public static void Initialize()
         {
-            ServerEventType.PlayerJoined.GetProvider()?.Add(OnConnected);
+            ServerEventType.PlayerJoined.AddHandler<Action<PlayerJoinedEvent>>(OnConnected);
         }
 
+        [InitOnLoad]
         public static void LoadStaff()
         {
             RemoveRoles();
@@ -74,8 +81,6 @@ namespace Compendium.Helpers.Staff
 
             foreach (var line in lines)
             {
-                Log.Debug($"Loading line: {line}", Plugin.Config.StaffSettings.Debug, "Staff Helper");
-
                 if (!line.TrySplit(':', true, 2, out var splits))
                 {
                     Log.Warning($"Failed to split line ({line})!", "Staff Helper");
@@ -98,8 +103,6 @@ namespace Compendium.Helpers.Staff
                 }
 
                 m_Staff[uid] = group;
-
-                Log.Debug($"Saved group {group} for user ID: {uid}", Plugin.Config.StaffSettings.Debug, "Staff Helper");
             }
 
             AssignRoles();           
@@ -107,8 +110,6 @@ namespace Compendium.Helpers.Staff
 
         public static void SaveStaff()
         {
-            Log.Debug($"Saving {m_Staff.Count} IDs ..", Plugin.Config.StaffSettings.Debug, "Staff Helper");
-
             var sb = new StringBuilder();
 
             foreach (var pair in m_Staff)
@@ -117,13 +118,9 @@ namespace Compendium.Helpers.Staff
                 var line = $"{userId}:{pair.Value}";
 
                 sb.AppendLine(line);
-
-                Log.Debug($"Saved: {line}", Plugin.Config.StaffSettings.Debug, "Staff Helper");
             }
 
             File.WriteAllText(FilePath, sb.ToString());
-
-            Log.Debug($"Saved.", Plugin.Config.StaffSettings.Debug, "Staff Helper");
         }
 
         public static void SetRole(ReferenceHub hub, string role)
@@ -137,8 +134,6 @@ namespace Compendium.Helpers.Staff
             hub.characterClassManager.ConsolePrint($"Your server role has been set to: {role}", "green");
 
             Notify(hub, true);
-
-            Log.Debug($"Set server role of {hub.LoggedNameFromRefHub()} to {role}", Plugin.Config.StaffSettings.Debug, "Staff Helper");
         }
 
         public static void RemoveRole(ReferenceHub hub)
@@ -153,8 +148,6 @@ namespace Compendium.Helpers.Staff
             hub.characterClassManager.ConsolePrint($"Your server role has been revoked.", "red");
 
             Notify(hub, false);
-
-            Log.Debug($"Removed server role of {hub.LoggedNameFromRefHub()}.", Plugin.Config.StaffSettings.Debug, "Staff Helper");
         }
 
         public static bool TryGetGroup(string groupKey, out UserGroup group)
@@ -172,16 +165,18 @@ namespace Compendium.Helpers.Staff
 
         public static bool TryGetGroup(string userId, out string groupKey)
         {
-            if (m_Staff.TryGetKey(userId, out var id))
+            if (m_Staff.Keys.Any(key => key.FullId == userId))
             {
-                groupKey = m_Staff[id];
+                groupKey = m_Staff.First(pair => pair.Key.FullId == userId).Value;
                 return true;
             }
 
             if (ServerStatic.PermissionsHandler != null)
             {
                 if (ServerStatic.PermissionsHandler._members.TryGetValue(userId, out groupKey))
+                {
                     return true;
+                }
             }
 
             groupKey = null;
@@ -237,16 +232,62 @@ namespace Compendium.Helpers.Staff
             if (!IsConsideredStaff(hub))
                 return;
 
+            var hints = hub.GetOrAddState<HintController>();
 
+            if (added)
+            {
+                hints.Display(new HintBuilder()
+                    .WithFadeIn(0.8f)
+                    .WithDuration(5f)
+                    .Write(writer =>
+                    {
+                        writer.Clear();
+                        writer.EmitSize(80);
+                        writer.EmitTag(HintTag.Bold);
+                        writer.EmitNewLine();
+                        writer.EmitNewLine();
+                        writer.EmitNewLine();
+                        writer.EmitNewLine("Server role ");
+                        writer.EmitColor("#33FF4F");
+                        writer.Emit("assigned");
+                        writer.EmitTagEnd(HintTag.Color);
+                        writer.EmitTagEnd(HintTag.Bold);
+                        writer.EmitNewLine($"「{hub.serverRoles.Network_myText.Trim()}」");
+                        writer.EmitTagEnd(HintTag.Size);
+                    })
+                    .Build());
+            }
+            else
+            {
+                hints.Display(new HintBuilder()
+                    .WithFadeIn(0.8f)
+                    .WithDuration(5f)
+                    .Write(writer =>
+                    {
+                        writer.Clear();
+                        writer.EmitSize(80);
+                        writer.EmitTag(HintTag.Bold);
+                        writer.EmitNewLine();
+                        writer.EmitNewLine();
+                        writer.EmitNewLine();
+                        writer.EmitNewLine("Server role ");
+                        writer.EmitColor("#33FF4F");
+                        writer.Emit("removed");
+                        writer.EmitTagEnd(HintTag.Color);
+                        writer.EmitTagEnd(HintTag.Bold);
+                        writer.EmitTagEnd(HintTag.Size);
+                    })
+                    .Build());
+            }
         }
 
-        private static void OnConnected(ObjectCollection objectCollection)
+        private static void OnConnected(PlayerJoinedEvent ev)
         {
-            var player = objectCollection.Get<Player>();
+            var player = ev.Player.ReferenceHub;
 
-            if (TryGetGroup(player.UserId, out string group))
+            if (TryGetGroup(player.characterClassManager.UserId, out string group))
             {
-                SetRole(player.ReferenceHub, group);
+                SetRole(player, group);
             }
         }
 
@@ -255,10 +296,11 @@ namespace Compendium.Helpers.Staff
             if (ev.ChangeType is WatcherChangeTypes.Renamed)
                 return;
 
+            Log.Debug($"Change detected in {ev.FullPath} ({ev.ChangeType})", Plugin.Config.StaffSettings.Debug, "Staff Helper");
+
             if (ev.FullPath != FilePath)
                 return;
 
-            Log.Debug($"Change detected in {ev.FullPath} ({ev.ChangeType})", Plugin.Config.StaffSettings.Debug, "Staff Helper");
             LoadStaff();
         }
     }

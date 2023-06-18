@@ -1,4 +1,5 @@
-﻿using Compendium.Helpers.Events;
+﻿using Compendium.Attributes;
+using Compendium.Helpers.Events;
 using Compendium.Helpers.Prefabs;
 
 using helpers.Extensions;
@@ -8,6 +9,7 @@ using Mirror;
 
 using PluginAPI.Enums;
 
+using System;
 using System.Collections.Generic;
 
 namespace Compendium.Npc
@@ -17,11 +19,6 @@ namespace Compendium.Npc
         private static readonly HashSet<INpc> m_Spawned = new HashSet<INpc>();
         private static readonly HashSet<INpc> m_Despawned = new HashSet<INpc>();
         private static readonly HashSet<INpc> m_All = new HashSet<INpc>();
-
-        static NpcManager()
-        {
-            ServerEventType.RoundEnd.GetProvider()?.Add(OnRoundEnd);
-        }
 
         public static IReadOnlyCollection<INpc> Spawned => m_Spawned;
         public static IReadOnlyCollection<INpc> Despawned => m_Despawned;
@@ -38,6 +35,12 @@ namespace Compendium.Npc
 
                 return hub;
             }
+        }
+
+        [InitOnLoad]
+        internal static void Initialize()
+        {
+            ServerEventType.RoundEnd.AddHandler<Action>(OnRoundEnd);
         }
 
         internal static void OnNpcCreated(INpc npc)

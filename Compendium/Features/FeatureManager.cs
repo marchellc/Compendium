@@ -30,9 +30,11 @@ namespace Compendium.Features
                 }
             }
 
-            Plugin.OnLoaded.Add(Load);
-            Plugin.OnUnloaded.Add(Unload);
-            Plugin.OnReloaded.Add(Reload);
+            Plugin.OnLoaded.Register((Action)Load);
+            Plugin.OnUnloaded.Register((Action)Unload);
+            Plugin.OnReloaded.Register((Action)Reload);
+
+            Reload();
         }
 
         public static bool IsRegistered<TFeature>() where TFeature : IFeature => _knownFeatures.Contains(typeof(TFeature));
@@ -49,9 +51,14 @@ namespace Compendium.Features
         public static void Enable(IFeature feature)
         {
             Verify(feature);
-            if (Plugin.Config.FeatureSettings.Disabled.Remove(feature.Name)) Plugin.SaveConfig();
+
+            if (Plugin.Config.FeatureSettings.Disabled.Remove(feature.Name)) 
+                Plugin.SaveConfig();
+
             feature.Enable();
-            if (!feature.IsRunning) feature.Load();
+
+            if (!feature.IsRunning) 
+                feature.Load();
         }
 
         public static void Disable(string name) { if (TryGetFeature(name, out var feature)) Disable(feature); }
@@ -78,8 +85,11 @@ namespace Compendium.Features
                 var isInConfig = Plugin.Config.FeatureSettings.Disabled.Contains(feature.Name);
                 var isDisabled = feature.IsDisabled;
 
-                if (isDisabled && !isInConfig) feature.Enable();
-                if (!isDisabled && isInConfig) feature.Disable();
+                if (isDisabled && !isInConfig) 
+                    feature.Enable();
+
+                if (!isDisabled && isInConfig) 
+                    feature.Disable();
             }
         }
 
@@ -90,8 +100,11 @@ namespace Compendium.Features
                 var isInConfig = Plugin.Config.FeatureSettings.Disabled.Contains(feature.Name);
                 var isDisabled = feature.IsDisabled;
 
-                if (isDisabled && !isInConfig) feature.Enable();
-                if (!isDisabled && isInConfig) feature.Disable();
+                if (isDisabled && !isInConfig) 
+                    feature.Enable();
+
+                if (!isDisabled && isInConfig) 
+                    feature.Disable();
             }
         }
 
@@ -102,8 +115,11 @@ namespace Compendium.Features
                 var isInConfig = Plugin.Config.FeatureSettings.Disabled.Contains(feature.Name);
                 var isDisabled = feature.IsDisabled;
 
-                if (isDisabled && !isInConfig) feature.Enable();
-                if (!isDisabled && isInConfig) feature.Disable();
+                if (isDisabled && !isInConfig)
+                    feature.Enable();
+
+                if (!isDisabled && isInConfig)
+                    feature.Disable();
             }
         }
 
@@ -145,7 +161,10 @@ namespace Compendium.Features
         public static void Load(IFeature feature)
         {
             Verify(feature);
-            if (feature.IsDisabled) return;
+
+            if (feature.IsDisabled) 
+                return;
+
             feature.Load();
         }
 
@@ -176,7 +195,10 @@ namespace Compendium.Features
         public static void Unload(IFeature feature)
         {
             Verify(feature);
-            if (feature.IsDisabled) return;
+
+            if (feature.IsDisabled) 
+                return;
+
             feature.Unload();
         }
 
@@ -243,7 +265,8 @@ namespace Compendium.Features
             {
                 if (!x.IsRunning)
                 {
-                    if (x.IsDisabled) return;
+                    if (x.IsDisabled) 
+                        return;
 
                     x.Enable();
                     x.Load();

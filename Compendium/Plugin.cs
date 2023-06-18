@@ -5,6 +5,8 @@ using helpers.Events;
 using helpers.Extensions;
 using helpers.Translations;
 
+using MEC;
+
 using PluginAPI.Core;
 using PluginAPI.Core.Attributes;
 
@@ -38,52 +40,15 @@ namespace Compendium
             "fleccker")]
         public void Load()
         {
-            if (Instance != null) throw new InvalidOperationException($"This plugin has already been loaded!");
+            if (Instance != null) 
+                throw new InvalidOperationException($"This plugin has already been loaded!");
 
             Info("Loading ..");
 
             Instance = this;
             HandlerInstance = PluginHandler.Get(this);
 
-            var initMethods = new List<Tuple<MethodInfo, int>>();
-
-            foreach (var type in Assembly
-                .GetExecutingAssembly()
-                .GetTypes())
-            {
-                foreach (var method in type.GetMethods())
-                {
-                    if (method.TryGetAttribute<InitOnLoadAttribute>(out var attributeValue))
-                    {
-                        initMethods.Add(new Tuple<MethodInfo, int>(method, attributeValue.Priority < 0 ? 0 : attributeValue.Priority));
-                        Debug($"Method {method.ToLogName(false)} will be initialized with priority {initMethods.First(x => x.Item1 == method).Item2}.");
-                    }
-                }
-            }
-
-            initMethods
-               .OrderByDescending(x => x.Item2)
-               .ForEach(y =>
-               {
-                   Debug($"Loading method: {y.Item1.ToLogName(false)}");
-
-                   try
-                   {
-                       y.Item1.Invoke(null, null);
-                   }
-                   catch (Exception ex)
-                   {
-                       Error($"Failed to invoke InitOnLoad method {y.Item1.ToLogName(false)}!");
-                       Error(ex);
-                   }
-               });
-
-            Translations.Translation.RegisterAll();
-            Translator.Load();
-
-            Info("Loaded!");
-
-            OnLoaded.Invoke();
+            Timing.RunCoroutine(Startup());
         }
 
         [PluginUnload]
@@ -128,11 +93,53 @@ namespace Compendium
             if (!Config.LogSettings.ShowDebug) 
                 return;
 
-            Log.Debug(message?.ToString() ?? "Null Message!", helpers.Log.ResolveCaller(2));
+            Log.Debug(message?.ToString() ?? "Null Message!", helpers.Log.ResolveCaller());
         }
 
-        public static void Error(object message) => Log.Error(message?.ToString() ?? "Null Message!", helpers.Log.ResolveCaller(2));
-        public static void Warn(object message) => Log.Warning(message?.ToString() ?? "Null Message!", helpers.Log.ResolveCaller(2));
-        public static void Info(object message) => Log.Info(message?.ToString() ?? "Null Message!", helpers.Log.ResolveCaller(2));
+        public static void Error(object message) => Log.Error(message?.ToString() ?? "Null Message!", helpers.Log.ResolveCaller());
+        public static void Warn(object message) => Log.Warning(message?.ToString() ?? "Null Message!", helpers.Log.ResolveCaller());
+        public static void Info(object message) => Log.Info(message?.ToString() ?? "Null Message!", helpers.Log.ResolveCaller());
+
+        private static IEnumerator<float> Startup()
+        {
+            yield return Timing.WaitUntilTrue(() => ServerStatic.PermissionsHandler != null);
+
+            var initMethods = new List<Tuple<MethodInfo, int>>();
+
+            foreach (var type in Assembly
+                .GetExecutingAssembly()
+                .GetTypes())
+            {
+                foreach (var method in type.GetMethods())
+                {
+                    if (method.TryGetAttribute<InitOnLoadAttribute>(out var attributeValue))
+                    {
+                        initMethods.Add(new Tuple<MethodInfo, int>(method, attributeValue.Priority < 0 ? 0 : attributeValue.Priority));
+                    }
+                }
+            }
+
+            initMethods
+               .OrderByDescending(x => x.Item2)
+               .ForEach(y =>
+               {
+                   try
+                   {
+                       y.Item1.Invoke(null, null);
+                   }
+                   catch (Exception ex)
+                   {
+                       Error($"Failed to invoke InitOnLoad method {y.Item1.ToLogName(false)}!");
+                       Error(ex);
+                   }
+               });
+
+            Translations.Translation.RegisterAll();
+            Translator.Load();
+
+            Info("Loaded!");
+
+            OnLoaded.Invoke();
+        }
     }
 }

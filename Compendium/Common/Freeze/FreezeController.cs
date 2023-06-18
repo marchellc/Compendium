@@ -7,6 +7,8 @@ using Compendium.State.Base;
 
 using PlayerRoles.FirstPersonControl;
 
+using PluginAPI.Core;
+
 using UnityEngine;
 
 namespace Compendium.Common.Freeze
@@ -34,10 +36,14 @@ namespace Compendium.Common.Freeze
 
         [Command("freeze", CommandType.RemoteAdmin, CommandType.PlayerConsole)]
         [Permission(PermissionLevel.Low)]
-        public static string FreezeCommand(ReferenceHub sender, ReferenceHub target)
+        private static string FreezeCommand(ReferenceHub sender, ReferenceHub target)
         {
+            Log.Debug($"{sender != null} {target != null}");
+
             if (target.TryGetState<FreezeController>(out var freeze))
             {
+                Log.Debug($"{freeze != null}");
+
                 if (freeze.IsActive)
                 {
                     freeze.SetActive(false);

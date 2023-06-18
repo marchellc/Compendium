@@ -1,174 +1,164 @@
-﻿using Compendium.Input;
+﻿using Compendium.Attributes;
+using Compendium.Common.Input;
+using Compendium.Helpers.Staff;
 using Compendium.State;
 using Compendium.State.Base;
 
-using helpers.Extensions;
-using helpers.Translations;
 using PlayerRoles;
 using PlayerRoles.Spectating;
-using PlayerRoles.Voice;
 
 using System.Collections.Generic;
+using System.Linq;
 
 using UnityEngine;
 
-using VoiceChat;
 using VoiceChat.Networking;
 
 namespace Compendium.Common.Voice
 {
     public class VoiceController : RequiredStateBase
     {
-        private IVoiceChannel m_ReturnChannel;
-        private IVoiceChannel m_Channel;
-
         private List<VoiceOverrides> m_Overrides = new List<VoiceOverrides>();
+        private readonly VoiceData m_Data = new VoiceData();
 
         public override StateFlags Flags => StateFlags.DisableUpdate;
-        public override string Name => "Voice";
+        public override string Name => "Voice Chat";
 
         public List<VoiceOverrides> Overrides => m_Overrides;
 
-        public IVoiceChannel VoiceChannel => m_Channel;
+        public VoiceData Data => m_Data;
 
-        public override void OnLoaded()
+        [InitOnLoad]
+        public static void Initialize()
         {
-            InputManager.AddGlobalHandler(KeyCode.V, ProximityKey);
-            InputManager.AddGlobalHandler(KeyCode.RightAlt, SwitchKey);
+            InputHandler.TryAdd("voice_proximity_switch", KeyCode.AltGr, HandleProximity);
+            InputHandler.TryAdd("voice_admin", KeyCode.RightAlt, HandleAdmin);
         }
 
         public override void HandlePlayerSpawn(RoleTypeId newRole)
         {
-            if (m_Channel != null)
-                Leave();
-
-            if (newRole.GetTeam() is Team.SCPs)
-                Join(StaticChannels.ScpChannel);
-            else if (newRole.GetFaction() is Faction.FoundationStaff || newRole.GetFaction() is Faction.FoundationEnemy)
-                Join(StaticChannels.ProximityChannel);
+            if (m_Data.ShouldResetOnRole)
+                m_Data.ResetAll();
         }
 
-        public bool Receive(IVoiceRole speakerRole, VoiceMessage voiceMessage, VoiceChatChannel sendChannel)
+        public bool Receive(ReferenceHub speaker, ref VoiceMessage message, out bool shouldSend)
         {
-            ReferenceHub.AllHubs.ForEach(receiver =>
+            if (Player.netId == speaker.netId)
             {
-                if (receiver.netId == Player.netId)
+                if (m_Overrides.Contains(VoiceOverrides.Playback))
                 {
-                    if (Overrides.Contains(VoiceOverrides.Playback))
-                    {
-                        voiceMessage.Channel = sendChannel;
-                        speakerRole.VoiceModule.CurrentChannel = sendChannel;
-                        Player.connectionToClient.Send(voiceMessage);
-                    }
-                    else
-                    {
-                        return;
-                    }
-                }
-
-                if (Player.IsSCP())
-                {
-                    if (Player.IsSpectatedBy(receiver) && receiver.GetRoleId() == RoleTypeId.Overwatch)
-                    {
-                        voiceMessage.Channel = VoiceChatChannel.ScpChat;
-                        speakerRole.VoiceModule.CurrentChannel = VoiceChatChannel.ScpChat;
-                        receiver.connectionToClient.Send(voiceMessage);
-                        return;
-                    }
-                }
-
-                if (m_Channel != null)
-                {
-                    if (m_Channel.CanReceive(speakerRole, receiver) 
-                        && m_Channel.Contains(receiver)
-                        && m_Channel.Contains(speakerRole.VoiceModule.Owner))
-                    {
-                        speakerRole.VoiceModule.CurrentChannel = m_Channel.Channel;
-                        voiceMessage.Channel = m_Channel.Channel;
-
-                        m_Channel.Receive(speakerRole, receiver, voiceMessage);                        
-                        return;
-                    }
-                }
-
-                if (!(receiver.roleManager.CurrentRole is IVoiceRole recvRole))
-                    return;
-
-                var recvChannel = recvRole.VoiceModule.ValidateReceive(Player, sendChannel);
-                if (recvChannel != VoiceChatChannel.None)
-                {
-                    voiceMessage.Channel = recvChannel;
-                    speakerRole.VoiceModule.CurrentChannel = recvChannel;
-                    receiver.connectionToClient.Send(voiceMessage);
-                }
-            });
-
-            return true;
-        }
-
-        public void Join(IVoiceChannel voiceChannel)
-        {
-            if (m_Channel != null)
-                Leave();
-
-            m_Channel = voiceChannel;
-            m_Channel.Join(Player);
-        }
-
-        public void Leave()
-        {
-            if (m_Channel != null)
-            {
-                m_Channel.Leave(Player);
-                m_Channel = null;
-            }
-
-            if (m_ReturnChannel != null)
-            {
-                m_ReturnChannel = null;
-                Join(m_ReturnChannel);
-            }
-        }
-
-        public void ProximityKey(KeyCode key, ReferenceHub player, InputManager input)
-        {
-            if (player != Player)
-                return;
-
-            if (m_Channel == StaticChannels.ProximityChannel)
-                HandlePlayerSpawn(Player.GetRoleId());
-            else
-                Join(StaticChannels.ProximityChannel);
-        }
-
-        public void SwitchKey(KeyCode key, ReferenceHub player, InputManager input)
-        {
-            if (player != Player)
-                return;
-
-            if (m_Channel != null)
-            {
-                if (m_Channel == StaticChannels.ScpChannel)
-                {
-                    Join(StaticChannels.ProximityChannel);
-                    OnChannelChanged();
+                    shouldSend = true;
+                    return true;
                 }
                 else
                 {
-                    Join(StaticChannels.ScpChannel);
-                    OnChannelChanged();
+                    shouldSend = false;
+                    return true;
                 }
             }
-            else
+
+            if (Player.GetRoleId() is RoleTypeId.Overwatch)
             {
-                Join(StaticChannels.ProximityChannel);
-                OnChannelChanged();
+                if (speaker.IsSpectatedBy(Player) || 
+                    ReferenceHub.AllHubs.Any(hub => 
+                                             hub.Mode is ClientInstanceMode.ReadyClient && 
+                                             hub.IsSCP() && 
+                                             hub.netId != speaker.netId &&
+                                             hub.IsSpectatedBy(Player)))
+                {
+                    message.Channel = VoiceChat.VoiceChatChannel.ScpChat;
+                    shouldSend = true;
+                    return true;
+                }
+            }
+
+            if (speaker.TryGetState<VoiceController>(out var vc))
+            {
+                if (vc.Data.IsActive)
+                {
+                    if (!vc.Data.IsAllowed(Player))
+                    {
+                        shouldSend = false;
+                        return true;
+                    }
+                    else
+                    {
+                        if (vc.Data.IsOverrideActive)
+                        {
+                            message.Channel = vc.Data.Override;
+                            shouldSend = true;
+                            return true;
+                        }
+                    }
+                }
+            }
+
+            shouldSend = false;
+            return false;
+        }
+
+        private static void HandleProximity(ReferenceHub sender, KeyCode key)
+        {
+            if (!sender.IsSCP())
+                return;
+
+            if (sender.GetRoleId() is RoleTypeId.Scp079)
+                return;
+
+            if (sender.TryGetState<VoiceController>(out var vc))
+            {
+                vc.Data.Activate();
+                vc.Data.ResetOnRoleChange();
+                vc.Data.SetString("ScpChat");
+
+                if (vc.Data.IsOverrideActive)
+                {
+                    if (vc.Data.Override is VoiceChat.VoiceChatChannel.Proximity)
+                    {
+                        vc.Data.SetOverride(VoiceChat.VoiceChatChannel.ScpChat);
+                    }
+                    else
+                    {
+                        vc.Data.SetOverride(VoiceChat.VoiceChatChannel.Proximity);
+                    }
+                }
+                else
+                {
+                    vc.Data.SetOverride(VoiceChat.VoiceChatChannel.Proximity);
+                }
             }
         }
 
-        private void OnChannelChanged()
+        private static void HandleAdmin(ReferenceHub sender, KeyCode key)
         {
-            var text = Translator.Get("voice.notify", m_Channel.Name);
+            if (!StaffHelper.IsConsideredStaff(sender))
+                return;
+
+            if (sender.TryGetState<VoiceController>(out var vc))
+            {
+                if (vc.IsActive)
+                {
+                    if (vc.Data.IsStringSet)
+                    {
+                        if (vc.Data.String is "AdminChat")
+                        {
+                            vc.Data.RemoveString();
+                            vc.Data.RemoveOverride();
+                            vc.Data.RemoveValidator();
+                            vc.Data.Deactivate();
+                        }
+                    }
+                }
+                else
+                {
+                    vc.Data.Activate();
+                    vc.Data.SetString("AdminChat");
+                    vc.Data.SetOverride(VoiceChat.VoiceChatChannel.Spectator);
+                    vc.Data.SetValidator(AdminChatValidator);
+                }
+            }
         }
+
+        private static bool AdminChatValidator(ReferenceHub receiver) => StaffHelper.IsConsideredStaff(receiver);
     }
 }

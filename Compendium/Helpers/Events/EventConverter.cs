@@ -3,6 +3,7 @@
 using helpers.Events;
 
 using PluginAPI.Enums;
+using PluginAPI.Events;
 
 using System;
 using System.Collections.Generic;
@@ -13,6 +14,7 @@ namespace Compendium.Helpers.Events
     public static class EventConverter
     {
         private static readonly Dictionary<ServerEventType, EventProvider> m_Events = new Dictionary<ServerEventType, EventProvider>();
+
         public static IReadOnlyDictionary<ServerEventType, EventProvider> Events => m_Events;
 
         [InitOnLoad(Priority = 254)]
@@ -22,10 +24,30 @@ namespace Compendium.Helpers.Events
                 .GetValues(typeof(ServerEventType))
                 .Cast<ServerEventType>())
             {
-                m_Events[evType] = new EventProvider();
+                m_Events[evType] = new EventProvider(evType.ToString());
+            }
+
+            PluginAPI.Events.EventManager.OnExecute = Execute;
+        }
+
+        public static void Execute(ServerEventType type, IEventArguments arguments, RefValue cancelValue) 
+        {
+            if (m_Events.TryGetValue(type, out var provider))
+            {
+                provider.Invoke(cancelValue, arguments);
             }
         }
 
-        public static EventProvider GetProvider(this ServerEventType serverEventType) => Events[serverEventType];
+        public static EventProvider GetProvider(this ServerEventType serverEventType) 
+            => Events[serverEventType];
+
+        public static void AddHandler<THandler>(this ServerEventType serverEventType, THandler target) where THandler : Delegate
+            => serverEventType.GetProvider()?.Register(target);
+
+        public static void RemoveHandler<THandler>(this ServerEventType serverEventType, THandler target) where THandler : Delegate
+            => serverEventType.GetProvider()?.Unregister(target);
+
+        public static void RemoveAllHandlers(this ServerEventType serverEventType)
+            => serverEventType.GetProvider()?.UnregisterAll();
     }
 }

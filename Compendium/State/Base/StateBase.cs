@@ -1,4 +1,5 @@
 ﻿using Compendium.State.Interfaced;
+
 using PlayerRoles;
 using PlayerStatsSystem;
 
@@ -13,7 +14,7 @@ namespace Compendium.State.Base
         public virtual string Name { get; }
         public virtual bool IsActive { get => m_IsActive; }
 
-        public virtual StateFlags Flags { get; }
+        public virtual StateFlags Flags { get; } = StateFlags.DisableUpdate;
 
         public ReferenceHub Player => m_Player;
 

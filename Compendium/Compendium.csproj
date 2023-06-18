@@ -48,7 +48,7 @@
       <HintPath>..\..\..\..\..\..\Program Files (x86)\Steam\steamapps\common\SCP Secret Laboratory Dedicated Server\SCPSL_Data\Managed\CommandSystem.Core.dll</HintPath>
     </Reference>
     <Reference Include="helpers">
-      <HintPath>..\..\helpers\helpers\bin\Debug\helpers.dll</HintPath>
+      <HintPath>..\..\helpers\helpers\bin\Release\helpers.dll</HintPath>
     </Reference>
     <Reference Include="Mirror_publicized">
       <HintPath>..\..\..\..\..\..\Program Files (x86)\Steam\steamapps\common\SCP Secret Laboratory Dedicated Server\SCPSL_Data\Managed\Mirror_publicized.dll</HintPath>
@@ -56,8 +56,8 @@
     <Reference Include="NorthwoodLib">
       <HintPath>..\..\..\..\..\..\Program Files (x86)\Steam\steamapps\common\SCP Secret Laboratory Dedicated Server\SCPSL_Data\Managed\NorthwoodLib.dll</HintPath>
     </Reference>
-    <Reference Include="PluginAPI_publicized">
-      <HintPath>..\..\..\..\..\..\Program Files (x86)\Steam\steamapps\common\SCP Secret Laboratory Dedicated Server\SCPSL_Data\Managed\PluginAPI_publicized.dll</HintPath>
+    <Reference Include="PluginAPI">
+      <HintPath>..\..\..\..\..\..\Program Files (x86)\Steam\steamapps\common\SCP Secret Laboratory Dedicated Server\SCPSL_Data\Managed\PluginAPI.dll</HintPath>
     </Reference>
     <Reference Include="Pooling">
       <HintPath>..\..\..\..\..\..\Program Files (x86)\Steam\steamapps\common\SCP Secret Laboratory Dedicated Server\SCPSL_Data\Managed\Pooling.dll</HintPath>
@@ -87,19 +87,24 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Attributes\InitOnLoadAttribute.cs" />
+    <Compile Include="Common\CustomItems\CustomItemBase.cs" />
+    <Compile Include="Common\CustomItems\CustomItemDisplay.cs" />
+    <Compile Include="Common\CustomItems\CustomItemManager.cs" />
+    <Compile Include="Common\CustomItems\CustomItemStatus.cs" />
+    <Compile Include="Common\CustomItems\CustomWeaponBase.cs" />
+    <Compile Include="Common\CustomItems\ICustomItem.cs" />
+    <Compile Include="Common\CustomItems\ICustomWeapon.cs" />
     <Compile Include="Common\Freeze\FreezeController.cs" />
+    <Compile Include="Common\Input\InputHandler.cs" />
+    <Compile Include="Common\Input\InputHandlerData.cs" />
+    <Compile Include="Common\Input\InputHandlerPlayerData.cs" />
+    <Compile Include="Common\PersistentOverwatch\OverwatchController.cs" />
     <Compile Include="Common\RemoteKeycard\RemoteKeycardLogic.cs" />
     <Compile Include="Common\RemoteKeycard\RemoteKeycardPatch.cs" />
+    <Compile Include="Common\RespawnTimer\RespawnTimerController.cs" />
     <Compile Include="Common\Rocket\RocketController.cs" />
-    <Compile Include="Common\Voice\Channels\AdminChannel.cs" />
-    <Compile Include="Common\Voice\Channels\CustomVoiceChannel.cs" />
-    <Compile Include="Common\Voice\Channels\ProximityChannel.cs" />
-    <Compile Include="Common\Voice\Channels\ScpChannel.cs" />
-    <Compile Include="Common\Voice\Channels\VoiceChannelBase.cs" />
-    <Compile Include="Common\Voice\ICustomVoiceChannel.cs" />
-    <Compile Include="Common\Voice\IVoiceChannel.cs" />
-    <Compile Include="Common\Voice\StaticChannels.cs" />
     <Compile Include="Common\Voice\VoiceController.cs" />
+    <Compile Include="Common\Voice\VoiceData.cs" />
     <Compile Include="Common\Voice\VoiceManager.cs" />
     <Compile Include="Common\Voice\VoiceOverrides.cs" />
     <Compile Include="Config.cs" />
@@ -111,7 +116,14 @@
     <Compile Include="Helpers\Caching\CacheData.cs" />
     <Compile Include="Helpers\Caching\CacheManager.cs" />
     <Compile Include="Helpers\Events\EventConverter.cs" />
+    <Compile Include="Helpers\Hints\Hint.cs" />
+    <Compile Include="Helpers\Hints\HintAlign.cs" />
     <Compile Include="Helpers\Hints\HintBuilder.cs" />
+    <Compile Include="Helpers\Hints\HintController.cs" />
+    <Compile Include="Helpers\Hints\HintPriority.cs" />
+    <Compile Include="Helpers\Hints\HintTag.cs" />
+    <Compile Include="Helpers\Hints\HintWriter.cs" />
+    <Compile Include="Helpers\Hints\HintUtils.cs" />
     <Compile Include="Helpers\Patching\IPatch.cs" />
     <Compile Include="Helpers\Patching\PatchAttribute.cs" />
     <Compile Include="Helpers\Patching\PatchData.cs" />
@@ -123,7 +135,6 @@
     <Compile Include="Helpers\UserId\UserIdValue.cs" />
     <Compile Include="Helpers\UserId\UserIdHelper.cs" />
     <Compile Include="Helpers\UserId\UserIdType.cs" />
-    <Compile Include="Input\InputManager.cs" />
     <Compile Include="Npc\INpc.cs" />
     <Compile Include="Npc\NpcBase.cs" />
     <Compile Include="Npc\NpcConnection.cs" />

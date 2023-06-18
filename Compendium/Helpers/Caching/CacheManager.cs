@@ -1,39 +1,43 @@
-﻿using Compendium.Attributes;
+﻿using BetterCommands;
+
+using Compendium.Attributes;
 using Compendium.Helpers.Events;
 
 using helpers;
+using helpers.Extensions;
 using helpers.IO.Binary;
 using helpers.Random;
 
-using PluginAPI.Core;
 using PluginAPI.Enums;
+using PluginAPI.Events;
 using PluginAPI.Helpers;
 
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text;
 using System.Threading.Tasks;
+
+using CommandType = BetterCommands.CommandType;
 
 namespace Compendium.Helpers.Caching
 {
     [LogSource("Cache Manager")]
     public static class CacheManager
     {
-        private static readonly BinaryImage _file = new BinaryImage();
         private static readonly List<CacheData> _cache = new List<CacheData>();
         private static readonly object _lock = new object();
 
-        public static string GlobalPath => $"{Paths.GlobalPlugins}/cache.dat";
+        public static string GlobalPath => $"{Paths.Configs}/cache.dat";
         public const int UniqueIdLength = 7;
 
         [InitOnLoad]
         public static void Initialize()
         {
-            Plugin.Info($"Global cache path set to: {GlobalPath}");
-            Plugin.OnReloaded.Add(Reload);
-            Plugin.OnUnloaded.Add(Save);
+            Plugin.OnReloaded.Register((Action)Reload);
+            Plugin.OnUnloaded.Register((Action)Save);
 
-            ServerEventType.PlayerJoined.GetProvider()?.Add(HandlePlayerJoin);
+            ServerEventType.PlayerJoined.AddHandler<Action<PlayerJoinedEvent>>(HandlePlayerJoin);
 
             Reload();
         }
@@ -42,9 +46,19 @@ namespace Compendium.Helpers.Caching
         {
             lock (_lock)
             {
+                var file = new BinaryImage();
+
                 _cache.Clear();
-                _file.Load(GlobalPath);
-                _cache.AddRange(_file.Retrieve<List<CacheData>>());
+
+                file.Load(GlobalPath);
+
+                if (!file.TryRetrieve<List<CacheData>>(out var saved))
+                {
+                    Save();
+                    return;
+                }
+
+                _cache.AddRange(saved);
             }
         }
 
@@ -52,20 +66,54 @@ namespace Compendium.Helpers.Caching
         {
             lock (_lock)
             {
-                _file.Store(_cache);
-                _file.Save(GlobalPath);
+                var file = new BinaryImage();
+
+                file.Store(_cache);
+                file.Save(GlobalPath);
             }
         }
 
         public static bool TryGet(string value, out CacheData cacheData)
         {
+            cacheData = _cache.FirstOrDefault(x => CompareCache(value, x, true));
+            return cacheData != null;
+        }
+
+        public static bool TryGetExact(string value, out CacheData cacheData)
+        {
             cacheData = _cache.FirstOrDefault(x => CompareCache(value, x));
             return cacheData != null;
         }
 
+        public static string GetIdByIp(string ip)
+        {
+            if (!TryGetExact(ip, out var data))
+            {
+                return null;
+            }           
+
+            return data.UniqueId;
+        }
+
+        public static string GetIpById(string id)
+        {
+            if (!TryGetExact(id, out var data))
+            {
+                return null;
+            }
+
+            return data.Ip;
+        }
+
+        public static string GetOrAddIp(ReferenceHub hub) => GetOrAdd(hub).Ip;
+        public static string GetOrAddId(ReferenceHub hub) => GetOrAdd(hub).UniqueId;
+
         public static CacheData GetOrAdd(ReferenceHub hub)
         {
-            if (!TryGet(hub.connectionToClient.address, out var cacheData) && !TryGet(hub.characterClassManager.UserId, out cacheData)) cacheData = Add(hub);
+            if (!TryGetExact(hub.connectionToClient.address, out var cacheData) 
+                && !TryGetExact(hub.characterClassManager.UserId, out cacheData)) 
+                cacheData = Add(hub);
+
             return cacheData;
         }
 
@@ -75,19 +123,21 @@ namespace Compendium.Helpers.Caching
             {
                 Ip = hub.connectionToClient.address,
                 LastId = hub.characterClassManager.UserId,
-                LastName = hub.nicknameSync.Network_myNickSync
+                LastName = hub.nicknameSync.Network_myNickSync.Trim(),
+                LastOnline = DateTime.Now.ToLocalTime()
             };
 
             GenerateUniqueId(x =>
             {
                 data.UniqueId = x;
+                _cache.Add(data);
                 Save();
             });
 
             var localTime = DateTime.Now.ToLocalTime();
 
             data.AllIds.Add(hub.characterClassManager.UserId, localTime);
-            data.AllNames.Add(hub.nicknameSync.Network_myNickSync, localTime);
+            data.AllNames.Add(hub.nicknameSync.Network_myNickSync.Trim(), localTime);
 
             return data;
         }
@@ -96,44 +146,106 @@ namespace Compendium.Helpers.Caching
         {
             Task.Run(() =>
             {
-                callback?.Invoke(GenerateUniqueIdCallback());
+                var id = GenerateUniqueIdCallback();
+
+                callback?.Invoke(id);
+
+                Plugin.Debug($"Generated unique ID: {id}");
             });
         }
 
         private static string GenerateUniqueIdCallback()
         {
             var generatedId = RandomGeneration.Default.GetReadableString(UniqueIdLength);
-            while (_cache.Any(x => x.UniqueId == generatedId)) generatedId = RandomGeneration.Default.GetReadableString(UniqueIdLength);
+
+            while (_cache.Any(x => x.UniqueId == generatedId)) 
+                generatedId = RandomGeneration.Default.GetReadableString(UniqueIdLength);
+
             return generatedId;
         }
 
         private static bool CompareCache(string value, CacheData data, bool compareName = false)
         {
-            if (data.Ip == value || data.UniqueId == value || data.LastId == value || (compareName && data.LastName.ToLower() == value.ToLower())) return true;
-            if (data.AllNames.Any(x => x.Key == value) || data.AllIds.Any(x => x.Key == value) || (compareName && data.AllNames.Any(x => x.Key.ToLower() == value.ToLower()))) return true;
+            Plugin.Debug($"Comparing {value} to \n{data}");
+
+            if (data.Ip == value || data.UniqueId == value || data.LastId == value) 
+                return true;
+
+            if (data.AllIds.Any(x => x.Key == value)) 
+                return true;
+
+            if (compareName)
+            {
+                if (data.LastName.GetSimilarity(value) > 0.5)
+                    return true;
+
+                if (data.AllNames.Any(name => name.Key.GetSimilarity(value) > 0.5))
+                    return true;
+            }
+
             return false;
         }
 
-        private static void HandlePlayerJoin(ObjectCollection eventArgsCollection)
+        private static void HandlePlayerJoin(PlayerJoinedEvent ev)
         {
-            var player = eventArgsCollection.Get<Player>("player");
-            var data = GetOrAdd(player.ReferenceHub);
+            var player = ev.Player.ReferenceHub;
+            var data = GetOrAdd(player);
 
-            if (data.LastId != player.UserId)
+            Plugin.Debug($"Player joined\n{data}");
+
+            if (data.LastId != player.characterClassManager.UserId)
             {
-                data.LastId = player.UserId;
-                data.AllIds.Add(player.UserId, DateTime.Now.ToLocalTime());
+                data.LastId = player.characterClassManager.UserId;
+                data.AllIds.Add(player.characterClassManager.UserId, DateTime.Now.ToLocalTime());
             }
 
-            if (data.LastName != player.Nickname)
+            var nick = player.nicknameSync.Network_myNickSync.Trim();
+
+            if (data.LastName != nick)
             {
-                data.LastName = player.Nickname;
-                data.AllNames.Add(player.Nickname, DateTime.Now.ToLocalTime());
+                data.LastName = nick;
+                data.AllNames.Add(nick, DateTime.Now.ToLocalTime());
             }
 
-            data.LastOnline = DateTime.Now;
+            data.LastOnline = DateTime.Now.ToLocalTime();
 
             Save();
+        }
+
+        [Command("cache", CommandType.RemoteAdmin, CommandType.GameConsole)]
+        private static string CacheCommand(ReferenceHub sender, string targetId)
+        {
+            if (TryGet(targetId, out var cache))
+            {
+                var builder = new StringBuilder();
+
+                builder.AppendLine($"<color=#E0FF33>「Cache Record」</color>");
+                builder.AppendLine($"‣ <color=#33FFA5>Nickname</color>: {cache.LastName}");
+                builder.AppendLine($"‣ <color=#33FFA5>User ID</color>: {cache.LastId}");
+                builder.AppendLine($"‣ <color=#33FFA5>Unique ID</color>: {cache.UniqueId}");
+                builder.AppendLine($"‣ <color=#33FFA5>IP address</color>: {cache.Ip}");
+                builder.AppendLine($"‣ <color=#33FFA5>Last seen</color>: {cache.LastOnline.ToString("F")}");
+
+                builder.AppendLine();
+                builder.AppendLine($"⇛ Nickname list ({cache.AllNames.Count})");
+
+                foreach (var nick in cache.AllNames)
+                {
+                    builder.AppendLine($"➣ <color=#33FFA5>{nick.Key}</color> 〔{nick.Value.ToString("F")}〕");
+                }
+
+                builder.AppendLine();
+                builder.AppendLine($"⇛ Account list ({cache.AllIds.Count})");
+
+                foreach (var id in cache.AllIds)
+                {
+                    builder.AppendLine($"➣ <color=#33FFA5>{id.Key}</color> 〔{id.Value.ToString("F")}〕");
+                }
+
+                return builder.ToString();
+            }
+            else
+                return $"Failed to find a cache record for {targetId}";
         }
     }
 }
