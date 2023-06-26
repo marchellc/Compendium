@@ -1,0 +1,147 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <Import Project="$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props" Condition="Exists('$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props')" />
+  <PropertyGroup>
+    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
+    <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
+    <ProjectGuid>{8534F5C2-3A2F-4147-BA1E-1528BFC51A11}</ProjectGuid>
+    <OutputType>Library</OutputType>
+    <AppDesignerFolder>Properties</AppDesignerFolder>
+    <RootNamespace>Compendium</RootNamespace>
+    <AssemblyName>Compendium.API</AssemblyName>
+    <TargetFrameworkVersion>v4.8</TargetFrameworkVersion>
+    <FileAlignment>512</FileAlignment>
+    <Deterministic>true</Deterministic>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
+    <DebugSymbols>true</DebugSymbols>
+    <DebugType>full</DebugType>
+    <Optimize>false</Optimize>
+    <OutputPath>bin\Debug\</OutputPath>
+    <DefineConstants>DEBUG;TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
+    <DebugType>pdbonly</DebugType>
+    <Optimize>true</Optimize>
+    <OutputPath>bin\Release\</OutputPath>
+    <DefineConstants>TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+  </PropertyGroup>
+  <ItemGroup>
+    <Reference Include="0Harmony, Version=2.2.2.0, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>..\packages\Lib.Harmony.2.2.2\lib\net48\0Harmony.dll</HintPath>
+    </Reference>
+    <Reference Include="Assembly-CSharp-firstpass">
+      <HintPath>..\..\..\..\..\..\Program Files (x86)\Steam\steamapps\common\SCP Secret Laboratory Dedicated Server\SCPSL_Data\Managed\Assembly-CSharp-firstpass.dll</HintPath>
+    </Reference>
+    <Reference Include="Assembly-CSharp_publicized">
+      <HintPath>..\..\..\..\..\..\Program Files (x86)\Steam\steamapps\common\SCP Secret Laboratory Dedicated Server\SCPSL_Data\Managed\Assembly-CSharp_publicized.dll</HintPath>
+    </Reference>
+    <Reference Include="BetterCommands">
+      <HintPath>..\..\BetterCommands\BetterCommands\bin\Debug\BetterCommands.dll</HintPath>
+    </Reference>
+    <Reference Include="CommandSystem.Core">
+      <HintPath>..\..\..\..\..\..\Program Files (x86)\Steam\steamapps\common\SCP Secret Laboratory Dedicated Server\SCPSL_Data\Managed\CommandSystem.Core.dll</HintPath>
+    </Reference>
+    <Reference Include="helpers">
+      <HintPath>..\..\helpers\helpers\bin\Release\helpers.dll</HintPath>
+    </Reference>
+    <Reference Include="Mirror_publicized">
+      <HintPath>..\..\..\..\..\..\Program Files (x86)\Steam\steamapps\common\SCP Secret Laboratory Dedicated Server\SCPSL_Data\Managed\Mirror_publicized.dll</HintPath>
+    </Reference>
+    <Reference Include="NorthwoodLib">
+      <HintPath>..\..\..\..\..\..\Program Files (x86)\Steam\steamapps\common\SCP Secret Laboratory Dedicated Server\SCPSL_Data\Managed\NorthwoodLib.dll</HintPath>
+    </Reference>
+    <Reference Include="PluginAPI">
+      <HintPath>..\..\..\..\..\..\Program Files (x86)\Steam\steamapps\common\SCP Secret Laboratory Dedicated Server\SCPSL_Data\Managed\PluginAPI.dll</HintPath>
+    </Reference>
+    <Reference Include="Pooling">
+      <HintPath>..\..\..\..\..\..\Program Files (x86)\Steam\steamapps\common\SCP Secret Laboratory Dedicated Server\SCPSL_Data\Managed\Pooling.dll</HintPath>
+    </Reference>
+    <Reference Include="System" />
+    <Reference Include="System.Core" />
+    <Reference Include="System.Xml.Linq" />
+    <Reference Include="System.Data.DataSetExtensions" />
+    <Reference Include="Microsoft.CSharp" />
+    <Reference Include="System.Data" />
+    <Reference Include="System.Net.Http" />
+    <Reference Include="System.Xml" />
+    <Reference Include="UnityEngine">
+      <HintPath>..\..\..\..\..\..\Program Files (x86)\Steam\steamapps\common\SCP Secret Laboratory Dedicated Server\SCPSL_Data\Managed\UnityEngine.dll</HintPath>
+    </Reference>
+    <Reference Include="UnityEngine.CoreModule">
+      <HintPath>..\..\..\..\..\..\Program Files (x86)\Steam\steamapps\common\SCP Secret Laboratory Dedicated Server\SCPSL_Data\Managed\UnityEngine.CoreModule.dll</HintPath>
+    </Reference>
+    <Reference Include="UnityEngine.PerformanceReportingModule, Version=0.0.0.0, Culture=neutral, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>..\..\..\..\..\..\Program Files (x86)\Steam\steamapps\common\SCP Secret Laboratory Dedicated Server\SCPSL_Data\Managed\UnityEngine.PerformanceReportingModule.dll</HintPath>
+    </Reference>
+    <Reference Include="UnityEngine.PhysicsModule, Version=0.0.0.0, Culture=neutral, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>..\..\..\..\..\..\Program Files (x86)\Steam\steamapps\common\SCP Secret Laboratory Dedicated Server\SCPSL_Data\Managed\UnityEngine.PhysicsModule.dll</HintPath>
+    </Reference>
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="Attributes\InitOnLoadAttribute.cs" />
+    <Compile Include="Components\StateController.cs" />
+    <Compile Include="Config.cs" />
+    <Compile Include="Extensions\ColorExtensions.cs" />
+    <Compile Include="Extensions\RichText\RichTextAlignment.cs" />
+    <Compile Include="Extensions\RichText\RichTextCapitalization.cs" />
+    <Compile Include="Extensions\RichText\RichTextExtensions.cs" />
+    <Compile Include="Extensions\StateExtensions.cs" />
+    <Compile Include="Extensions\UnityExtensions.cs" />
+    <Compile Include="Extensions\ReflectionExtensions.cs" />
+    <Compile Include="Features\FeatureExtensions.cs" />
+    <Compile Include="Features\FeatureManager.cs" />
+    <Compile Include="Features\IFeature.cs" />
+    <Compile Include="Helpers\Calls\CallHelper.cs" />
+    <Compile Include="Helpers\Events\EventConverter.cs" />
+    <Compile Include="Helpers\Overlay\OverlayController.cs" />
+    <Compile Include="Helpers\Overlay\OverlayElementType.cs" />
+    <Compile Include="Helpers\Overlay\OverlayExtensions.cs" />
+    <Compile Include="Helpers\Overlay\OverlayHelper.cs" />
+    <Compile Include="Helpers\Overlay\OverlayPart.cs" />
+    <Compile Include="Helpers\Overlay\OverlayPosition.cs" />
+    <Compile Include="Helpers\Prefabs\PrefabHelper.cs" />
+    <Compile Include="Helpers\Prefabs\PrefabName.cs" />
+    <Compile Include="Helpers\Staff\StaffHelper.cs" />
+    <Compile Include="Helpers\UserId\UserIdValue.cs" />
+    <Compile Include="Helpers\UserId\UserIdHelper.cs" />
+    <Compile Include="Helpers\UserId\UserIdType.cs" />
+    <Compile Include="Logging\LoggingProxy.cs" />
+    <Compile Include="Npc\INpc.cs" />
+    <Compile Include="Npc\NpcBase.cs" />
+    <Compile Include="Npc\NpcConnection.cs" />
+    <Compile Include="Npc\NpcHelper.cs" />
+    <Compile Include="Npc\NpcManager.cs" />
+    <Compile Include="Npc\NpcMovementMode.cs" />
+    <Compile Include="Npc\Targeting\ITarget.cs" />
+    <Compile Include="Npc\Targeting\PlayerTarget.cs" />
+    <Compile Include="Npc\Targeting\PositionTarget.cs" />
+    <Compile Include="Plugin.cs" />
+    <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="Settings\FeatureSettings.cs" />
+    <Compile Include="Settings\LogSettings.cs" />
+    <Compile Include="Settings\StaffSettings.cs" />
+    <Compile Include="State\Base\CustomRangedUpdateTimeState.cs" />
+    <Compile Include="State\Base\CustomUpdateTimeStateBase.cs" />
+    <Compile Include="State\Base\RequiredStateBase.cs" />
+    <Compile Include="State\Base\StateBase.cs" />
+    <Compile Include="State\Base\CustomTimeIntervalStateData.cs" />
+    <Compile Include="State\Interfaced\ICustomRangedUpdateTimeState.cs" />
+    <Compile Include="State\Interfaced\ICustomUpdateTimeState.cs" />
+    <Compile Include="State\Interfaced\IRequiredState.cs" />
+    <Compile Include="State\Interfaced\IState.cs" />
+    <Compile Include="State\StateFlags.cs" />
+  </ItemGroup>
+  <ItemGroup />
+  <ItemGroup>
+    <None Include="packages.config" />
+  </ItemGroup>
+  <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
+</Project>
