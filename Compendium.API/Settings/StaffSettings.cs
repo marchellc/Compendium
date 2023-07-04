@@ -13,6 +13,9 @@ namespace Compendium.Settings
             "moderator"
         };
 
+        [Description("Whether or not to use a global members file.")]
+        public bool UseGlobalFile { get; set; } = true;
+
         [Description("Whether or not to consider Northwood's global moderators as server staff.")]
         public bool GlobalModeratorsAreStaff { get; set; } = true;
 

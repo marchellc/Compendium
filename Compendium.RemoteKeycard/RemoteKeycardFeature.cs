@@ -25,20 +25,21 @@ namespace Compendium.RemoteKeycard
             m_Config.Read();
 
             Plugin.Info($"Configuration loaded.");
-
             Plugin.Info("Patching ..");
 
             PatchManager.Patch(
                 RemoteKeycardPatches.DoorInteractionPatch, 
                 RemoteKeycardPatches.LockerInteractionPatch, 
                 RemoteKeycardPatches.GeneratorInteractionPatch, 
-                RemoteKeycardPatches.WarheadButtonPatch);
+                RemoteKeycardPatches.WarheadButtonPatch,
+                RemoteKeycardPatches.RaycastHitPatch);
             
             Plugin.Info($"Patched!\n" +
                 $"{RemoteKeycardPatches.DoorInteractionPatch.Name}\n" +
                 $"{RemoteKeycardPatches.GeneratorInteractionPatch.Name}\n" +
                 $"{RemoteKeycardPatches.WarheadButtonPatch.Name}\n" +
-                $"{RemoteKeycardPatches.LockerInteractionPatch.Name}");
+                $"{RemoteKeycardPatches.LockerInteractionPatch.Name}\n" +
+                $"{RemoteKeycardPatches.RaycastHitPatch.Name}");
         }
 
         public void Reload()
@@ -57,7 +58,8 @@ namespace Compendium.RemoteKeycard
                 RemoteKeycardPatches.DoorInteractionPatch, 
                 RemoteKeycardPatches.LockerInteractionPatch, 
                 RemoteKeycardPatches.GeneratorInteractionPatch, 
-                RemoteKeycardPatches.WarheadButtonPatch);
+                RemoteKeycardPatches.WarheadButtonPatch,
+                RemoteKeycardPatches.RaycastHitPatch);
 
             Plugin.Info("Unloaded!");
         }

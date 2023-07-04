@@ -17,6 +17,13 @@ using Respawning;
 using UnityEngine;
 
 using System;
+using InventorySystem.Items.Firearms.Modules;
+using CustomPlayerEffects;
+using PlayerStatsSystem;
+using Compendium.Extensions;
+using Interactables.Interobjects;
+using System.Collections.Generic;
+using Mirror;
 
 namespace Compendium.RemoteKeycard
 {
@@ -37,6 +44,71 @@ namespace Compendium.RemoteKeycard
         public static readonly PatchInfo WarheadButtonPatch = new PatchInfo(
             new PatchTarget(typeof(PlayerInteract), nameof(PlayerInteract.UserCode_CmdSwitchAWButton)),
             new PatchTarget(typeof(RemoteKeycardPatches), nameof(RemoteKeycardPatches.WarheadButtonReplacement)), PatchType.Prefix, "Warhead Interaction Patch [RK]");
+
+        public static readonly PatchInfo RaycastHitPatch = new PatchInfo(
+            new PatchTarget(typeof(SingleBulletHitreg), nameof(SingleBulletHitreg.ServerProcessRaycastHit)),
+            new PatchTarget(typeof(RemoteKeycardPatches), nameof(RemoteKeycardPatches.RaycastHitReplacement)), PatchType.Prefix, "Raycast Hit Patch [RK]");
+
+        private static bool RaycastHitReplacement(SingleBulletHitreg __instance, Ray ray, RaycastHit hit)
+        {
+            if (hit.collider.TryGetComponent<IDestructible>(out var destructible) && __instance.CheckInaccurateFriendlyFire(destructible))
+            {
+                var damage = __instance.Firearm.BaseStats.DamageAtDistance(__instance.Firearm, hit.distance);
+
+                if (destructible.Damage(damage, new FirearmDamageHandler(__instance.Firearm, damage), hit.point))
+                {
+                    if (!ReferenceHub.TryGetHubNetID(destructible.NetworkId, out var targetHub) || !targetHub.playerEffectsController.GetEffect<Invisible>().IsEnabled)
+                    {
+                        Hitmarker.SendHitmarker(__instance.Conn, 1f);
+                    }
+
+                    __instance.ShowHitIndicator(destructible.NetworkId, damage, ray.origin);
+                    __instance.PlaceBloodDecal(ray, hit, destructible);
+                }    
+            }
+            else
+            {
+                __instance.PlaceBulletholeDecal(ray, hit);
+            }
+
+            if (RemoteKeycardLogic.AllowShots)
+            {
+                Physics.Raycast(__instance.Hub.PlayerCameraReference.position, __instance.Hub.PlayerCameraReference.forward, out RaycastHit raycastHit, 70f, ~(1 << 13 | 1 << 16));
+
+                if (raycastHit.collider is null)
+                    return false;
+
+                var gameObject = raycastHit.transform.gameObject;
+
+                if (gameObject.TryGet<RegularDoorButton>(out var button))
+                {
+                    var door = button.GetComponentInParent<DoorVariant>();
+                    if (door != null)
+                    {
+                        door.ServerInteract(__instance.Hub, 0);
+                    }
+                }
+                else if (gameObject.TryGet<ElevatorPanel>(out var panel))
+                {
+                    if (panel.AssignedChamber != null 
+                        && panel.AssignedChamber.IsReady
+                        && ElevatorDoor.AllElevatorDoors.TryGetValue(panel.AssignedChamber.AssignedGroup, out List<ElevatorDoor> list))
+                    {
+                        int nextLevel = panel.AssignedChamber.CurrentLevel + 1;
+
+                        if (nextLevel >= list.Count)
+                            nextLevel = 0;
+
+                        panel.AssignedChamber.TrySetDestination(nextLevel);
+
+                        NetworkServer.SendToReady(new ElevatorManager.ElevatorSyncMsg(panel.AssignedChamber.AssignedGroup, panel.AssignedChamber.CurrentLevel));
+                        ElevatorManager.SyncedDestinations[panel.AssignedChamber.AssignedGroup] = panel.AssignedChamber.CurrentLevel;
+                    }
+                }
+            }
+
+            return false;
+        }
 
         private static bool WarheadButtonReplacement(PlayerInteract __instance)
         {

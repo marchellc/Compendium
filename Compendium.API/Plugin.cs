@@ -20,6 +20,8 @@ using Log = PluginAPI.Core.Log;
 using Compendium.Helpers.Staff;
 using Compendium.Helpers.Calls;
 using Compendium.Logging;
+using Compendium.Features;
+using BetterCommands.Management;
 
 namespace Compendium
 {
@@ -115,7 +117,7 @@ namespace Compendium
                        }
                    });
 
-                LoadConfig();
+                LoadConfig();              
 
                 Info("Loaded!");
 

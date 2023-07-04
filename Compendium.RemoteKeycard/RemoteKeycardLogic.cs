@@ -1,25 +1,35 @@
-﻿using helpers.Configuration.Ini;
+﻿using Compendium.Features;
+using Compendium.Helpers.Events;
+
+using helpers.Configuration.Ini;
 
 using Interactables.Interobjects.DoorUtils;
-
 using InventorySystem.Items.Keycards;
 
 using MapGeneration.Distributors;
 
+using PluginAPI.Enums;
+using PluginAPI.Events;
+
+using System;
 using System.Linq;
+using UnityEngine;
 
 namespace Compendium.RemoteKeycard
 {
     public static class RemoteKeycardLogic
     {
-        [IniConfig("IsEnabled", null, "Whether or not to enable remote keycard.")]
+        [IniConfig("Is Enabled", null, "Whether or not to enable remote keycard.")]
         public static bool IsEnabled { get; set; } = true;
 
-        [IniConfig("AffectGates", null, "Whether or not to affect gates.")]
+        [IniConfig("Affect Gates", null, "Whether or not to affect gates.")]
         public static bool AffectGates { get; set; } = true;
 
-        [IniConfig("AffectDoors", null, "Whether or not to affect doors.")]
+        [IniConfig("Affect Doors", null, "Whether or not to affect doors.")]
         public static bool AffectDoors { get; set; } = true;
+
+        [IniConfig("Allow Shots", null, "Whether or not to allow shots to open doors.")]
+        public static bool AllowShots { get; set; } = true;
 
         [IniConfig("Targets", null, "A list of targets affected by remote keycard. Door targets affect gates & doors, depending on your config settings.")]
         public static RemoteKeycardAccess[] AffectedTargets { get; set; } = new RemoteKeycardAccess[]
@@ -54,7 +64,7 @@ namespace Compendium.RemoteKeycard
 
             if (AffectedTargets is null)
             {
-                Plugin.Warn($"The Affected Targets config array is null!");
+                FLog.Warn($"The Affected Targets config array is null!");
                 return true;
             }
 

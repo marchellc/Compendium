@@ -1,4 +1,6 @@
-﻿using Compendium.Attributes;
+﻿using BetterCommands.Management;
+
+using Compendium.Attributes;
 
 using helpers;
 
@@ -18,6 +20,9 @@ namespace Compendium.Features
         public static readonly Type IFeatureInterfaceType = typeof(IFeature);
 
         public static string DirectoryPath => $"{Plugin.Handler.PluginDirectoryPath}/features";
+
+        public static IReadOnlyList<IFeature> LoadedFeatures => _features;
+        public static IReadOnlyList<Type> RegisteredFeatures => _knownFeatures;
 
         [InitOnLoad]
         public static void Reload()
@@ -53,6 +58,8 @@ namespace Compendium.Features
                     {
                         _knownFeatures.Add(type);
                         _features.Add(Reflection.Instantiate<IFeature>(type));
+
+                        CommandManager.Register(type.Assembly);
 
                         Plugin.Info($"Loaded feature: {type.FullName}");
                     }

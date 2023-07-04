@@ -1,6 +1,4 @@
-﻿using Compendium.Attributes;
-
-using helpers.Events;
+﻿using helpers.Events;
 
 using PluginAPI.Enums;
 using PluginAPI.Events;

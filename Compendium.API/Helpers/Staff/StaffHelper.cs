@@ -5,11 +5,11 @@ using Compendium.Helpers.UserId;
 
 using helpers;
 using helpers.Extensions;
-
+using PlayerRoles;
 using PluginAPI.Enums;
 using PluginAPI.Events;
 using PluginAPI.Helpers;
-
+using Respawning.NamingRules;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -26,7 +26,7 @@ namespace Compendium.Helpers.Staff
         private static FileSystemWatcher m_Watcher;
 
         public static IReadOnlyDictionary<UserIdValue, string> Staff => m_Staff;
-        public static string FilePath => $"{Paths.Configs}/members.txt";
+        public static string FilePath => Plugin.Config.StaffSettings.UseGlobalFile ? $"{Paths.GlobalPlugins.Plugins}/members.txt" : $"{Paths.Configs}/members.txt";
 
         [InitOnLoad(Priority = 200)]
         public static void Initialize()
@@ -44,8 +44,10 @@ namespace Compendium.Helpers.Staff
             {
                 if (m_Watcher is null)
                 {
-                    m_Watcher = new FileSystemWatcher(Path.GetDirectoryName(FilePath), "*.txt");
+                    m_Watcher = new FileSystemWatcher(Path.GetDirectoryName(FilePath));
                     m_Watcher.Changed += OnChange;
+                    m_Watcher.NotifyFilter = NotifyFilters.LastWrite;
+                    m_Watcher.EnableRaisingEvents = true;
 
                     Log.Info($"File watcher started.", "Staff Helper");
                 }    
@@ -252,11 +254,6 @@ namespace Compendium.Helpers.Staff
         private static void OnChange(object sender, FileSystemEventArgs ev)
         {
             if (ev.ChangeType is WatcherChangeTypes.Renamed)
-                return;
-
-            Plugin.Debug($"Change detected in {ev.FullPath} ({ev.ChangeType})");
-
-            if (ev.FullPath != FilePath)
                 return;
 
             LoadStaff();

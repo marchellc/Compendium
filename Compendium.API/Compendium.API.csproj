@@ -38,7 +38,8 @@
     <Reference Include="Assembly-CSharp-firstpass">
       <HintPath>..\..\..\..\..\..\Program Files (x86)\Steam\steamapps\common\SCP Secret Laboratory Dedicated Server\SCPSL_Data\Managed\Assembly-CSharp-firstpass.dll</HintPath>
     </Reference>
-    <Reference Include="Assembly-CSharp_publicized">
+    <Reference Include="Assembly-CSharp_publicized, Version=0.0.0.0, Culture=neutral, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
       <HintPath>..\..\..\..\..\..\Program Files (x86)\Steam\steamapps\common\SCP Secret Laboratory Dedicated Server\SCPSL_Data\Managed\Assembly-CSharp_publicized.dll</HintPath>
     </Reference>
     <Reference Include="BetterCommands">
@@ -87,9 +88,11 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Attributes\InitOnLoadAttribute.cs" />
+    <Compile Include="Commands.cs" />
     <Compile Include="Components\StateController.cs" />
     <Compile Include="Config.cs" />
     <Compile Include="Extensions\ColorExtensions.cs" />
+    <Compile Include="Extensions\HubExtensions.cs" />
     <Compile Include="Extensions\RichText\RichTextAlignment.cs" />
     <Compile Include="Extensions\RichText\RichTextCapitalization.cs" />
     <Compile Include="Extensions\RichText\RichTextExtensions.cs" />
@@ -98,6 +101,7 @@
     <Compile Include="Extensions\ReflectionExtensions.cs" />
     <Compile Include="Features\FeatureExtensions.cs" />
     <Compile Include="Features\FeatureManager.cs" />
+    <Compile Include="Features\FLog.cs" />
     <Compile Include="Features\IFeature.cs" />
     <Compile Include="Helpers\Calls\CallHelper.cs" />
     <Compile Include="Helpers\Events\EventConverter.cs" />
@@ -113,6 +117,7 @@
     <Compile Include="Helpers\UserId\UserIdValue.cs" />
     <Compile Include="Helpers\UserId\UserIdHelper.cs" />
     <Compile Include="Helpers\UserId\UserIdType.cs" />
+    <Compile Include="Logging\DebugParameter.cs" />
     <Compile Include="Logging\LoggingProxy.cs" />
     <Compile Include="Npc\INpc.cs" />
     <Compile Include="Npc\NpcBase.cs" />

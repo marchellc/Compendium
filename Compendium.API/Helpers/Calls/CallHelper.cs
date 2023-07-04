@@ -10,6 +10,8 @@ namespace Compendium.Helpers.Calls
         public static void CallNextFrame(Action action) => Timing.RunCoroutine(CallAfterFramesCoroutine(action, 1));
         public static void CallAfterFrames(Action action, int frameCount) => Timing.RunCoroutine(CallAfterFramesCoroutine(action, frameCount));
 
+        public static void CallWithDelay(Action action, float delay) => Timing.CallDelayed(delay, action);
+
         public static void CallWhenTrue(Action action, Func<bool> validator) => Timing.RunCoroutine(CallWhenTrueCoroutine(action, validator));
         public static void CallWhenFalse(Action action, Func<bool> validator) => Timing.RunCoroutine(CallWhenFalseCoroutine(action, validator));
 
