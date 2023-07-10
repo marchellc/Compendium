@@ -1,8 +1,13 @@
-﻿using BetterCommands.Management;
-
+﻿using BetterCommands;
+using BetterCommands.Management;
+using BetterCommands.Permissions;
 using Compendium.Attributes;
+using Compendium.Helpers.Events;
 
 using helpers;
+using helpers.Patching;
+using PluginAPI.Core;
+using PluginAPI.Enums;
 
 using System;
 using System.Collections.Generic;
@@ -14,10 +19,11 @@ namespace Compendium.Features
 {
     public static class FeatureManager
     {
+        private static bool _handlerAdded;
+        private static bool _pauseUpdate;
+
         private static readonly List<Type> _knownFeatures = new List<Type>();
         private static readonly List<IFeature> _features = new List<IFeature>();
-
-        public static readonly Type IFeatureInterfaceType = typeof(IFeature);
 
         public static string DirectoryPath => $"{Plugin.Handler.PluginDirectoryPath}/features";
 
@@ -33,19 +39,26 @@ namespace Compendium.Features
                 .GetExecutingAssembly()
                 .GetTypes())
             {
+                if (type == typeof(FeatureBase) || type == typeof(ConfigFeatureBase))
+                    continue;
+
                 if (Reflection.HasInterface<IFeature>(type))
                 {
                     _knownFeatures.Add(type);
-                    _features.Add(Reflection.Instantiate<IFeature>(type));
 
-                    Plugin.Info($"Loaded feature: {type.FullName}");
+                    var instance = Reflection.Instantiate<IFeature>(type);
+
+                    _features.Add(instance);
+
+                    Singleton.Set(instance);
+                    Plugin.Info($"Instantiated internal feature: {type.FullName}");
                 }
             }
 
             if (!Directory.Exists(DirectoryPath))
                 Directory.CreateDirectory(DirectoryPath);
 
-            Plugin.Info($"Loading features ..");
+            Plugin.Info($"Loading external features ..");
 
             foreach (var file in Directory.GetFiles(DirectoryPath, "*.dll"))
             {
@@ -54,14 +67,21 @@ namespace Compendium.Features
 
                 foreach (var type in assembly.GetTypes())
                 {
+                    if (type == typeof(FeatureBase) || type == typeof(ConfigFeatureBase))
+                        continue;
+
                     if (Reflection.HasInterface<IFeature>(type))
                     {
                         _knownFeatures.Add(type);
-                        _features.Add(Reflection.Instantiate<IFeature>(type));
 
+                        var instance = Reflection.Instantiate<IFeature>(type);
+
+                        _features.Add(instance);
+
+                        Singleton.Set(instance);
                         CommandManager.Register(type.Assembly);
 
-                        Plugin.Info($"Loaded feature: {type.FullName}");
+                        Plugin.Info($"Instantiated external feature: {type.FullName}");
                     }
                 }
             }
@@ -84,7 +104,7 @@ namespace Compendium.Features
             if (Plugin.Config.FeatureSettings.Disabled.Remove(feature.Name))
                 Plugin.SaveConfig();
 
-            feature.Load();
+            Load(feature);
         }
 
         public static void Disable(string name) { if (TryGetFeature(name, out var feature)) Disable(feature); }
@@ -98,7 +118,7 @@ namespace Compendium.Features
                 Plugin.SaveConfig();
             }
 
-            feature.Unload();
+            Unload(feature);
         }
 
         public static void Load<TFeature>() where TFeature : IFeature
@@ -127,9 +147,19 @@ namespace Compendium.Features
 
         public static void Load(IFeature feature)
         {
-            if (!Plugin.Config.FeatureSettings.Disabled.Contains(feature.Name))
+            try
             {
-                feature.Load();
+                if (!Plugin.Config.FeatureSettings.Disabled.Contains(feature.Name))
+                {
+                    feature.Load();
+
+                    if (feature.IsPatch)
+                        PatchManager.PatchAssemblies(feature.GetType().Assembly);
+                }
+            }
+            catch (Exception ex)
+            {
+                Plugin.Error($"Failed to load feature {feature.Name}:\n{ex}");
             }
         }
 
@@ -159,7 +189,17 @@ namespace Compendium.Features
 
         public static void Unload(IFeature feature)
         {
-            feature.Unload();
+            try
+            {
+                if (feature.IsPatch)
+                    PatchManager.UnpatchAssemblies(feature.GetType().Assembly);
+
+                feature.Unload();
+            }
+            catch (Exception ex)
+            {
+                Plugin.Error($"Failed to unload feature {feature.Name}:\n{ex}");
+            }
         }
 
         public static void Register<TFeature>() where TFeature : IFeature => Register(typeof(TFeature));
@@ -224,24 +264,159 @@ namespace Compendium.Features
 
         public static void Load()
         {
-            _features.ForEach(x =>
-            {
-                if (!Plugin.Config.FeatureSettings.Disabled.Contains(x.Name))
-                {
-                    x.Load();
-                }
-            });
+            _features.ForEach(Load);
+
+            ServerEventType.RoundRestart.AddHandler<Action>(OnRestart);
+            ServerEventType.WaitingForPlayers.AddHandler<Action>(OnWaiting);
+
+            Reflection.TryAddHandler<Action>(typeof(StaticUnityMethods), "OnUpdate", OnUpdate);
+
+            _handlerAdded = true;
         }
 
         public static void Unload()
         {
-            _features.ForEach(x =>
+            if (_handlerAdded)
             {
-                x.Unload();
-            });
+                ServerEventType.RoundRestart.RemoveHandler<Action>(OnRestart);
+                ServerEventType.WaitingForPlayers.RemoveHandler<Action>(OnWaiting);
 
+                Reflection.TryRemoveHandler<Action>(typeof(StaticUnityMethods), "OnUpdate", OnUpdate);
+
+                _handlerAdded = false;
+            }
+
+            _features.ForEach(Unload);
             _features.Clear();
             _knownFeatures.Clear();
+        }
+
+        private static void OnWaiting()
+        {
+            _features.ForEach(feature =>
+            {
+                try
+                {
+                    if (!feature.IsEnabled)
+                        return;
+
+                    feature.OnWaiting();
+                }
+                catch (Exception ex)
+                {
+                    Plugin.Error($"Failed to invoke the OnWaiting function of feature {feature.Name}:\n{ex}");
+                }
+            });
+            _pauseUpdate = false;
+        }
+
+        private static void OnRestart()
+        {
+            _pauseUpdate = true;
+            _features.ForEach(feature =>
+            {
+                try
+                {
+                    if (!feature.IsEnabled)
+                        return;
+
+                    feature.Restart();
+                }
+                catch (Exception ex)
+                {
+                    Plugin.Error($"Failed to invoke the Restart function of feature {feature.Name}:\n{ex}");
+                }
+            });
+        }
+
+        private static void OnUpdate()
+        {
+            if (_pauseUpdate)
+                return;
+
+            _features.ForEach(feature =>
+            {
+                try
+                {
+                    if (!feature.IsEnabled)
+                        return;
+
+                    feature.CallUpdate();
+                }
+                catch (Exception ex)
+                {
+                    Plugin.Error($"Failed to invoke the Update function of feature {feature.Name}:\n{ex}");
+                }
+            });
+        }
+
+        [Command("disablefeature", BetterCommands.CommandType.RemoteAdmin, BetterCommands.CommandType.GameConsole)]
+        [CommandAliases("dfeature", "disablef")]
+        [Permission(PermissionLevel.Administrator)]
+        private static string DisableFeature(Player sender, string featureName)
+        {
+            if (TryGetFeature(featureName, out var feature))
+            {
+                if (!feature.IsEnabled)
+                {
+                    return $"Feature {feature.Name} is already disabled!";
+                }
+                else
+                {
+                    Disable(feature);
+                    return $"Feature {feature.Name} has been disabled!";
+                }
+            }
+            else
+            {
+                return $"Feature {featureName} does not exist!";
+            }
+        }
+
+        [Command("enablefeature", BetterCommands.CommandType.RemoteAdmin, BetterCommands.CommandType.GameConsole)]
+        [CommandAliases("efeature", "enablef")]
+        [Permission(PermissionLevel.Administrator)]
+        private static string EnableFeature(Player sender, string featureName)
+        {
+            if (TryGetFeature(featureName, out var feature))
+            {
+                if (feature.IsEnabled)
+                {
+                    return $"Feature {feature.Name} is already enabled!";
+                }
+                else
+                {
+                    Enable(feature);
+                    return $"Feature {feature.Name} has been enabled!";
+                }
+            }
+            else
+            {
+                return $"Feature {featureName} does not exist!";
+            }
+        }
+
+        [Command("reloadfeature", BetterCommands.CommandType.RemoteAdmin, BetterCommands.CommandType.GameConsole)]
+        [CommandAliases("rfeature", "reloadf")]
+        [Permission(PermissionLevel.Administrator)]
+        private static string ReloadFeature(Player sender, string featureName)
+        {
+            if (TryGetFeature(featureName, out var feature))
+            {
+                if (!feature.IsEnabled)
+                {
+                    return $"Feature {feature.Name} is disabled!";
+                }
+                else
+                {
+                    feature.Reload();
+                    return $"Feature {feature.Name} has been reloaded!";
+                }
+            }
+            else
+            {
+                return $"Feature {featureName} does not exist!";
+            }
         }
     }
 }

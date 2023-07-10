@@ -1,0 +1,124 @@
+﻿using Compendium.Extensions;
+using Compendium.Features;
+
+using helpers.Configuration.Ini;
+
+using PlayerRoles;
+
+using System.Collections.Generic;
+
+using UnityEngine;
+
+namespace Compendium.Fixes.RoleSpawn
+{
+    public static class RoleSpawnValidator
+    {
+        [IniConfig(Name = "Enabled Validators", Description = "A list of enabled spawn point validators.")]
+        public static List<RoleSpawnValidationType> EnabledValidators { get; set; } = new List<RoleSpawnValidationType>()
+        {
+            RoleSpawnValidationType.SpawnpointDistance,
+            RoleSpawnValidationType.YAxis
+        };
+
+        [IniConfig(Name = "Blacklisted Roles", Description = "A list of blacklisted roles.")]
+        public static Dictionary<RoleSpawnValidationType, List<RoleTypeId>> BlacklistedRoles { get; set; } = new Dictionary<RoleSpawnValidationType, List<RoleTypeId>>()
+        {
+            [RoleSpawnValidationType.SpawnpointDistance] = new List<RoleTypeId>() { RoleTypeId.Tutorial },
+            [RoleSpawnValidationType.YAxis] = new List<RoleTypeId>() { RoleTypeId.Tutorial }
+        };
+
+        [IniConfig(Name = "Minimum Axis Values", Description = "A list of minimum axis values.")]
+        public static Dictionary<Team, Dictionary<RoleSpawnValidationType, float>> MinimumAxisValues { get; set; } = new Dictionary<Team, Dictionary<RoleSpawnValidationType, float>>()
+        {
+            [Team.ClassD] = new Dictionary<RoleSpawnValidationType, float>()
+            {
+                [RoleSpawnValidationType.YAxis] = -1000f,
+                [RoleSpawnValidationType.SpawnpointDistance] = 2f
+            },
+
+            [Team.Scientists] = new Dictionary<RoleSpawnValidationType, float>()
+            {
+                [RoleSpawnValidationType.YAxis] = -1000f,
+                [RoleSpawnValidationType.SpawnpointDistance] = 2f
+            },
+
+            [Team.OtherAlive] = new Dictionary<RoleSpawnValidationType, float>()
+            {
+                [RoleSpawnValidationType.YAxis] = -1000f,
+                [RoleSpawnValidationType.SpawnpointDistance] = 2f
+            },
+
+            [Team.SCPs] = new Dictionary<RoleSpawnValidationType, float>()
+            {
+                [RoleSpawnValidationType.YAxis] = -1000f,
+                [RoleSpawnValidationType.SpawnpointDistance] = 2f
+            },
+
+            [Team.ChaosInsurgency] = new Dictionary<RoleSpawnValidationType, float>()
+            {
+                [RoleSpawnValidationType.YAxis] = -1000f,
+                [RoleSpawnValidationType.SpawnpointDistance] = 2f
+            },
+
+            [Team.FoundationForces] = new Dictionary<RoleSpawnValidationType, float>()
+            {
+                [RoleSpawnValidationType.YAxis] = -1000f,
+                [RoleSpawnValidationType.SpawnpointDistance] = 2f
+            },
+        };
+
+        public static bool IsEnabled(RoleTypeId role, RoleSpawnValidationType roleSpawnValidationType, out float axisValue)
+        {
+            axisValue = 0f;
+
+            if (BlacklistedRoles.TryGetValue(roleSpawnValidationType, out var blacklistedRoles) && blacklistedRoles.Contains(role))
+                return false;
+
+            if (!EnabledValidators.Contains(roleSpawnValidationType))
+                return false;
+
+            var team = role.GetTeam();
+
+            if (!MinimumAxisValues.TryGetValue(team, out var axis))
+            {
+                FLog.Warn($"Role {role} with validator {roleSpawnValidationType} is enabled, but doesn't have any registered axis values for team {team}.");
+                return false;
+            }
+
+            if (!axis.TryGetValue(roleSpawnValidationType, out axisValue))
+            {
+                FLog.Warn($"Role {role} with validator {roleSpawnValidationType} is enabled, but doesn't have any registered axis values for team {team}.");
+                return false;
+            }
+
+            return true;
+        }
+
+        public static bool TryValidate(Vector3 position, RoleSpawnValidationType roleSpawnValidationType, float axis, Vector3? spawnpoint = null)
+        {
+            switch (roleSpawnValidationType)
+            {
+                case RoleSpawnValidationType.YAxis:
+                    {
+                        if (position.y <= axis)
+                            return false;
+                        else
+                            return true;
+                    }
+
+                case RoleSpawnValidationType.SpawnpointDistance:
+                    {
+                        if (!spawnpoint.HasValue)
+                            return false;
+
+                        if (!position.IsWithinDistance(spawnpoint.Value, axis))
+                            return false;
+
+                        return true;
+                    }
+            }
+
+            return false;
+        }
+    }
+}

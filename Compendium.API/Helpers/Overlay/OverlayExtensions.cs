@@ -6,19 +6,9 @@ namespace Compendium.Helpers.Overlay
 {
     public static class OverlayExtensions
     {
-        public static void ShowMessage(this ReferenceHub hub, object message, float duration = 2f, bool isPriority = false)
+        public static void ShowMessage(this ReferenceHub hub, object message, float duration = 2f, byte priority = 0)
         {
-            hub.hints.Show(new TextHint(message.ToString(), new HintParameter[] { new StringHintParameter(message.ToString()) }, null, duration + 0.2f));
-
-            /*
-            if (hub.TryGetController(out var controller))
-            {
-                if (controller.TryGetState<OverlayController>(out var overlay))
-                {
-                    overlay.Message(message, duration, isPriority);
-                }
-            }
-            */
+            hub.hints.Show(new TextHint(message.ToString(), new HintParameter[] { new StringHintParameter(message.ToString()) }, null, duration + 0.01f));
         }
 
         public static void AddOverlayPart(this ReferenceHub hub, OverlayPart part)

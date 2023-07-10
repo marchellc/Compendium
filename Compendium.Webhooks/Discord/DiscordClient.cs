@@ -16,8 +16,11 @@ namespace Compendium.Webhooks.Discord
     public static class DiscordClient
     {
         private static MediaTypeHeaderValue _jsonHeader = MediaTypeHeaderValue.Parse("application/json");
+        private static HttpMethod _patchMethod = new HttpMethod("PATCH");
         private static HttpClient _client;
         private static DateTime? _lastCheck;
+
+        public const string BaseUrl = "https://discord.com/api/v10";
 
         public static void Load()
         {
@@ -49,41 +52,135 @@ namespace Compendium.Webhooks.Discord
 
             foreach (var webhook in WebhookConfig.Webhooks)
             {
-                if (webhook.Next.HasValue)
+                lock (webhook.Lock)
                 {
-                    if (!(DateTime.Now >= webhook.Next.Value))
-                        continue;
-
-                    webhook.Next = null;
-                }
-
-                if (webhook.Queue.TryDequeue(out var message))
-                {
-                    Task.Run(async () =>
+                    if (webhook.Next.HasValue)
                     {
-                        try
+                        if (!(DateTime.Now >= webhook.Next.Value))
+                            continue;
+
+                        webhook.Next = null;
+                    }
+
+                    if (webhook.Queue.TryDequeue(out var message))
+                    {
+                        Task.Run(async () =>
                         {
-                            var bound = "------------------------" + DateTime.Now.Ticks.ToString("x");
-                            var httpContent = new MultipartFormDataContent(bound);
-                            var jsonContent = new StringContent(message.ToJson());
-
-                            jsonContent.Headers.ContentType = _jsonHeader;
-
-                            httpContent.Add(jsonContent, "payload_json");
-
-                            using (var response = await _client.PostAsync(webhook.Url, httpContent))
+                            try
                             {
-                                if (!response.IsSuccessStatusCode)
-                                    webhook.Next = DateTime.Now + TimeSpan.FromSeconds(2);
+                                if (webhook.HasTargetMessage)
+                                {
+                                    if (!webhook.TargetMessageSet)
+                                    {
+                                        if (webhook.MessageId > 0)
+                                            webhook.TargetMessageSet = true;
+                                    }
+                                }
+
+                                if (message.PayloadType is DiscordWebhookPayloadType.Post)
+                                {
+                                    if (webhook.HasTargetMessage && webhook.TargetMessageSet)
+                                        return;
+
+                                    var url = $"{BaseUrl}/webhooks/{webhook.Id}/{webhook.Token}";
+                                    var bound = "------------------------" + DateTime.Now.Ticks.ToString("x");
+                                    var httpContent = new MultipartFormDataContent(bound);
+                                    var jsonContent = new StringContent(message.ToJson());
+
+                                    jsonContent.Headers.ContentType = _jsonHeader;
+
+                                    httpContent.Add(jsonContent, "payload_json");
+
+                                    using (var response = await _client.PostAsync(url, httpContent))
+                                    {
+                                        if (!response.IsSuccessStatusCode)
+                                            webhook.Next = DateTime.Now + TimeSpan.FromSeconds(1);
+                                        else
+                                        {
+                                            webhook.Next = null;
+
+                                            if (webhook.HasTargetMessage)
+                                                webhook.TargetMessageSet = true;
+                                        }
+                                    }
+                                }
+                                else if (message.PayloadType is DiscordWebhookPayloadType.Edit)
+                                {
+                                    if (!webhook.HasTargetMessage)
+                                    {
+                                        var url = $"{BaseUrl}/webhooks/{webhook.Id}/{webhook.Token}";
+                                        var bound = "------------------------" + DateTime.Now.Ticks.ToString("x");
+                                        var httpContent = new MultipartFormDataContent(bound);
+                                        var jsonContent = new StringContent(message.ToJson());
+
+                                        jsonContent.Headers.ContentType = _jsonHeader;
+
+                                        httpContent.Add(jsonContent, "payload_json");
+
+                                        using (var request = new HttpRequestMessage(_patchMethod, url))
+                                        using (var response = await _client.PostAsync(url, httpContent))
+                                        {
+                                            if (!response.IsSuccessStatusCode)
+                                                webhook.Next = DateTime.Now + TimeSpan.FromSeconds(1);
+                                            else
+                                                webhook.Next = null;
+                                        }
+                                    }
+                                    else
+                                    {
+                                        var url = $"{BaseUrl}/webhooks/{webhook.Id}/{webhook.Token}";
+                                        var bound = "------------------------" + DateTime.Now.Ticks.ToString("x");
+                                        var httpContent = new MultipartFormDataContent(bound);
+                                        var jsonContent = new StringContent(message.ToJson());
+
+                                        jsonContent.Headers.ContentType = _jsonHeader;
+
+                                        httpContent.Add(jsonContent, "payload_json");
+
+                                        using (var response = await _client.PostAsync(url, httpContent))
+                                        {
+                                            if (!response.IsSuccessStatusCode)
+                                                webhook.Next = DateTime.Now + TimeSpan.FromSeconds(1);
+                                            else
+                                            {
+                                                webhook.Next = null;
+
+                                                if (webhook.HasTargetMessage)
+                                                    webhook.TargetMessageSet = true;
+                                            }
+                                        }
+                                    }
+                                }
                                 else
-                                    webhook.Next = null;
+                                {
+                                    var url = $"{BaseUrl}/webhooks/{webhook.Id}/{webhook.Token}/messages/{message.MessageId}";
+                                    var bound = "------------------------" + DateTime.Now.Ticks.ToString("x");
+                                    var httpContent = new MultipartFormDataContent(bound);
+                                    var jsonContent = new StringContent(message.ToJson());
+
+                                    jsonContent.Headers.ContentType = _jsonHeader;
+
+                                    httpContent.Add(jsonContent, "payload_json");
+
+                                    using (var request = new HttpRequestMessage(HttpMethod.Delete, url))
+                                    using (var response = await _client.SendAsync(request))
+                                    {
+                                        if (!response.IsSuccessStatusCode)
+                                            webhook.Next = DateTime.Now + TimeSpan.FromSeconds(2);
+                                        else
+                                            webhook.Next = null;
+                                    }
+                                }
                             }
-                        }
-                        catch (Exception ex)
-                        {
-                            FLog.Error($"Failed to send payload:\n{ex}", new DebugParameter("payload", message.ToJson()), new DebugParameter("destination", webhook.Url.ToString()));
-                        }
-                    });
+                            catch (Exception ex)
+                            {
+                                FLog.Error($"Failed to send payload:\n{ex}",
+                                    new DebugParameter("payload", message.ToJson()),
+                                    new DebugParameter("id", webhook.Id),
+                                    new DebugParameter("token", webhook.Token));
+                            }
+                        });
+                    }
                 }
             }
         }

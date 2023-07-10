@@ -8,6 +8,12 @@ namespace Compendium.Webhooks.Discord
 {
     public struct DiscordMessage
     {
+        [JsonPropertyName("username")]
+        public string UserName { get; set; }
+
+        [JsonPropertyName("avatar_url")]
+        public string UserAvatarUrl { get; set; }
+
         [JsonPropertyName("content")]
         public string Content { get; set; }
 
@@ -19,6 +25,14 @@ namespace Compendium.Webhooks.Discord
 
         [JsonPropertyName("allowed_mentions")]
         public DiscordMessageAllowedMentions? Mentions { get; set; }
+      
+        public DiscordMessage WithUser(string username, string avatarUrl = null)
+        {
+            UserName = username;
+            UserAvatarUrl = avatarUrl;
+
+            return this;
+        }
 
         public DiscordMessage WithContent(string content, bool isTts = false)
         {

@@ -12,41 +12,19 @@ namespace Compendium.BetterEscapes
 {
     public static class BetterEscapesLogic
     {
-        private static bool _isEnabled;
-
-        public static bool IsEnabled
-        {
-            get => _isEnabled;
-            set
-            {
-                if (!value)
-                {
-                    _isEnabled = false;
-                    PatchManager.Unpatch(BetterEscapesPatch.patch, BetterEscapesPatch.disarmPatch);
-                    Log.Info($"Better Escapes disabled.");
-                }
-                else
-                {
-                    _isEnabled = true;
-                    PatchManager.Patch(BetterEscapesPatch.patch, BetterEscapesPatch.disarmPatch);
-                    Log.Info($"Better Escapes enabled.");
-                }
-            }
-        }
-
-        [IniConfig("Allow Same Team", null, "Whether or not to allow team members to disarm other team members.")]
+        [IniConfig(Name = "Allow Same Team", Description = "Whether or not to allow team members to disarm other team members.")]
         public static bool AllowTeamDisarming { get; set; } = true;
 
-        [IniConfig("Allow Scp Disarming", null, "Whether or not to allow SCPs to disarm other players.")]
+        [IniConfig(Name = "Allow Scp Disarming", Description = "Whether or not to allow SCPs to disarm other players.")]
         public static bool AllowScpDisarming { get; set; }
 
-        [IniConfig("Require Item Disarming", null, "Whether or not to require an item to disarm other players.")]
+        [IniConfig(Name = "Require Item Disarming", Description = "Whether or not to require an item to disarm other players.")]
         public static bool RequireItemDisarming { get; set; } = true;
 
-        [IniConfig("Override Item Disarming", null, "Whether or not to override base-game's logic when it comes to determining which items can be used to disarm other players.")]
+        [IniConfig(Name = "Override Item Disarming", Description = "Whether or not to override base-game's logic when it comes to determining which items can be used to disarm other players.")]
         public static bool OverrideItemDisarming { get; set; }
 
-        [IniConfig("Disarming Items", null, "A list of items that can be used to disarm other players.")]
+        [IniConfig(Name = "Disarming Items", Description = "A list of items that can be used to disarm other players.")]
         public static List<ItemType> DisarmingItems { get; set; } = new List<ItemType>()
         {
             ItemType.GunAK,
@@ -61,7 +39,7 @@ namespace Compendium.BetterEscapes
             ItemType.GunShotgun
         };
 
-        [IniConfig("Normal Escape Matrix", null, "A list of conversions for un-disarmed escapees.")]
+        [IniConfig(Name = "Normal Escape Matrix", Description = "A list of conversions for un-disarmed escapees.")]
         public static Dictionary<RoleTypeId, Dictionary<int, RoleTypeId>> NormalConversions { get; set; } = new Dictionary<RoleTypeId, Dictionary<int, RoleTypeId>>()
         {
             [RoleTypeId.FacilityGuard] = new Dictionary<int, RoleTypeId>()
@@ -71,7 +49,7 @@ namespace Compendium.BetterEscapes
             }
         };
 
-        [IniConfig("Cuffed Escape Matrix", null, "A list of conversions for disarmed escapees.")]
+        [IniConfig(Name = "Cuffed Escape Matrix", Description = "A list of conversions for disarmed escapees.")]
         public static Dictionary<RoleTypeId, Dictionary<int, RoleTypeId>> CuffedConversions { get; set; } = new Dictionary<RoleTypeId, Dictionary<int, RoleTypeId>>()
         {
             [RoleTypeId.FacilityGuard] = new Dictionary<int, RoleTypeId>()
@@ -117,12 +95,6 @@ namespace Compendium.BetterEscapes
 
         public static bool TryOverride(RoleTypeId escapingAs, RoleTypeId? disarmer, out RoleTypeId? overrideRole)
         {
-            if (!IsEnabled)
-            {
-                overrideRole = null;
-                return false;
-            }
-
             if (!AllowTeamDisarming)
             {
                 if (disarmer.HasValue && disarmer.Value.GetFaction() == escapingAs.GetFaction())

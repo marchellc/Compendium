@@ -9,6 +9,8 @@
         BanPrivate,
 
         Report,
-        CheaterReport
+        CheaterReport,
+
+        ServerStatus
     }
 }

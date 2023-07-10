@@ -4,8 +4,8 @@
     {
         Northwood,
         Patreon,
-        SteamId,
-        DiscordId,
+        Steam,
+        Discord,
         Unknown
     }
 }

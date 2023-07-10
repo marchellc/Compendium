@@ -125,6 +125,8 @@
     <Compile Include="Discord\DiscordMessage.cs" />
     <Compile Include="Discord\DiscordMessageAllowedMentions.cs" />
     <Compile Include="Discord\DiscordMessageAllowedMentionsType.cs" />
+    <Compile Include="Discord\DiscordWebhookPayload.cs" />
+    <Compile Include="Discord\DiscordWebhookPayloadType.cs" />
     <Compile Include="TimeUtils.cs" />
     <Compile Include="WebhookConfig.cs" />
     <Compile Include="WebhookConfigData.cs" />

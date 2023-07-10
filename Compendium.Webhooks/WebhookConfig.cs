@@ -1,7 +1,7 @@
 ﻿using Compendium.Features;
 
 using helpers.Configuration.Ini;
-using System;
+
 using System.Collections.Generic;
 
 namespace Compendium.Webhooks
@@ -33,7 +33,7 @@ namespace Compendium.Webhooks
         public static bool CheaterReportsIncludeIp { get; set; } = true;
 
         [IniConfig("Send Time", null, "The amount of miliseconds between each queue pull.")]
-        public static int SendTime { get; set; } = 500;
+        public static int SendTime { get; set; } = 300;
 
         public static void Reload()
         {
@@ -43,10 +43,10 @@ namespace Compendium.Webhooks
             {
                 foreach (var hook in pair.Value)
                 {
-                    if (!string.IsNullOrWhiteSpace(hook.Url) && hook.Url != "empty")
-                        _webhooks.Add(new WebhookData(pair.Key, hook.Url, hook.Content));
+                    if (!string.IsNullOrWhiteSpace(hook.Token) && hook.Token != "empty")
+                        _webhooks.Add(new WebhookData(pair.Key, hook.Id, hook.MessageId, hook.Token, hook.Content, hook.Username, hook.UserAvatarUrl, hook.AvatarUrl));
                     else
-                        FLog.Warn($"Invalid webhook URL: {hook.Url} ({pair.Key})");
+                        FLog.Warn($"Invalid webhook token: {hook.Token} ({pair.Key})");
                 }
             }
 

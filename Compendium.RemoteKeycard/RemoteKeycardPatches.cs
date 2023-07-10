@@ -17,12 +17,19 @@ using Respawning;
 using UnityEngine;
 
 using System;
+
 using InventorySystem.Items.Firearms.Modules;
+
 using CustomPlayerEffects;
+
 using PlayerStatsSystem;
+
 using Compendium.Extensions;
+
 using Interactables.Interobjects;
+
 using System.Collections.Generic;
+
 using Mirror;
 
 namespace Compendium.RemoteKeycard

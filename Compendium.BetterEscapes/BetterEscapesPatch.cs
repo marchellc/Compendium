@@ -32,7 +32,7 @@ namespace Compendium.BetterEscapes
         {
             if (disarmerHub.GetFaction() == targetHub.GetFaction())
             {
-                if (!BetterEscapesLogic.AllowTeamDisarming || disarmerHub.IsSCP(true) && targetHub.IsSCP(true))
+                if (!BetterEscapesLogic.AllowTeamDisarming || (disarmerHub.IsSCP(true) && targetHub.IsSCP(true) && !BetterEscapesLogic.AllowScpDisarming))
                 {
                     __result = false;
                     return false;

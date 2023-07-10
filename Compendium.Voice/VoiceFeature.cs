@@ -1,38 +1,22 @@
 ﻿using Compendium.Features;
 
-using helpers.Configuration.Converters.Yaml;
-using helpers.Configuration.Ini;
-
 namespace Compendium.Voice
 {
-    public class VoiceFeature : IFeature
+    public class VoiceFeature : ConfigFeatureBase
     {
-        private IniConfigHandler _config;
+        public override string Name => "Voice";
+        public override bool IsPatch => true;
 
-        public string Name => "Voice";
-
-        public void Load()
+        public override void Load()
         {
-            new IniConfigBuilder()
-                .WithConverter<YamlConfigConverter>()
-                .WithGlobalPath($"{FeatureManager.DirectoryPath}/voice.ini")
-                .WithType(typeof(VoiceConfigs), null)
-                .Register(ref _config);
-
-            _config.Read();
-
+            base.Load();
             VoiceController.Load();
+            VoiceUtils.Load();
         }
 
-        public void Reload()
+        public override void Unload()
         {
-            _config?.Read();
-        }
-
-        public void Unload()
-        {
-            _config?.Save();
-            _config = null;
+            base.Unload();
             VoiceController.Unload();
         }
     }

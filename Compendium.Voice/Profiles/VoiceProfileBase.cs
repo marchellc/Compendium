@@ -1,8 +1,5 @@
 ﻿using PlayerRoles.Voice;
 
-using VoiceChat;
-using VoiceChat.Networking;
-
 namespace Compendium.Voice.Profiles
 {
     public class VoiceProfileBase : IVoiceProfile
@@ -17,15 +14,5 @@ namespace Compendium.Voice.Profiles
 
         public VoiceProfileBase(ReferenceHub owner)
             => m_Owner = owner;
-
-        public virtual void HandleSpeaker(VoiceMessage message) { }
-
-        public void SetCurrentChannel(VoiceChatChannel channel)
-        {
-            if (Module != null)
-            {
-                Module.CurrentChannel = channel;
-            }
-        }
     }
 }

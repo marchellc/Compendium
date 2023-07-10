@@ -2,12 +2,26 @@
 
 namespace Compendium.Input
 {
-    public class InputFeature : IFeature
+    public class InputFeature : ConfigFeatureBase
     {
-        public string Name => "Input";
+        public override string Name => "Input";
 
-        public void Load() => InputHandler.Load();
-        public void Reload() => InputHandler.Reload();
-        public void Unload() => InputHandler.Unload();
+        public override void Load()
+        {
+            base.Load();
+            InputHandler.Load();
+        }
+
+        public override void Reload()
+        {
+            base.Reload();
+            InputHandler.Reload();
+        }
+
+        public override void Unload()
+        {
+            base.Unload();
+            InputHandler.Unload();
+        }
     }
 }

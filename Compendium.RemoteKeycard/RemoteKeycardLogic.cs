@@ -1,5 +1,4 @@
 ﻿using Compendium.Features;
-using Compendium.Helpers.Events;
 
 using helpers.Configuration.Ini;
 
@@ -8,30 +7,25 @@ using InventorySystem.Items.Keycards;
 
 using MapGeneration.Distributors;
 
-using PluginAPI.Enums;
-using PluginAPI.Events;
-
-using System;
 using System.Linq;
-using UnityEngine;
 
 namespace Compendium.RemoteKeycard
 {
     public static class RemoteKeycardLogic
     {
-        [IniConfig("Is Enabled", null, "Whether or not to enable remote keycard.")]
+        [IniConfig(Name = "Is Enabled", Description = "Whether or not to enable remote keycard.")]
         public static bool IsEnabled { get; set; } = true;
 
-        [IniConfig("Affect Gates", null, "Whether or not to affect gates.")]
+        [IniConfig(Name = "Affect Gates", Description = "Whether or not to affect gates.")]
         public static bool AffectGates { get; set; } = true;
 
-        [IniConfig("Affect Doors", null, "Whether or not to affect doors.")]
+        [IniConfig(Name = "Affect Doors", Description = "Whether or not to affect doors.")]
         public static bool AffectDoors { get; set; } = true;
 
-        [IniConfig("Allow Shots", null, "Whether or not to allow shots to open doors.")]
+        [IniConfig(Name = "Allow Shots", Description = "Whether or not to allow shots to open doors.")]
         public static bool AllowShots { get; set; } = true;
 
-        [IniConfig("Targets", null, "A list of targets affected by remote keycard. Door targets affect gates & doors, depending on your config settings.")]
+        [IniConfig(Name = "Targets", Description = "A list of targets affected by remote keycard. Door targets affect gates & doors, depending on your config settings.")]
         public static RemoteKeycardAccess[] AffectedTargets { get; set; } = new RemoteKeycardAccess[]
         {
             RemoteKeycardAccess.EntranceDoors,

@@ -41,7 +41,8 @@
     <Reference Include="BetterCommands">
       <HintPath>..\..\BetterCommands\BetterCommands\obj\Debug\BetterCommands.dll</HintPath>
     </Reference>
-    <Reference Include="helpers">
+    <Reference Include="helpers, Version=3.3.0.0, Culture=neutral, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
       <HintPath>..\..\helpers\helpers\bin\Release\helpers.dll</HintPath>
     </Reference>
     <Reference Include="Mirror_publicized">

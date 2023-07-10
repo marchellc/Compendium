@@ -230,7 +230,7 @@ namespace Compendium.Scp914
                                 FLog.Debug($"Destroying item");
 
                                 if (ev.Item.PreviousOwner.Hub != null)
-                                    ev.Item.PreviousOwner.Hub.ShowMessage($"\n\n<b>Looks like luck isn't on your side today ..<b>\n<i>(item destroyed: {ev.Item.Info.ItemId.ToString().SpaceByPascalCase()})</i>", 3f, true);
+                                    ev.Item.PreviousOwner.Hub.ShowMessage($"\n\n<b>Looks like luck isn't on your side today ..<b>\n<i>(item destroyed: {ev.Item.Info.ItemId.ToString().SpaceByPascalCase()})</i>", 3f, 120);
 
                                 ev.Item.DestroySelf();
                                 FLog.Debug($"Return - Item destroyed - result is none");
@@ -425,7 +425,7 @@ namespace Compendium.Scp914
                                 FLog.Debug($"Current pos: {pos}");
 
                                 ev.Player.Position = pos;
-                                ev.Player.ReferenceHub.ShowMessage($"\n\n<b>That's quite the situation you got yourself into ..</b>\n<i>(SCP teleport: {scp.nicknameSync.MyNick} [{scp.roleManager.CurrentRole.RoleName}])</i>", 3f, true);
+                                ev.Player.ReferenceHub.ShowMessage($"\n\n<b>That's quite the situation you got yourself into ..</b>\n<i>(SCP teleport: {scp.nicknameSync.MyNick} [{scp.roleManager.CurrentRole.RoleName}])</i>", 3f, 120);
 
                                 FLog.Debug($"Teleported to SCP");
                             }

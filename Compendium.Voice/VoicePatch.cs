@@ -1,16 +1,19 @@
-﻿using Compendium.Features;
+﻿using Compendium.Extensions;
+using Compendium.Features;
+using Compendium.Voice.Profiles;
 
 using helpers.Extensions;
 using helpers.Patching;
 
 using Mirror;
+
 using PlayerRoles;
-using PlayerRoles.FirstPersonControl;
+using PlayerRoles.Spectating;
 using PlayerRoles.Voice;
-using PluginAPI.Core;
-using RelativePositioning;
-using Respawning.NamingRules;
+
 using System;
+using System.Linq;
+
 using VoiceChat;
 using VoiceChat.Networking;
 
@@ -18,24 +21,7 @@ namespace Compendium.Voice
 {
     public static class VoicePatch
     {
-        public static readonly PatchInfo patch = new PatchInfo(
-            new PatchTarget(typeof(VoiceTransceiver), nameof(VoiceTransceiver.ServerReceiveMessage)),
-            new PatchTarget(typeof(VoicePatch), nameof(VoicePatch.Prefix)), PatchType.Prefix, "Voice Patch");
-
-        public static void Apply() => PatchManager.Patch(patch);
-        public static void Unapply() => PatchManager.Unpatch(patch);
-
-        public static bool IsIcomSpeaker(ReferenceHub hub)
-        {
-            if (Intercom._singleton is null)
-                return false;
-
-            if (Intercom._singleton._curSpeaker is null)
-                return false;
-
-            return Intercom._singleton._curSpeaker.netId == hub.netId;
-        }
-
+        [Patch(typeof(VoiceTransceiver), nameof(VoiceTransceiver.ServerReceiveMessage), PatchType.Prefix, "Voice Patch")]
         public static bool Prefix(NetworkConnection conn, VoiceMessage msg)
         {
             if (msg.SpeakerNull)
@@ -68,70 +54,44 @@ namespace Compendium.Voice
             if (VoiceChatMutes.IsMuted(msg.Speaker))
                 return false;
 
-            if (VoiceController.GlobalVoiceFlags != GlobalVoiceFlags.None)
+            void Send(VoiceChatChannel channel, Func<ReferenceHub, bool> condition = null)
             {
-                if (VoiceController.GlobalVoiceFlags is GlobalVoiceFlags.SpeakerOnly)
+                msg.Channel = channel;
+                speakerRole.VoiceModule.CurrentChannel = channel;
+
+                ReferenceHub.AllHubs.ForEach(hub =>
                 {
-                    if (VoiceController.GlobalSpeaker != null)
+                    if (hub.Mode != ClientInstanceMode.ReadyClient)
+                        return;
+
+                    if (condition != null)
                     {
-                        if (VoiceController.GlobalSpeaker.netId == msg.Speaker.netId)
+                        if (!condition.Invoke(hub))
                         {
-                            ReferenceHub.AllHubs.ForEach(hub =>
-                            {
-                                if (hub.Mode != ClientInstanceMode.ReadyClient)
-                                    return;
-
-                                if (hub.netId == msg.Speaker.netId)
-                                    return;
-
-                                msg.Channel = VoiceChatChannel.RoundSummary;
-                                speakerRole.VoiceModule.CurrentChannel = VoiceChatChannel.RoundSummary;
-                                hub.connectionToClient.Send(msg);
-                            });
-
-                            return false;
-                        }
-                        else
-                        {
-                            return false;
+                            return;
                         }
                     }
-                }
-                else if (VoiceController.GlobalVoiceFlags is GlobalVoiceFlags.StaffOnly)
-                {
-                    if (msg.Speaker.serverRoles.RemoteAdmin)
+
+                    if (msg.Speaker.netId != hub.netId)
                     {
-                        ReferenceHub.AllHubs.ForEach(hub =>
+                        hub.connectionToClient.Send(msg);
+                    }
+                    else
+                    {
+                        if (VoiceController.CanHearSelf(hub))
                         {
-                            if (hub.Mode != ClientInstanceMode.ReadyClient)
-                                return;
-
-                            if (hub.netId == msg.Speaker.netId)
-                                return;
-
-                            msg.Channel = VoiceChatChannel.RoundSummary;
-                            speakerRole.VoiceModule.CurrentChannel = VoiceChatChannel.RoundSummary;
                             hub.connectionToClient.Send(msg);
-                        });
-
-                        return false;
+                        }
                     }
-
-                    return false;
-                }
+                });
             }
 
-            var sendChannel = speakerRole.VoiceModule.ValidateSend(msg.Channel);
+            void VanillaSend(bool exludeStaff = false)
+            {
+                var sendChannel = speakerRole.VoiceModule.ValidateSend(msg.Channel);
 
-            if (VoiceController.IsActive && VoiceController.CanBeHandled(msg.Channel)
-                && !IsIcomSpeaker(msg.Speaker))
-            {
-                VoiceController.HandleMessage(msg.Speaker, speakerRole, msg);
-            }
-            else
-            {
                 if (sendChannel is VoiceChatChannel.None)
-                    return false;
+                    return;
 
                 speakerRole.VoiceModule.CurrentChannel = sendChannel;
 
@@ -146,6 +106,9 @@ namespace Compendium.Voice
                     if (recvRole.VoiceModule is null)
                         continue;
 
+                    if (exludeStaff && target.serverRoles.RemoteAdmin)
+                        continue;
+
                     var recvChannel = recvRole.VoiceModule.ValidateReceive(msg.Speaker, sendChannel);
 
                     if (recvChannel != VoiceChatChannel.None)
@@ -156,6 +119,112 @@ namespace Compendium.Voice
                 }
             }
 
+            if (VoiceController.PriorityVoice != null)
+            {
+                if (VoiceController.StaffFlags != StaffVoiceFlags.None)
+                {
+                    if (VoiceController.StaffFlags is StaffVoiceFlags.AllowNonStaffListen)
+                    {
+                        if (!msg.Speaker.serverRoles.RemoteAdmin)
+                        {
+                            VanillaSend(true);
+                            return false;
+                        }
+                        else
+                        {
+                            Send(VoiceChatChannel.RoundSummary, hub => true);
+                            return false;
+                        }
+                    }
+                    else
+                    {
+                        if (!msg.Speaker.serverRoles.RemoteAdmin)
+                        {
+                            VanillaSend(true);
+                            return false;
+                        }
+                        else
+                        {
+                            Send(VoiceChatChannel.RoundSummary, hub => hub.serverRoles.RemoteAdmin);
+                            return false;
+                        }
+                    }
+                }
+                else
+                {
+                    if (msg.Speaker.netId != VoiceController.PriorityVoice.netId)
+                        return false;
+
+                    Send(VoiceChatChannel.RoundSummary, _ => true);
+                    return false;
+                }
+            }
+
+            if (VoiceController.TryGetProfile(msg.Speaker, out var profile) && profile is ScpVoiceProfile scpProfile)
+            {
+                if (scpProfile.IsProximityActive)
+                {
+                    ReferenceHub.AllHubs.ForEach(hub =>
+                    {
+                        if (hub.Mode != ClientInstanceMode.ReadyClient)
+                            return;
+
+                        if (hub.netId == msg.Speaker.netId && !VoiceController.CanHearSelf(hub))
+                            return;
+
+                        if (hub.GetRoleId() is RoleTypeId.Overwatch && VoiceConfigs.AllowOverwatchScpChat)
+                        {
+                            if (!VoiceController.m_OvFlags.TryGetValue(hub.netId, out var flags))
+                                flags = OverwatchVoiceFlags.TargetScp;
+
+                            if ((flags is OverwatchVoiceFlags.TargetScp && msg.Speaker.IsSpectatedBy(hub)) || (flags is OverwatchVoiceFlags.AllScps && ReferenceHub.AllHubs.Any(target =>
+                            {
+                                if (target.Mode != ClientInstanceMode.ReadyClient)
+                                    return false;
+
+                                if (!target.IsSCP())
+                                    return false;
+
+                                return target.IsSpectatedBy(hub);
+                            })))
+                            {
+                                msg.Channel = VoiceChatChannel.RoundSummary;
+                                speakerRole.VoiceModule.CurrentChannel = VoiceChatChannel.RoundSummary;
+
+                                hub.connectionToClient.Send(msg);
+                                return;
+                            }
+                        }
+
+                        if (hub.IsSCP())
+                        {
+                            msg.Channel = VoiceChatChannel.ScpChat;
+                            speakerRole.VoiceModule.CurrentChannel = VoiceChatChannel.ScpChat;
+
+                            hub.connectionToClient.Send(msg);
+                            return;
+                        }
+
+                        if (!VoiceConfigs.ProximityScps.Contains(msg.Speaker.GetRoleId()))
+                            return;
+
+                        if (hub.IsAlive())
+                        {
+                            if (hub.IsWithinDistance(msg.Speaker, VoiceConfigs.ScpProximityDistance))
+                            {
+                                msg.Channel = VoiceConfigs.ProximityChannel;
+                                speakerRole.VoiceModule.CurrentChannel = VoiceConfigs.ProximityChannel;
+
+                                hub.connectionToClient.Send(msg);
+                            }    
+                        }
+                    });
+
+                    return false;
+                }
+            }
+
+            VanillaSend();
             return false;
         }
     }

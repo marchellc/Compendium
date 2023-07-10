@@ -5,8 +5,6 @@ using helpers;
 using helpers.Events;
 using helpers.Extensions;
 
-using MEC;
-
 using PluginAPI.Enums;
 using PluginAPI.Core;
 using PluginAPI.Core.Attributes;
@@ -17,11 +15,9 @@ using System.Linq;
 using System.Reflection;
 
 using Log = PluginAPI.Core.Log;
-using Compendium.Helpers.Staff;
 using Compendium.Helpers.Calls;
 using Compendium.Logging;
 using Compendium.Features;
-using BetterCommands.Management;
 
 namespace Compendium
 {
@@ -41,7 +37,7 @@ namespace Compendium
 
         [PluginEntryPoint(
             "Compendium API",
-            "1.0.0",
+            "1.1.0",
             "A huge API for each Compendium component.",
             "marchellc_")]
         [PluginPriority(LoadPriority.Lowest)]
@@ -141,19 +137,18 @@ namespace Compendium
         public void Reload()
         {
             LoadConfig();
+            FeatureManager.Reload();
             OnReloaded.Invoke();
         }
 
         public static void SaveConfig()
         {
             Handler?.SaveConfig(Instance, nameof(ConfigInstance));
-            StaffHelper.SaveStaff();
         }
 
         public static void LoadConfig()
         {
             Handler?.LoadConfig(Instance, nameof(ConfigInstance));
-            StaffHelper.LoadStaff();
         }
         
         public static void ModifyConfig(Action<Config> action)

@@ -75,18 +75,21 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="GlobalVoiceFlags.cs" />
     <Compile Include="IVoicePrefab.cs" />
     <Compile Include="IVoiceProfile.cs" />
+    <Compile Include="OverwatchVoiceFlags.cs" />
     <Compile Include="Prefabs\ScpProfilePrefab.cs" />
     <Compile Include="Profiles\ScpVoiceProfile.cs" />
     <Compile Include="Profiles\VoiceProfileBase.cs" />
+    <Compile Include="ProximityVoiceFlags.cs" />
+    <Compile Include="StaffVoiceFlags.cs" />
     <Compile Include="VoiceCommands.cs" />
     <Compile Include="VoiceConfigs.cs" />
     <Compile Include="VoiceController.cs" />
     <Compile Include="VoiceFeature.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="VoicePatch.cs" />
+    <Compile Include="VoiceUtils.cs" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\Compendium.API\Compendium.API.csproj">

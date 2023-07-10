@@ -49,6 +49,24 @@ namespace Compendium.Input
             return true;
         }
 
+        public static bool TryGetUserKey(string actionId, string userId, out KeyCode key)
+        {
+            if (m_PlayerBinds.Data.TryGetFirst(data => data.OwnerId == userId && data.ActionId == actionId, out var bind))
+            {
+                key = bind.Key;
+                return true;
+            }
+
+            if (m_Inputs.TryGetFirst(input => input.Name == actionId, out var inputHandler))
+            {
+                key = inputHandler.Key;
+                return true;
+            }
+
+            key = KeyCode.None;
+            return false;
+        }
+
         public static bool TryAddHandler(string actionId, KeyCode defaultKey, Action<ReferenceHub> listener)
         {
             if (TryGetListener(actionId, out _))

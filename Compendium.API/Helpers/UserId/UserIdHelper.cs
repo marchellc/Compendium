@@ -48,12 +48,12 @@ namespace Compendium.Helpers.UserId
         {
             if (length == DiscordIdLength)
             {
-                userIdType = UserIdType.DiscordId;
+                userIdType = UserIdType.Discord;
                 return true;
             }    
             else if (length == SteamIdLength)
             {
-                userIdType = UserIdType.SteamId;
+                userIdType = UserIdType.Steam;
                 return true;
             }
             else
@@ -78,11 +78,11 @@ namespace Compendium.Helpers.UserId
                     return true;
 
                 case "steam":
-                    type = UserIdType.SteamId;
+                    type = UserIdType.Steam;
                     return true;
 
                 case "discord":
-                    type = UserIdType.DiscordId;
+                    type = UserIdType.Discord;
                     return true;
 
                 default:
