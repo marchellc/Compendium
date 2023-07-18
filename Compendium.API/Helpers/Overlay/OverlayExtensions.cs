@@ -8,7 +8,8 @@ namespace Compendium.Helpers.Overlay
     {
         public static void ShowMessage(this ReferenceHub hub, object message, float duration = 2f, byte priority = 0)
         {
-            hub.hints.Show(new TextHint(message.ToString(), new HintParameter[] { new StringHintParameter(message.ToString()) }, null, duration + 0.01f));
+            hub.hints.Show(new TextHint("", new HintParameter[] { new StringHintParameter("") }, null, duration));
+            hub.hints.Show(new TextHint(message.ToString(), new HintParameter[] { new StringHintParameter(message.ToString()) }, null, duration));
         }
 
         public static void AddOverlayPart(this ReferenceHub hub, OverlayPart part)

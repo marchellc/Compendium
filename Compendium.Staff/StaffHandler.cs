@@ -7,6 +7,7 @@ using Compendium.Helpers.UserId;
 
 using helpers.Configuration.Ini;
 using helpers.Extensions;
+using helpers.Json;
 using helpers.Pooling.Pools;
 
 using PluginAPI.Enums;
@@ -84,6 +85,9 @@ namespace Compendium.Staff
                     roles._hub.ShowMessage($"\n\n<b><color={ColorValues.Red}>Revoked</color> server role</b>", 3f);
 
                 roles.SetGroup(null, false, false, false);
+
+                FLog.Debug($"Removed server role from {roles._hub.LoggedNameFromRefHub()}");
+
                 return;
             }
 
@@ -124,6 +128,8 @@ namespace Compendium.Staff
             roles.RefreshPermissions();
             roles._hub.queryProcessor.GameplayData = role.HasPermission(StaffPermissions.GameplayData);
             roles._hub.ShowMessage($"\n\n<b><color={ColorValues.Green}>Granted</color> server role</b>\n<b><color={ColorValues.LightGreen}>{role.Badge.Name}</color></b>", 3f);
+
+            FLog.Debug($"Set server role of {roles._hub.LoggedNameFromRefHub()} to {role.Key} ({role.Badge.Name})");
         }
 
         public static void Initialize()
@@ -141,7 +147,7 @@ namespace Compendium.Staff
         {
             foreach (var r in Roles)
             {
-                if (r.Key == key)
+                if (string.Equals(r.Key, key, StringComparison.OrdinalIgnoreCase))
                 {
                     role = r;
                     return true;
@@ -160,7 +166,37 @@ namespace Compendium.Staff
                 ServerStatic.PermissionsHandler._groups.Clear();
             }
 
+            if (!ValidateGroups())
+            {
+                FLog.Warn($"An error was detected in the role config! Aborting reload.");
+                return;
+            }
+
             Members.Reload();
+        }
+
+        public static bool ValidateGroups()
+        {
+            var anyChanged = false;
+
+            foreach (var role in Roles)
+            {
+                if (Roles.Count(r => string.Equals(r.Key, role.Key, StringComparison.OrdinalIgnoreCase)) >= 2)
+                {
+                    FLog.Warn($"Detected duplicated role key: {role.Key}, removing duplicates ..");
+
+                    while (Roles.Count(r => string.Equals(r.Key, role.Key, StringComparison.OrdinalIgnoreCase)) != 1)
+                    {
+                        Roles.Remove(Roles.First(r => r.Key == role.Key && r != role));
+                    }
+                }
+                else
+                {
+                    FLog.Debug($"Validated group: {role.Key} ({role.Badge.Name})\n{JsonHelper.ToJson(role, JsonOptionsBuilder.Indented)}");
+                }
+            }
+
+            return !anyChanged;
         }
 
         public static void Unload()
@@ -262,7 +298,6 @@ namespace Compendium.Staff
                 if (errorEncountered)
                 {
                     FLog.Warn($"An error was encountered - aborting load.");
-                    CallHelper.CallWithDelay(() => RefreshRoles(), 1f);
                     continue;
                 }
 

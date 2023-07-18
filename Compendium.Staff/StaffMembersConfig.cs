@@ -55,6 +55,12 @@ namespace Compendium.Staff
                     return;
                 }
 
+                if (TryGetKey(uid.FullId, out _))
+                {
+                    FLog.Warn($"Member {uid.FullId} already has a group assigned! Ignoring duplicated ID ..");
+                    return;
+                }
+
                 _members[uid] = role.Key;
             });
         }

@@ -2,6 +2,7 @@
 using BetterCommands.Permissions;
 
 using PluginAPI.Core;
+
 using System.Linq;
 
 namespace Compendium.Voice

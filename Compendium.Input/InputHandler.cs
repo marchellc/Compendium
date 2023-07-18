@@ -22,7 +22,7 @@ namespace Compendium.Input
         public static void Load()
         {
             m_PlayerBinds = new SingleFileStorage<InputCache>($"{FeatureManager.DirectoryPath}/input_cache");
-            m_PlayerBinds.Reload();
+            m_PlayerBinds.Load();
         }
 
         public static void Reload()
@@ -148,12 +148,10 @@ namespace Compendium.Input
                 && TryGetListener(bind.ActionId, out var listener))
             {
                 listener?.Invoke(sender.ReferenceHub);
-                FLog.Debug($"Received custom key bind: {bind.ActionId} ({sender.ReferenceHub.LoggedNameFromRefHub()}) [{key}]");
             }
             else if (TryGetListener(key, out listener))
             {
                 listener?.Invoke(sender.ReferenceHub);
-                FLog.Debug($"Received key bind: {bind.ActionId} ({sender.ReferenceHub.LoggedNameFromRefHub()}) [{key}]");
             }
         }
 

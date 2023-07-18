@@ -162,7 +162,7 @@ namespace Compendium.Voice
 
             if (VoiceController.TryGetProfile(msg.Speaker, out var profile) && profile is ScpVoiceProfile scpProfile)
             {
-                if (scpProfile.IsProximityActive)
+                if (scpProfile.ProximityFlag != ProximityVoiceFlags.Inactive)
                 {
                     ReferenceHub.AllHubs.ForEach(hub =>
                     {
@@ -177,16 +177,7 @@ namespace Compendium.Voice
                             if (!VoiceController.m_OvFlags.TryGetValue(hub.netId, out var flags))
                                 flags = OverwatchVoiceFlags.TargetScp;
 
-                            if ((flags is OverwatchVoiceFlags.TargetScp && msg.Speaker.IsSpectatedBy(hub)) || (flags is OverwatchVoiceFlags.AllScps && ReferenceHub.AllHubs.Any(target =>
-                            {
-                                if (target.Mode != ClientInstanceMode.ReadyClient)
-                                    return false;
-
-                                if (!target.IsSCP())
-                                    return false;
-
-                                return target.IsSpectatedBy(hub);
-                            })))
+                            if (flags is OverwatchVoiceFlags.TargetScp && msg.Speaker.IsSpectatedBy(hub))
                             {
                                 msg.Channel = VoiceChatChannel.RoundSummary;
                                 speakerRole.VoiceModule.CurrentChannel = VoiceChatChannel.RoundSummary;
@@ -194,15 +185,29 @@ namespace Compendium.Voice
                                 hub.connectionToClient.Send(msg);
                                 return;
                             }
+                            else if (flags is OverwatchVoiceFlags.AllScps)
+                            {
+                                if (ReferenceHub.AllHubs.Any(h => h.Mode is ClientInstanceMode.ReadyClient && h.IsSCP() && h.IsSpectatedBy(hub)))
+                                {
+                                    msg.Channel = VoiceChatChannel.RoundSummary;
+                                    speakerRole.VoiceModule.CurrentChannel = VoiceChatChannel.RoundSummary;
+
+                                    hub.connectionToClient.Send(msg);
+                                    return;
+                                }
+                            }
                         }
 
-                        if (hub.IsSCP())
+                        if (scpProfile.ProximityFlag is ProximityVoiceFlags.Combined)
                         {
-                            msg.Channel = VoiceChatChannel.ScpChat;
-                            speakerRole.VoiceModule.CurrentChannel = VoiceChatChannel.ScpChat;
+                            if (hub.IsSCP())
+                            {
+                                msg.Channel = VoiceChatChannel.ScpChat;
+                                speakerRole.VoiceModule.CurrentChannel = VoiceChatChannel.ScpChat;
 
-                            hub.connectionToClient.Send(msg);
-                            return;
+                                hub.connectionToClient.Send(msg);
+                                return;
+                            }
                         }
 
                         if (!VoiceConfigs.ProximityScps.Contains(msg.Speaker.GetRoleId()))
@@ -216,7 +221,7 @@ namespace Compendium.Voice
                                 speakerRole.VoiceModule.CurrentChannel = VoiceConfigs.ProximityChannel;
 
                                 hub.connectionToClient.Send(msg);
-                            }    
+                            }
                         }
                     });
 

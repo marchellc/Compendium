@@ -17,7 +17,7 @@ namespace Compendium.Voice
     {
         public static void Load()
         {
-            Reflection.TryAddHandler<Action>(typeof(StaticUnityMethods), "OnUpdate", OnUpdate);
+            Reflection.TryAddHandler<Action>(typeof(StaticUnityMethods), "OnFixedUpdate", OnUpdate);
         }
 
         private static void OnUpdate()
@@ -33,36 +33,6 @@ namespace Compendium.Voice
                 if (hub.Mode != ClientInstanceMode.ReadyClient)
                     continue;
 
-                if (VoiceConfigs.AllowOverwatchScpChat
-                    && hub.GetRoleId() is RoleTypeId.Overwatch
-                    && TryGetSpectateTarget(hub, out var target)
-                    && ValidateOvTarget(hub, target))
-                {
-                    UpdateOverwatchHint(hub, target);
-                    continue;
-                }
-
-                if (VoiceController.TryGetProfile(hub, out var profile) 
-                    && profile is ScpVoiceProfile voiceProfile)
-                {
-                    if (voiceProfile.IsProximityActive)
-                    {
-                        hub.ShowMessage(
-                            $"\n\n\n\n\n\n\n\n\n\n<size=17><b><color={ColorValues.LightGreen}>Proximity voice</color> is <color={ColorValues.Green}>active</color>.</b>\n" +
-                            $"Use <color={ColorValues.Red}>{GetProximitySwitchKeyString(hub)}</color> to switch back to <color={ColorValues.Red}>SCP chat</color>.</size>", 3f, 100);
-                        continue;
-                    }
-                    else if (voiceProfile.IsProximityAvailable())
-                    {
-                        hub.ShowMessage(
-                            $"\n\n\n\n\n\n\n\n\n\n<size=17><b><color={ColorValues.LightGreen}>SCP chat</color> is <color={ColorValues.Green}>active</color>.</b>\n" +
-                            $"Use <color={ColorValues.Red}>{GetProximitySwitchKeyString(hub)}</color> to switch to <color={ColorValues.Red}>Proximity voice</color>.</size>", 3f, 100);
-                        continue;
-                    }
-
-                    continue;
-                }
-
                 if (VoiceController.PriorityVoice != null)
                 {
                     if (VoiceController.StaffFlags is StaffVoiceFlags.None)
@@ -71,14 +41,14 @@ namespace Compendium.Voice
                         {
                             hub.ShowMessage(
                                 $"\n\n\n\n\n\n\n\n\n\n<size=17><b><color={ColorValues.LightGreen}>Global Voice</color> is <color={ColorValues.Green}>active</color>.</b>\n" +
-                                $"<b>Only <color={ColorValues.Red}>you</color> can speak.</b></size>", 2f, 255);
+                                $"<b>Only <color={ColorValues.Red}>you</color> can speak.</b></size>", 6.1f, 255);
                             continue;
                         }
                         else
                         {
                             hub.ShowMessage(
                                 $"\n\n\n\n\n\n\n\n\n\n<size=17><b><color={ColorValues.LightGreen}>Global Voice</color> is <color={ColorValues.Green}>active</color>.</b>\n" +
-                                $"<b>Only <color={ColorValues.Red}>{VoiceController.PriorityVoice.nicknameSync.Network_myNickSync}</color> can speak.</b></color>", 3f, 255);
+                                $"<b>Only <color={ColorValues.Red}>{VoiceController.PriorityVoice.nicknameSync.Network_myNickSync}</color> can speak.</b></color>", 6.1f, 255);
                             continue;
                         }
                     }
@@ -89,14 +59,14 @@ namespace Compendium.Voice
                             hub.ShowMessage(
                                 $"\n\n\n\n\n\n\n\n\n\n<size=17><b><color={ColorValues.LightGreen}>Staff Voice</color> is <color={ColorValues.Green}>active</color>.</b>\n" +
                                 $"<b>Only <color={ColorValues.Red}>you</color> can control it.</b>\n" +
-                                $"<b>Use the <color={ColorValues.Green}>staffmode</color> command to allow/disallow other players to listen.</b></size>", 3f, 255);
+                                $"<b>Use the <color={ColorValues.Green}>staffmode</color> command to allow/disallow other players to listen.</b></size>", 6.1f, 255);
                             continue;
                         }
                         else
                         {
                             hub.ShowMessage(
                                 $"\n\n\n\n\n\n\n\n\n\n<size=17><b><color={ColorValues.LightGreen}>Staff Voice</color> is <color={ColorValues.Green}>active</color>.</b>\n" +
-                                $"<b>Only <color={ColorValues.Red}>{VoiceController.PriorityVoice.nicknameSync.Network_myNickSync}</color> can control it.</b></size>", 3f, 255);
+                                $"<b>Only <color={ColorValues.Red}>{VoiceController.PriorityVoice.nicknameSync.Network_myNickSync}</color> can control it.</b></size>", 6.1f, 255);
                             continue;
                         }
                     }
@@ -106,7 +76,44 @@ namespace Compendium.Voice
                 {
                     hub.ShowMessage(
                         $"\n\n\n\n\n\n\n\n\n\n<size=17><b><color={ColorValues.LightGreen}>Microphone Playback</color> is <color={ColorValues.Green}>active</color>.</b>\n" +
-                        $"<b>Use the <color={ColorValues.Red}>.playback</color> command to disable it.</b></sze>", 3f, 90);
+                        $"<b>Use the <color={ColorValues.Red}>.playback</color> command to disable it.</b></sze>", 6.1f, 90);
+                    continue;
+                }
+
+                if (VoiceConfigs.AllowOverwatchScpChat
+                    && hub.GetRoleId() is RoleTypeId.Overwatch
+                    && TryGetSpectateTarget(hub, out var target)
+                    && target.IsSCP())
+                {
+                    UpdateOverwatchHint(hub, target);
+                    continue;
+                }
+
+                if (VoiceController.TryGetProfile(hub, out var profile) 
+                    && profile is ScpVoiceProfile voiceProfile)
+                {
+                    if (voiceProfile.ProximityFlag is ProximityVoiceFlags.Single)
+                    {
+                        hub.ShowMessage(
+                            $"\n\n\n\n\n\n\n\n\n\n<size=17><b><color={ColorValues.LightGreen}>Proximity voice</color> is <color={ColorValues.Green}>active</color>.</b>\n" +
+                            $"Use <color={ColorValues.Red}>{GetProximitySwitchKeyString(hub)}</color> to switch to <b><color={ColorValues.Red}>{GetNextChat(voiceProfile.ProximityFlag)}</color></b>.</size>", 6.1f, 100);
+                        continue;
+                    }
+                    else if (voiceProfile.ProximityFlag is ProximityVoiceFlags.Combined)
+                    {
+                        hub.ShowMessage(
+                            $"\n\n\n\n\n\n\n\n\n\n<size=17><b><color={ColorValues.LightGreen}>Proximity voice</color> & <color={ColorValues.LightGreen}>SCP chat</color> is <color={ColorValues.Green}>active</color>.</b>\n" +
+                            $"Use <color={ColorValues.Red}>{GetProximitySwitchKeyString(hub)}</color> to switch to <b><color={ColorValues.Red}>{GetNextChat(voiceProfile.ProximityFlag)}</color></b>.</size>", 6.1f, 100);
+                        continue;
+                    }
+                    else if (voiceProfile.ProximityFlag is ProximityVoiceFlags.Inactive && voiceProfile.IsProximityAvailable())
+                    {
+                        hub.ShowMessage(
+                            $"\n\n\n\n\n\n\n\n\n\n<size=17><b><color={ColorValues.LightGreen}>SCP chat</color> is <color={ColorValues.Green}>active</color>.</b>\n" +
+                            $"Use <color={ColorValues.Red}>{GetProximitySwitchKeyString(hub)}</color> to switch to <b><color={ColorValues.Red}>{GetNextChat(voiceProfile.ProximityFlag)}</color></b>.</size>", 6.1f, 100);
+                        continue;
+                    }
+
                     continue;
                 }
             }
@@ -116,18 +123,7 @@ namespace Compendium.Voice
             => hub.ShowMessage(
                 $"\n\n\n\n\n\n\n\n\n\n<size=17><b><color={ColorValues.LightGreen}>Overwatch</color> allows you to hear other SCPs talk.</b>\n" +
                 $"Use the <b><color={ColorValues.Red}>ovmode</color></b> command to switch between listening to all SCPs and targeted SCPs.\n" +
-                $"<i>Current target: {GetOvTargetString(hub, target)}</i></size>", 3f, 100);
-
-        private static bool ValidateOvTarget(ReferenceHub hub, ReferenceHub target)
-        {
-            if (!VoiceController.OverwatchFlags.TryGetValue(hub.netId, out var flags))
-                flags = OverwatchVoiceFlags.TargetScp;
-
-            if (flags is OverwatchVoiceFlags.AllScps)
-                return target.IsSCP();
-            else
-                return target.IsSpectatedBy(hub);
-        }
+                $"\n<b><i>Current target: {GetOvTargetString(hub, target)}</i></b></size>", 3f, 100);
 
         private static string GetOvTargetString(ReferenceHub hub, ReferenceHub target)
         {
@@ -140,7 +136,7 @@ namespace Compendium.Voice
                 return $"{target.LoggedNameFromRefHub()} - TARGET SCP";
         }
 
-        private static string GetProximitySwitchKeyString(ReferenceHub hub)
+        public static string GetProximitySwitchKeyString(ReferenceHub hub)
         {
             if (InputHandler.TryGetUserKey("voice_proximity", hub.characterClassManager.UserId, out var key))
                 return key.ToString().SpaceByPascalCase();
@@ -163,6 +159,16 @@ namespace Compendium.Voice
             }
 
             return null;
+        }
+
+        private static string GetNextChat(ProximityVoiceFlags proximityVoiceFlags)
+        {
+            if (proximityVoiceFlags is ProximityVoiceFlags.Inactive)
+                return "Proximity chat.";
+            else if (proximityVoiceFlags is ProximityVoiceFlags.Single)
+                return "Proximity chat & SCP chat";
+            else
+                return "SCP chat";
         }
     }
 }

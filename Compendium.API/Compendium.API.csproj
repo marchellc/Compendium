@@ -115,6 +115,7 @@
     <Compile Include="Helpers\Overlay\OverlayPosition.cs" />
     <Compile Include="Helpers\Prefabs\PrefabHelper.cs" />
     <Compile Include="Helpers\Prefabs\PrefabName.cs" />
+    <Compile Include="Helpers\Round\RoundHelper.cs" />
     <Compile Include="Helpers\Units\UnitHelper.cs" />
     <Compile Include="Helpers\UserId\UserIdValue.cs" />
     <Compile Include="Helpers\UserId\UserIdHelper.cs" />

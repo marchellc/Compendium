@@ -1,4 +1,6 @@
-﻿using Compendium.Input;
+﻿using Compendium.Helpers.Colors;
+using Compendium.Helpers.Overlay;
+using Compendium.Input;
 
 using PlayerRoles;
 
@@ -39,6 +41,9 @@ namespace Compendium.Voice.Profiles
                 ProximityFlag = ProximityVoiceFlags.Combined;
             else
                 ProximityFlag = ProximityVoiceFlags.Inactive;
+
+            Broadcast.Singleton?.TargetClearElements(Owner?.connectionToClient);
+            Broadcast.Singleton?.TargetAddElement(Owner?.connectionToClient, $"\n\n<b><size=17><color={ColorValues.LightGreen}>Switched voice mode to <color={ColorValues.Red}>{UserFriendlyMode()}</color></color></size></b>", 5, Broadcast.BroadcastFlags.Normal);
         }
 
         private static void ProximityKey(ReferenceHub hub)
@@ -48,6 +53,16 @@ namespace Compendium.Voice.Profiles
             {
                 scpProfile.SwitchProximity();
             }
+        }
+
+        private string UserFriendlyMode()
+        {
+            if (ProximityFlag is ProximityVoiceFlags.Inactive)
+                return "SCP chat only.";
+            else if (ProximityFlag is ProximityVoiceFlags.Combined)
+                return "Proximity chat and SCP chat.";
+            else
+                return "Proximity chat only.";
         }
     }
 }
