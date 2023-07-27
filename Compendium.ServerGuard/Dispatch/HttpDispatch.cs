@@ -1,5 +1,4 @@
-﻿using Compendium.Features;
-using Compendium.Helpers.Calls;
+﻿using Compendium.Helpers.Calls;
 
 using helpers.Configuration.Ini;
 using helpers.Extensions;

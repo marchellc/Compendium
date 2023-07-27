@@ -15,8 +15,6 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Compendium.Voice", "Compend
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Compendium.Input", "Compendium.Input\Compendium.Input.csproj", "{247BC521-6A57-478E-BB87-FC290622FB64}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Compendium.Fun", "Compendium.Fun\Compendium.Fun.csproj", "{4268C46E-FFEB-4A26-8382-725DB6D75E5A}"
-EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Compendium.Fixes", "Compendium.Fixes\Compendium.Fixes.csproj", "{46F11357-9211-4255-9E42-600A66C3005F}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Compendium.Gameplay", "Compendium.Gameplay\Compendium.Gameplay.csproj", "{A9280466-BCD9-4D29-8A24-5E631C2069D4}"
@@ -57,10 +55,6 @@ Global
 		{247BC521-6A57-478E-BB87-FC290622FB64}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{247BC521-6A57-478E-BB87-FC290622FB64}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{247BC521-6A57-478E-BB87-FC290622FB64}.Release|Any CPU.Build.0 = Release|Any CPU
-		{4268C46E-FFEB-4A26-8382-725DB6D75E5A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{4268C46E-FFEB-4A26-8382-725DB6D75E5A}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{4268C46E-FFEB-4A26-8382-725DB6D75E5A}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{4268C46E-FFEB-4A26-8382-725DB6D75E5A}.Release|Any CPU.Build.0 = Release|Any CPU
 		{46F11357-9211-4255-9E42-600A66C3005F}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{46F11357-9211-4255-9E42-600A66C3005F}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{46F11357-9211-4255-9E42-600A66C3005F}.Release|Any CPU.ActiveCfg = Release|Any CPU

@@ -1,5 +1,8 @@
 ﻿using helpers;
 using helpers.Logging;
+using helpers.Verify;
+
+using System;
 
 namespace Compendium.Logging
 {
@@ -7,7 +10,26 @@ namespace Compendium.Logging
     {
         public override void Log(LogBuilder log)
         {
-            ServerConsole.AddLog(log.Build());
+            var str = log.Build();
+
+            if (!VerifyUtils.VerifyString(str))
+                return;
+
+            ServerConsole.AddLog(str, GetColor(str));
+        }
+
+        private static ConsoleColor GetColor(string log)
+        {
+            if (log.Contains("INFO"))
+                return ConsoleColor.Green;
+            else if (log.Contains("ERROR"))
+                return ConsoleColor.Red;
+            else if (log.Contains("WARN"))
+                return ConsoleColor.Yellow;
+            else if (log.Contains("DEBUG"))
+                return ConsoleColor.Cyan;
+
+            return ConsoleColor.Magenta;
         }
     }
 }

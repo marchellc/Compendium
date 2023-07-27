@@ -1,8 +1,9 @@
-﻿using Compendium.Features;
+﻿using Compendium.Extensions;
+using Compendium.Features;
+using Compendium.Helpers;
 using Compendium.Helpers.Calls;
 using Compendium.Helpers.Colors;
 using Compendium.Helpers.Events;
-using Compendium.Helpers.Overlay;
 using Compendium.Helpers.UserId;
 
 using helpers.Configuration.Ini;
@@ -82,12 +83,11 @@ namespace Compendium.Staff
             if (role is null)
             {
                 if (roles.Group != null)
-                    roles._hub.ShowMessage($"\n\n<b><color={ColorValues.Red}>Revoked</color> server role</b>", 3f);
+                    roles._hub.Hint($"\n\n<b><color={ColorValues.Red}>Revoked</color> server role</b>", 3f, true);
 
                 roles.SetGroup(null, false, false, false);
 
-                FLog.Debug($"Removed server role from {roles._hub.LoggedNameFromRefHub()}");
-
+                FLog.Debug($"Removed server role from {roles._hub.GetLogName(true, false)}");
                 return;
             }
 
@@ -127,7 +127,7 @@ namespace Compendium.Staff
 
             roles.RefreshPermissions();
             roles._hub.queryProcessor.GameplayData = role.HasPermission(StaffPermissions.GameplayData);
-            roles._hub.ShowMessage($"\n\n<b><color={ColorValues.Green}>Granted</color> server role</b>\n<b><color={ColorValues.LightGreen}>{role.Badge.Name}</color></b>", 3f);
+            roles._hub.Hint($"\n\n<b><color={ColorValues.Green}>Granted</color> server role</b>\n<b><color={ColorValues.LightGreen}>{role.Badge.Name}</color></b>", 3f, true);
 
             FLog.Debug($"Set server role of {roles._hub.LoggedNameFromRefHub()} to {role.Key} ({role.Badge.Name})");
         }
@@ -189,10 +189,6 @@ namespace Compendium.Staff
                     {
                         Roles.Remove(Roles.First(r => r.Key == role.Key && r != role));
                     }
-                }
-                else
-                {
-                    FLog.Debug($"Validated group: {role.Key} ({role.Badge.Name})\n{JsonHelper.ToJson(role, JsonOptionsBuilder.Indented)}");
                 }
             }
 

@@ -1,23 +1,22 @@
-﻿using Compendium.Attributes;
-using Compendium.Helpers.Events;
+﻿using Compendium.Helpers.Events;
 
 using helpers;
 using helpers.Events;
-using helpers.Extensions;
+using helpers.Attributes;
+using helpers.Logging.Loggers;
 
-using PluginAPI.Enums;
 using PluginAPI.Core;
 using PluginAPI.Core.Attributes;
 
 using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Reflection;
 
 using Log = PluginAPI.Core.Log;
+
 using Compendium.Helpers.Calls;
 using Compendium.Logging;
 using Compendium.Features;
+using helpers.Patching;
 
 namespace Compendium
 {
@@ -37,10 +36,10 @@ namespace Compendium
 
         [PluginEntryPoint(
             "Compendium API",
-            "1.1.0",
+            "2.0.0",
             "A huge API for each Compendium component.",
             "marchellc_")]
-        [PluginPriority(LoadPriority.Lowest)]
+        [PluginPriority(PluginAPI.Enums.LoadPriority.Lowest)]
         public void Load()
         {
             if (Instance != null)
@@ -70,60 +69,45 @@ namespace Compendium
             if (Config.UseLoggingProxy)
             {
                 helpers.Log.AddLogger<LoggingProxy>();
-                helpers.Log.ClearLevelBlacklist();
-                helpers.Log.ClearSourceBlacklist();
-
+                helpers.Log.AddLogger(new FileLogger(FileLoggerMode.AppendToFile, 0));
+                helpers.Log.Blacklist(LogLevel.Debug);
                 Warn($"Support library logger enabled - this might get messy!");
             }
 
             if (Config.LogSettings.ShowDebug)
             {
+                helpers.Log.Unblacklist(LogLevel.Debug);
                 Warn($"Debug enabled - this will get messy.");
             }
 
             CallHelper.CallWhenFalse(() =>
             {
-                var initMethods = new List<Tuple<MethodInfo, int>>();
-
-                foreach (var type in Assembly
-                    .GetExecutingAssembly()
-                    .GetTypes())
+                try
                 {
-                    foreach (var method in type.GetMethods())
-                    {
-                        if (method.TryGetAttribute<InitOnLoadAttribute>(out var attributeValue))
-                        {
-                            initMethods.Add(new Tuple<MethodInfo, int>(method, attributeValue.Priority < 0 ? 0 : attributeValue.Priority));
-                        }
-                    }
+                    var exec = Assembly.GetExecutingAssembly();
+
+                    PatchManager.PatchAssemblies(exec);
+                    AttributeLoader.ExecuteLoadAttributes(exec);
+
+                    LoadConfig();
+
+                    Info("Loaded!");
+
+                    OnLoaded.Invoke();
                 }
-
-                initMethods
-                   .OrderByDescending(x => x.Item2)
-                   .ForEach(y =>
-                   {
-                       try
-                       {
-                           y.Item1.Invoke(null, null);
-                       }
-                       catch (Exception ex)
-                       {
-                           Error($"Failed to invoke InitOnLoad method {y.Item1.ToLogName(false)}!");
-                           Error(ex);
-                       }
-                   });
-
-                LoadConfig();              
-
-                Info("Loaded!");
-
-                OnLoaded.Invoke();
+                catch (Exception ex)
+                {
+                    Error($"Startup failed!");
+                    Error(ex);
+                }
             }, () => ServerStatic.PermissionsHandler is null);
         }
 
         [PluginUnload]
         public void Unload()
         {
+            AttributeLoader.ExecuteUnloadAttributes();
+
             SaveConfig();
 
             OnUnloaded.Invoke();
@@ -137,7 +121,10 @@ namespace Compendium
         public void Reload()
         {
             LoadConfig();
+
             FeatureManager.Reload();
+            AttributeLoader.ExecuteReloadAttributes();
+
             OnReloaded.Invoke();
         }
 

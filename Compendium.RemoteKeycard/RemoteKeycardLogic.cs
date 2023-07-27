@@ -8,6 +8,13 @@ using InventorySystem.Items.Keycards;
 using MapGeneration.Distributors;
 
 using System.Linq;
+using static PlayerList;
+using UnityEngine;
+using PluginAPI.Events;
+using PlayerRoles;
+using Compendium.Helpers;
+using helpers.Extensions;
+using Compendium.Helpers.Round;
 
 namespace Compendium.RemoteKeycard
 {
@@ -173,5 +180,48 @@ namespace Compendium.RemoteKeycard
             || remoteKeycardAccess is RemoteKeycardAccess.HeavyContainmentDoors 
             || remoteKeycardAccess is RemoteKeycardAccess.LightContainmentDoors 
             || remoteKeycardAccess is RemoteKeycardAccess.SurfaceDoors;
+
+        [RoundStateChanged(RoundState.InProgress)]
+        private static void OnRoundStarted()
+        {
+            DoorVariant.AllDoors.ForEach(door =>
+            {
+                door.Override(CanInteract);
+            });
+
+            FLog.Debug($"Overriden all door logic.");
+        }
+
+        private static bool CanInteract(DoorVariant target, ReferenceHub ply)
+        {
+            if (target.ActiveLocks > 0 && !ply.serverRoles.BypassMode)
+            {
+                var mode = DoorLockUtils.GetMode((DoorLockReason)target.ActiveLocks);
+                if ((!mode.HasFlagFast(DoorLockMode.CanClose) || !mode.HasFlagFast(DoorLockMode.CanOpen)) && (!mode.HasFlagFast(DoorLockMode.ScpOverride) || !ply.IsSCP(true)) && (mode == DoorLockMode.FullLock || (target.TargetState && !mode.HasFlagFast(DoorLockMode.CanClose)) || (!target.TargetState && !mode.HasFlagFast(DoorLockMode.CanOpen))))
+                {
+                    if (!EventManager.ExecuteEvent(new PlayerInteractDoorEvent(ply, target, false)))
+                        return false;
+
+                    target.LockBypassDenied(ply, 0);
+                    return false;
+                }
+            }
+
+            if (!target.AllowInteracting(ply, 0))
+                return false;
+
+            var flag = ply.GetRoleId() == RoleTypeId.Scp079 || target.RequiredPermissions.CheckPermissions(ply.inventory.CurInstance, ply);
+
+            if (!flag)
+            {
+                if (CanBypass(ply, target))
+                    flag = true;
+            }
+
+            if (!EventManager.ExecuteEvent(new PlayerInteractDoorEvent(ply, target, flag)))
+                return false;
+
+            return flag;
+        }
     }
 }

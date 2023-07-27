@@ -1,5 +1,5 @@
-﻿using Compendium.Helpers.Colors;
-using Compendium.Helpers.Overlay;
+﻿using Compendium.Helpers;
+using Compendium.Helpers.Colors;
 using Compendium.Input;
 
 using PlayerRoles;
@@ -42,8 +42,7 @@ namespace Compendium.Voice.Profiles
             else
                 ProximityFlag = ProximityVoiceFlags.Inactive;
 
-            Broadcast.Singleton?.TargetClearElements(Owner?.connectionToClient);
-            Broadcast.Singleton?.TargetAddElement(Owner?.connectionToClient, $"\n\n<b><size=17><color={ColorValues.LightGreen}>Switched voice mode to <color={ColorValues.Red}>{UserFriendlyMode()}</color></color></size></b>", 5, Broadcast.BroadcastFlags.Normal);
+            Owner.Broadcast($"\n\n<b><size=17><color={ColorValues.LightGreen}>Switched voice mode to <color={ColorValues.Red}>{UserFriendlyMode()}</color></color></size></b>", 5);
         }
 
         private static void ProximityKey(ReferenceHub hub)

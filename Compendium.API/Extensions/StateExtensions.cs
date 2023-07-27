@@ -1,9 +1,9 @@
-﻿using Compendium.Attributes;
-using Compendium.Components;
+﻿using Compendium.Components;
 using Compendium.State.Base;
 using Compendium.State.Interfaced;
 
 using helpers;
+using helpers.Attributes;
 using helpers.Events;
 
 using System;
@@ -26,7 +26,7 @@ namespace Compendium.Extensions
 
         public static bool IsReady { get; private set; }
 
-        [InitOnLoad]
+        [Load]
         public static void Initialize()
         {
             foreach (var type in Assembly

@@ -1,6 +1,6 @@
 ﻿using Compendium.Extensions;
+using Compendium.Helpers;
 using Compendium.Helpers.Calls;
-using Compendium.Helpers.Overlay;
 
 using helpers.Extensions;
 using helpers.Random;
@@ -56,7 +56,7 @@ namespace Compendium.BetterTesla
                         if (!hub.IsWithinDistance(m_Tesla.transform.position, BetterTeslaLogic.DamagedTeslaRadius))
                             continue;
 
-                        hub.ShowMessage($"\n\n<b><color=#33FFA5>Tesla Gate <color=#FF0000>disabled</color> for <color=#FF0000>{time}</color> second(s)</color></b>!");
+                        hub.Hint($"\n\n<b><color=#33FFA5>Tesla Gate <color=#FF0000>disabled</color> for <color=#FF0000>{time}</color> second(s)</color></b>!", 3f, true);
                     }
                 }
 

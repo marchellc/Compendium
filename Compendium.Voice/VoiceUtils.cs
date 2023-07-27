@@ -1,5 +1,5 @@
-﻿using Compendium.Helpers.Colors;
-using Compendium.Helpers.Overlay;
+﻿using Compendium.Helpers;
+using Compendium.Helpers.Colors;
 using Compendium.Input;
 using Compendium.Voice.Profiles;
 
@@ -39,16 +39,16 @@ namespace Compendium.Voice
                     {
                         if (hub.netId == VoiceController.PriorityVoice.netId)
                         {
-                            hub.ShowMessage(
+                            hub.Hint(
                                 $"\n\n\n\n\n\n\n\n\n\n<size=17><b><color={ColorValues.LightGreen}>Global Voice</color> is <color={ColorValues.Green}>active</color>.</b>\n" +
-                                $"<b>Only <color={ColorValues.Red}>you</color> can speak.</b></size>", 6.1f, 255);
+                                $"<b>Only <color={ColorValues.Red}>you</color> can speak.</b></size>", 6.1f, true);
                             continue;
                         }
                         else
                         {
-                            hub.ShowMessage(
+                            hub.Hint(
                                 $"\n\n\n\n\n\n\n\n\n\n<size=17><b><color={ColorValues.LightGreen}>Global Voice</color> is <color={ColorValues.Green}>active</color>.</b>\n" +
-                                $"<b>Only <color={ColorValues.Red}>{VoiceController.PriorityVoice.nicknameSync.Network_myNickSync}</color> can speak.</b></color>", 6.1f, 255);
+                                $"<b>Only <color={ColorValues.Red}>{VoiceController.PriorityVoice.nicknameSync.Network_myNickSync}</color> can speak.</b></color>", 6.1f, true);
                             continue;
                         }
                     }
@@ -56,17 +56,17 @@ namespace Compendium.Voice
                     {
                         if (hub.netId == VoiceController.PriorityVoice.netId)
                         {
-                            hub.ShowMessage(
+                            hub.Hint(
                                 $"\n\n\n\n\n\n\n\n\n\n<size=17><b><color={ColorValues.LightGreen}>Staff Voice</color> is <color={ColorValues.Green}>active</color>.</b>\n" +
                                 $"<b>Only <color={ColorValues.Red}>you</color> can control it.</b>\n" +
-                                $"<b>Use the <color={ColorValues.Green}>staffmode</color> command to allow/disallow other players to listen.</b></size>", 6.1f, 255);
+                                $"<b>Use the <color={ColorValues.Green}>staffmode</color> command to allow/disallow other players to listen.</b></size>", 6.1f, true);
                             continue;
                         }
                         else
                         {
-                            hub.ShowMessage(
+                            hub.Hint(
                                 $"\n\n\n\n\n\n\n\n\n\n<size=17><b><color={ColorValues.LightGreen}>Staff Voice</color> is <color={ColorValues.Green}>active</color>.</b>\n" +
-                                $"<b>Only <color={ColorValues.Red}>{VoiceController.PriorityVoice.nicknameSync.Network_myNickSync}</color> can control it.</b></size>", 6.1f, 255);
+                                $"<b>Only <color={ColorValues.Red}>{VoiceController.PriorityVoice.nicknameSync.Network_myNickSync}</color> can control it.</b></size>", 6.1f, true);
                             continue;
                         }
                     }
@@ -74,9 +74,9 @@ namespace Compendium.Voice
 
                 if (VoiceController.CanHearSelf(hub))
                 {
-                    hub.ShowMessage(
+                    hub.Hint(
                         $"\n\n\n\n\n\n\n\n\n\n<size=17><b><color={ColorValues.LightGreen}>Microphone Playback</color> is <color={ColorValues.Green}>active</color>.</b>\n" +
-                        $"<b>Use the <color={ColorValues.Red}>.playback</color> command to disable it.</b></sze>", 6.1f, 90);
+                        $"<b>Use the <color={ColorValues.Red}>.playback</color> command to disable it.</b></sze>", 6.1f, true);
                     continue;
                 }
 
@@ -94,23 +94,23 @@ namespace Compendium.Voice
                 {
                     if (voiceProfile.ProximityFlag is ProximityVoiceFlags.Single)
                     {
-                        hub.ShowMessage(
+                        hub.Hint(
                             $"\n\n\n\n\n\n\n\n\n\n<size=17><b><color={ColorValues.LightGreen}>Proximity voice</color> is <color={ColorValues.Green}>active</color>.</b>\n" +
-                            $"Use <color={ColorValues.Red}>{GetProximitySwitchKeyString(hub)}</color> to switch to <b><color={ColorValues.Red}>{GetNextChat(voiceProfile.ProximityFlag)}</color></b>.</size>", 6.1f, 100);
+                            $"Use <color={ColorValues.Red}>{GetProximitySwitchKeyString(hub)}</color> to switch to <b><color={ColorValues.Red}>{GetNextChat(voiceProfile.ProximityFlag)}</color></b>.</size>", 6.1f, true);
                         continue;
                     }
                     else if (voiceProfile.ProximityFlag is ProximityVoiceFlags.Combined)
                     {
-                        hub.ShowMessage(
+                        hub.Hint(
                             $"\n\n\n\n\n\n\n\n\n\n<size=17><b><color={ColorValues.LightGreen}>Proximity voice</color> & <color={ColorValues.LightGreen}>SCP chat</color> is <color={ColorValues.Green}>active</color>.</b>\n" +
-                            $"Use <color={ColorValues.Red}>{GetProximitySwitchKeyString(hub)}</color> to switch to <b><color={ColorValues.Red}>{GetNextChat(voiceProfile.ProximityFlag)}</color></b>.</size>", 6.1f, 100);
+                            $"Use <color={ColorValues.Red}>{GetProximitySwitchKeyString(hub)}</color> to switch to <b><color={ColorValues.Red}>{GetNextChat(voiceProfile.ProximityFlag)}</color></b>.</size>", 6.1f, true);
                         continue;
                     }
                     else if (voiceProfile.ProximityFlag is ProximityVoiceFlags.Inactive && voiceProfile.IsProximityAvailable())
                     {
-                        hub.ShowMessage(
+                        hub.Hint(
                             $"\n\n\n\n\n\n\n\n\n\n<size=17><b><color={ColorValues.LightGreen}>SCP chat</color> is <color={ColorValues.Green}>active</color>.</b>\n" +
-                            $"Use <color={ColorValues.Red}>{GetProximitySwitchKeyString(hub)}</color> to switch to <b><color={ColorValues.Red}>{GetNextChat(voiceProfile.ProximityFlag)}</color></b>.</size>", 6.1f, 100);
+                            $"Use <color={ColorValues.Red}>{GetProximitySwitchKeyString(hub)}</color> to switch to <b><color={ColorValues.Red}>{GetNextChat(voiceProfile.ProximityFlag)}</color></b>.</size>", 6.1f, true);
                         continue;
                     }
 
@@ -120,10 +120,10 @@ namespace Compendium.Voice
         }
 
         private static void UpdateOverwatchHint(ReferenceHub hub, ReferenceHub target)
-            => hub.ShowMessage(
+            => hub.Hint(
                 $"\n\n\n\n\n\n\n\n\n\n<size=17><b><color={ColorValues.LightGreen}>Overwatch</color> allows you to hear other SCPs talk.</b>\n" +
                 $"Use the <b><color={ColorValues.Red}>ovmode</color></b> command to switch between listening to all SCPs and targeted SCPs.\n" +
-                $"\n<b><i>Current target: {GetOvTargetString(hub, target)}</i></b></size>", 3f, 100);
+                $"\n<b><i>Current target: {GetOvTargetString(hub, target)}</i></b></size>", 6.1f, true);
 
         private static string GetOvTargetString(ReferenceHub hub, ReferenceHub target)
         {

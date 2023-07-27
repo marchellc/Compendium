@@ -51,6 +51,9 @@
     <Reference Include="helpers">
       <HintPath>..\..\helpers\helpers\bin\Release\helpers.dll</HintPath>
     </Reference>
+    <Reference Include="Microsoft.Bcl.AsyncInterfaces, Version=8.0.0.0, Culture=neutral, PublicKeyToken=cc7b13ffcd2ddd51, processorArchitecture=MSIL">
+      <HintPath>..\packages\Microsoft.Bcl.AsyncInterfaces.8.0.0-preview.6.23329.7\lib\net462\Microsoft.Bcl.AsyncInterfaces.dll</HintPath>
+    </Reference>
     <Reference Include="Mirror_publicized">
       <HintPath>..\..\..\..\..\..\Program Files (x86)\Steam\steamapps\common\SCP Secret Laboratory Dedicated Server\SCPSL_Data\Managed\Mirror_publicized.dll</HintPath>
     </Reference>
@@ -64,7 +67,32 @@
       <HintPath>..\..\..\..\..\..\Program Files (x86)\Steam\steamapps\common\SCP Secret Laboratory Dedicated Server\SCPSL_Data\Managed\Pooling.dll</HintPath>
     </Reference>
     <Reference Include="System" />
+    <Reference Include="System.Buffers, Version=4.0.3.0, Culture=neutral, PublicKeyToken=cc7b13ffcd2ddd51, processorArchitecture=MSIL">
+      <HintPath>..\packages\System.Buffers.4.5.1\lib\net461\System.Buffers.dll</HintPath>
+    </Reference>
     <Reference Include="System.Core" />
+    <Reference Include="System.Memory, Version=4.0.1.2, Culture=neutral, PublicKeyToken=cc7b13ffcd2ddd51, processorArchitecture=MSIL">
+      <HintPath>..\packages\System.Memory.4.5.5\lib\net461\System.Memory.dll</HintPath>
+    </Reference>
+    <Reference Include="System.Numerics" />
+    <Reference Include="System.Numerics.Vectors, Version=4.1.4.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL">
+      <HintPath>..\packages\System.Numerics.Vectors.4.5.0\lib\net46\System.Numerics.Vectors.dll</HintPath>
+    </Reference>
+    <Reference Include="System.Runtime.CompilerServices.Unsafe, Version=7.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL">
+      <HintPath>..\packages\System.Runtime.CompilerServices.Unsafe.7.0.0-preview.2.22152.2\lib\net462\System.Runtime.CompilerServices.Unsafe.dll</HintPath>
+    </Reference>
+    <Reference Include="System.Text.Encodings.Web, Version=8.0.0.0, Culture=neutral, PublicKeyToken=cc7b13ffcd2ddd51, processorArchitecture=MSIL">
+      <HintPath>..\packages\System.Text.Encodings.Web.8.0.0-preview.6.23329.7\lib\net462\System.Text.Encodings.Web.dll</HintPath>
+    </Reference>
+    <Reference Include="System.Text.Json, Version=8.0.0.0, Culture=neutral, PublicKeyToken=cc7b13ffcd2ddd51, processorArchitecture=MSIL">
+      <HintPath>..\packages\System.Text.Json.8.0.0-preview.6.23329.7\lib\net462\System.Text.Json.dll</HintPath>
+    </Reference>
+    <Reference Include="System.Threading.Tasks.Extensions, Version=4.2.0.1, Culture=neutral, PublicKeyToken=cc7b13ffcd2ddd51, processorArchitecture=MSIL">
+      <HintPath>..\packages\System.Threading.Tasks.Extensions.4.5.4\lib\net461\System.Threading.Tasks.Extensions.dll</HintPath>
+    </Reference>
+    <Reference Include="System.ValueTuple, Version=4.0.3.0, Culture=neutral, PublicKeyToken=cc7b13ffcd2ddd51, processorArchitecture=MSIL">
+      <HintPath>..\packages\System.ValueTuple.4.5.0\lib\net47\System.ValueTuple.dll</HintPath>
+    </Reference>
     <Reference Include="System.Xml.Linq" />
     <Reference Include="System.Data.DataSetExtensions" />
     <Reference Include="Microsoft.CSharp" />
@@ -87,11 +115,14 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="Attributes\InitOnLoadAttribute.cs" />
-    <Compile Include="Commands.cs" />
+    <Compile Include="Compatibility\IpCompatibilityPatch.cs" />
     <Compile Include="Components\StateController.cs" />
     <Compile Include="Config.cs" />
     <Compile Include="Extensions\ColorExtensions.cs" />
+    <Compile Include="Helpers\Banning\BanData.cs" />
+    <Compile Include="Helpers\Banning\BanRemovalReason.cs" />
+    <Compile Include="Helpers\Door.cs" />
+    <Compile Include="Helpers\Hub.cs" />
     <Compile Include="Extensions\RichText\RichTextAlignment.cs" />
     <Compile Include="Extensions\RichText\RichTextCapitalization.cs" />
     <Compile Include="Extensions\RichText\RichTextExtensions.cs" />
@@ -100,26 +131,35 @@
     <Compile Include="Extensions\ReflectionExtensions.cs" />
     <Compile Include="Features\ConfigFeatureBase.cs" />
     <Compile Include="Features\FeatureBase.cs" />
-    <Compile Include="Features\FeatureExtensions.cs" />
     <Compile Include="Features\FeatureManager.cs" />
     <Compile Include="Features\FLog.cs" />
     <Compile Include="Features\IFeature.cs" />
+    <Compile Include="Helpers\Banning\BanSystem.cs" />
     <Compile Include="Helpers\Calls\CallHelper.cs" />
     <Compile Include="Helpers\Colors\ColorValues.cs" />
     <Compile Include="Helpers\Events\EventConverter.cs" />
-    <Compile Include="Helpers\Overlay\OverlayController.cs" />
-    <Compile Include="Helpers\Overlay\OverlayElementType.cs" />
-    <Compile Include="Helpers\Overlay\OverlayExtensions.cs" />
-    <Compile Include="Helpers\Overlay\OverlayHelper.cs" />
-    <Compile Include="Helpers\Overlay\OverlayPart.cs" />
-    <Compile Include="Helpers\Overlay\OverlayPosition.cs" />
+    <Compile Include="Helpers\Health\CustomHealthStat.cs" />
+    <Compile Include="Helpers\Hints\BasicHintEffectType.cs" />
+    <Compile Include="Helpers\Moderation\ModerationUtils.cs" />
     <Compile Include="Helpers\Prefabs\PrefabHelper.cs" />
     <Compile Include="Helpers\Prefabs\PrefabName.cs" />
+    <Compile Include="Helpers\RoleHistory\RoleHistoryEntry.cs" />
+    <Compile Include="Helpers\RoleHistory\RoleHistoryRecorder.cs" />
     <Compile Include="Helpers\Round\RoundHelper.cs" />
+    <Compile Include="Helpers\Round\RoundState.cs" />
+    <Compile Include="Helpers\Round\RoundStateChangedAttribute.cs" />
+    <Compile Include="Helpers\Rules\RuleData.cs" />
+    <Compile Include="Helpers\Rules\RuleSystem.cs" />
+    <Compile Include="Helpers\Snapshots\InventorySnapshot.cs" />
+    <Compile Include="Helpers\Snapshots\SnapshotHelper.cs" />
+    <Compile Include="Helpers\Token\TokenData.cs" />
+    <Compile Include="Helpers\Token\TokenParser.cs" />
     <Compile Include="Helpers\Units\UnitHelper.cs" />
     <Compile Include="Helpers\UserId\UserIdValue.cs" />
     <Compile Include="Helpers\UserId\UserIdHelper.cs" />
     <Compile Include="Helpers\UserId\UserIdType.cs" />
+    <Compile Include="Helpers\Warning\WarnSystem.cs" />
+    <Compile Include="IdCache\IdGenerator.cs" />
     <Compile Include="Logging\DebugParameter.cs" />
     <Compile Include="Logging\LoggingProxy.cs" />
     <Compile Include="Npc\INpc.cs" />
@@ -133,9 +173,11 @@
     <Compile Include="Npc\Targeting\PositionTarget.cs" />
     <Compile Include="Plugin.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="Settings\ApiSettings.cs" />
+    <Compile Include="Settings\BanSettings.cs" />
     <Compile Include="Settings\FeatureSettings.cs" />
     <Compile Include="Settings\LogSettings.cs" />
-    <Compile Include="Settings\StaffSettings.cs" />
+    <Compile Include="Settings\RuleSettings.cs" />
     <Compile Include="State\Base\CustomRangedUpdateTimeState.cs" />
     <Compile Include="State\Base\CustomUpdateTimeStateBase.cs" />
     <Compile Include="State\Base\RequiredStateBase.cs" />
@@ -146,9 +188,12 @@
     <Compile Include="State\Interfaced\IRequiredState.cs" />
     <Compile Include="State\Interfaced\IState.cs" />
     <Compile Include="State\StateFlags.cs" />
+    <Compile Include="TokenCache\TokenCacheData.cs" />
+    <Compile Include="TokenCache\TokenCacheHandler.cs" />
   </ItemGroup>
   <ItemGroup />
   <ItemGroup>
+    <None Include="app.config" />
     <None Include="packages.config" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />

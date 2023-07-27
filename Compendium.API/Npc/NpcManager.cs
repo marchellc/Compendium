@@ -1,7 +1,6 @@
-﻿using Compendium.Attributes;
-using Compendium.Helpers.Events;
+﻿using Compendium.Helpers.Events;
 using Compendium.Helpers.Prefabs;
-
+using helpers.Attributes;
 using helpers.Extensions;
 using helpers.Random;
 
@@ -37,7 +36,7 @@ namespace Compendium.Npc
             }
         }
 
-        [InitOnLoad]
+        [Load]
         internal static void Initialize()
         {
             ServerEventType.RoundEnd.AddHandler<Action>(OnRoundEnd);

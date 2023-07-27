@@ -150,9 +150,11 @@ namespace Compendium.Npc
                 NetworkServer.Spawn(m_Hub.gameObject);
             }
 
-            m_IsSpawned = true;
-
-            NpcManager.OnNpcSpawned(this);
+            if (!m_IsSpawned)
+            {
+                m_IsSpawned = true;
+                NpcManager.OnNpcSpawned(this);
+            }
         }
 
         public void Teleport(Vector3 location)
@@ -196,7 +198,7 @@ namespace Compendium.Npc
                 if (!IsSpawned || m_Hub is null)
                     continue;
 
-                var hasTarget = !(m_Target is null || !m_Target.IsValid);
+                var hasTarget = m_Target != null && m_Target.IsValid;
 
                 if (RoleId is RoleTypeId.Scp079)
                 {

@@ -1,8 +1,8 @@
-﻿using Compendium.Features;
+﻿using Compendium.Helpers;
+using Compendium.Features;
 using Compendium.Helpers.Calls;
 using Compendium.Helpers.Colors;
 using Compendium.Helpers.Events;
-using Compendium.Helpers.Overlay;
 
 using helpers;
 using helpers.IO.Storage;
@@ -18,7 +18,7 @@ namespace Compendium.PersistentOverwatch
 {
     public class PersistentOverwatchFeature : FeatureBase
     {
-        public string Name => "Persistent Overwatch";
+        public override string Name => "Persistent Overwatch";
 
         public static string StoragePath => $"{FeatureManager.DirectoryPath}/overwatch_storage";
 
@@ -35,16 +35,16 @@ namespace Compendium.PersistentOverwatch
 
             ServerEventType.PlayerJoined.AddHandler<Action<PlayerJoinedEvent>>(OnPlayerJoined);
 
-            this.Info($"Overwatch storage loaded.");
+            FLog.Info($"Overwatch storage loaded.");
         }
 
-        public void Reload()
+        public override void Reload()
         {
             Storage?.Reload();
-            this.Info($"Reloaded.");
+            FLog.Info($"Reloaded.");
         }
 
-        public void Unload()
+        public override void Unload()
         {
             base.Unload();
 
@@ -55,7 +55,7 @@ namespace Compendium.PersistentOverwatch
 
             ServerEventType.PlayerJoined.RemoveHandler<Action<PlayerJoinedEvent>>(OnPlayerJoined);
 
-            this.Info($"Unloaded.");
+            FLog.Info($"Unloaded.");
         }
 
         private static void OnRoleChanged(ReferenceHub hub, PlayerRoleBase prevRole, PlayerRoleBase newRole)
@@ -68,20 +68,20 @@ namespace Compendium.PersistentOverwatch
                 if (newRole.RoleTypeId is RoleTypeId.Overwatch)
                     return;
 
-                if (Storage.Remove(hub.characterClassManager.UserId))
+                if (Storage.Delete(hub.characterClassManager.UserId))
                 {
                     Storage.Save();
-                    hub.ShowMessage($"\n\n<b>Persistent Overwatch is now <color={ColorValues.Red}>disabled</color>.", 5f, 110);
+                    hub.Hint($"\n\n<b>Persistent Overwatch is now <color={ColorValues.Red}>disabled</color>.", 5f, true);
                 }
             }
             else
             {
                 if (newRole.RoleTypeId is RoleTypeId.Overwatch)
                 {
-                    if (Storage.Add(hub.characterClassManager.UserId))
+                    if (Storage.Append(hub.characterClassManager.UserId))
                     {
                         Storage.Save();
-                        hub.ShowMessage($"\n\n<b>Persistent Overwatch is now <color={ColorValues.Green}>active</color>.</b>", 5f, 110);
+                        hub.Hint($"\n\n<b>Persistent Overwatch is now <color={ColorValues.Green}>active</color>.</b>", 5f, true);
                     }
                 }
             }
@@ -97,9 +97,9 @@ namespace Compendium.PersistentOverwatch
                 CallHelper.CallWithDelay(() =>
                 {
                     ev.Player.SetRole(RoleTypeId.Overwatch);
-                    ev.Player.ReferenceHub.ShowMessage(
+                    ev.Player.ReferenceHub.Hint(
                         $"\n\n<b><color={ColorValues.LightGreen}>[Persistent Overwatch]</color></b>\n" +
-                        $"<b>Role changed to <color={ColorValues.Green}>Overwatch</color>.</b>", 3f, 180);
+                        $"<b>Role changed to <color={ColorValues.Green}>Overwatch</color>.</b>", 3f, true);
                 }, 0.7f);
             }
         }

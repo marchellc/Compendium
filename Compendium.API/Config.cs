@@ -18,7 +18,13 @@ namespace Compendium
         [Description("General feature settings.")]
         public FeatureSettings FeatureSettings { get; set; } = new FeatureSettings();
 
-        [Description("General staff settings.")]
-        public StaffSettings StaffSettings { get; set; } = new StaffSettings();
+        [Description("General API settings.")]
+        public ApiSettings ApiSetttings { get; set; } = new ApiSettings();
+
+        [Description("Settings for Compendium's custom ban system.")]
+        public BanSettings BanSettings { get; set; } = new BanSettings();
+
+        [Description("Settings for Compendium's custom rule system.")]
+        public RuleSettings RuleSettings { get; set; } = new RuleSettings();
     }
 }

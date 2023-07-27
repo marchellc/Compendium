@@ -36,26 +36,7 @@ namespace Compendium.RemoteKeycard
 {
     public static class RemoteKeycardPatches
     {
-        public static readonly PatchInfo DoorInteractionPatch = new PatchInfo(
-            new PatchTarget(typeof(DoorVariant), nameof(DoorVariant.ServerInteract)),
-            new PatchTarget(typeof(RemoteKeycardPatches), nameof(RemoteKeycardPatches.DoorInteractionReplacement)), PatchType.Prefix, "Door Interaction Patch [RK]");
-
-        public static readonly PatchInfo GeneratorInteractionPatch = new PatchInfo(
-            new PatchTarget(typeof(Scp079Generator), nameof(Scp079Generator.ServerInteract)),
-            new PatchTarget(typeof(RemoteKeycardPatches), nameof(RemoteKeycardPatches.GeneratorInteractionReplacement)), PatchType.Prefix, "Generation Interaction Patch [RK]");
-
-        public static readonly PatchInfo LockerInteractionPatch = new PatchInfo(
-            new PatchTarget(typeof(Locker), nameof(Locker.ServerInteract)),
-            new PatchTarget(typeof(RemoteKeycardPatches), nameof(RemoteKeycardPatches.LockerInteractionReplacement)), PatchType.Prefix, "Locker Interaction Patch [RK]");
-
-        public static readonly PatchInfo WarheadButtonPatch = new PatchInfo(
-            new PatchTarget(typeof(PlayerInteract), nameof(PlayerInteract.UserCode_CmdSwitchAWButton)),
-            new PatchTarget(typeof(RemoteKeycardPatches), nameof(RemoteKeycardPatches.WarheadButtonReplacement)), PatchType.Prefix, "Warhead Interaction Patch [RK]");
-
-        public static readonly PatchInfo RaycastHitPatch = new PatchInfo(
-            new PatchTarget(typeof(SingleBulletHitreg), nameof(SingleBulletHitreg.ServerProcessRaycastHit)),
-            new PatchTarget(typeof(RemoteKeycardPatches), nameof(RemoteKeycardPatches.RaycastHitReplacement)), PatchType.Prefix, "Raycast Hit Patch [RK]");
-
+        [Patch(typeof(SingleBulletHitreg), nameof(SingleBulletHitreg.ServerProcessRaycastHit))]
         private static bool RaycastHitReplacement(SingleBulletHitreg __instance, Ray ray, RaycastHit hit)
         {
             if (hit.collider.TryGetComponent<IDestructible>(out var destructible) && __instance.CheckInaccurateFriendlyFire(destructible))
@@ -117,6 +98,7 @@ namespace Compendium.RemoteKeycard
             return false;
         }
 
+        [Patch(typeof(PlayerInteract), nameof(PlayerInteract.UserCode_CmdSwitchAWButton))]
         private static bool WarheadButtonReplacement(PlayerInteract __instance)
         {
             try
@@ -180,6 +162,7 @@ namespace Compendium.RemoteKeycard
             }
         }
 
+        [Patch(typeof(Locker), nameof(Locker.ServerInteract))]
         private static bool LockerInteractionReplacement(Locker __instance, ReferenceHub ply, byte colliderId)
         {
             try
@@ -224,6 +207,7 @@ namespace Compendium.RemoteKeycard
             }
         }
 
+        [Patch(typeof(Scp079Generator), nameof(Scp079Generator.ServerInteract))]
         private static bool GeneratorInteractionReplacement(Scp079Generator __instance, ReferenceHub ply, byte colliderId)
         {
             try
@@ -354,58 +338,6 @@ namespace Compendium.RemoteKeycard
             catch (Exception ex)
             {
                 Plugin.Error($"Caught an exception in the generator patch!\n{ex}");
-                return true;
-            }
-        }
-
-        private static bool DoorInteractionReplacement(DoorVariant __instance, ReferenceHub ply, byte colliderId)
-        {
-            try
-            {
-                if (__instance.ActiveLocks > 0 && !ply.serverRoles.BypassMode)
-                {
-                    var mode = DoorLockUtils.GetMode((DoorLockReason)__instance.ActiveLocks);
-
-                    if ((!mode.HasFlagFast(DoorLockMode.CanClose) || !mode.HasFlagFast(DoorLockMode.CanOpen)) && (!mode.HasFlagFast(DoorLockMode.ScpOverride) || !ply.IsSCP(true)) && (mode == DoorLockMode.FullLock || (__instance.TargetState && !mode.HasFlagFast(DoorLockMode.CanClose)) || (!__instance.TargetState && !mode.HasFlagFast(DoorLockMode.CanOpen))))
-                    {
-                        if (!EventManager.ExecuteEvent(new PlayerInteractDoorEvent(ply, __instance, false)))
-                            return false;
-
-                        __instance.LockBypassDenied(ply, colliderId);
-                        return false;
-                    }
-                }
-
-                if (!__instance.AllowInteracting(ply, colliderId))
-                    return false;
-
-                var flag = ply.GetRoleId() == RoleTypeId.Scp079 || __instance.RequiredPermissions.CheckPermissions(ply.inventory.CurInstance, ply);
-
-                if (!flag)
-                {
-                    if (RemoteKeycardLogic.CanBypass(ply, __instance))
-                        flag = true;
-                }
-
-                if (!EventManager.ExecuteEvent(new PlayerInteractDoorEvent(ply, __instance, flag)))
-                    return false;
-
-                if (flag)
-                {
-                    __instance.NetworkTargetState = !__instance.TargetState;
-                    __instance._triggerPlayer = ply;
-
-                    return false;
-                }
-
-                __instance.PermissionsDenied(ply, colliderId);
-
-                DoorEvents.TriggerAction(__instance, DoorAction.AccessDenied, ply);
-                return false;
-            }
-            catch (Exception ex)
-            {
-                Plugin.Error($"Caught an exception in the door patch!\n{ex}");
                 return true;
             }
         }

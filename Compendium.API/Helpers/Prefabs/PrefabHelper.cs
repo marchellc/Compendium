@@ -1,12 +1,13 @@
-﻿using Compendium.Attributes;
-using Compendium.Extensions;
+﻿using Compendium.Extensions;
 using Compendium.Helpers.Events;
 
+using helpers.Attributes;
 using helpers.Extensions;
 
 using Mirror;
 
 using PluginAPI.Enums;
+
 using System;
 using System.Collections.Generic;
 
@@ -113,7 +114,7 @@ namespace Compendium.Helpers.Prefabs
 
         private static readonly Dictionary<PrefabName, GameObject> m_Prefabs = new Dictionary<PrefabName, GameObject>();
 
-        [InitOnLoad]
+        [Load]
         public static void Initialize()
         {
             ServerEventType.MapGenerated.AddHandler<Action>(ReloadPrefabs);

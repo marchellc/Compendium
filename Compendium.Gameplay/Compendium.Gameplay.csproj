@@ -93,6 +93,7 @@
     <Compile Include="GameplayFeature.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Respawning\RespawnController.cs" />
+    <Compile Include="Tutorial\TutorialCommands.cs" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\Compendium.API\Compendium.API.csproj">

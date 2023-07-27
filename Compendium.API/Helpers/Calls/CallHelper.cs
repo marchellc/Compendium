@@ -76,5 +76,23 @@ namespace Compendium.Helpers.Calls
                 action?.Invoke();
             }
         }
+
+        public static TResult SafeDelegate<TResult, TInput1, TInput2>(Func<TInput1, TInput2, TResult> del, TInput1 input1, TInput2 input2, TResult defResult = default)
+        {
+            try
+            {
+                if (del is null)
+                    return defResult;
+
+                return del(input1, input2);
+            }
+            catch (Exception ex)
+            {
+                Plugin.Error($"Failed to execute Func<{typeof(TInput1).FullName}, {typeof(TInput2).FullName}, {typeof(TResult).FullName}> !");
+                Plugin.Error(ex);
+
+                return defResult;
+            }
+        }
     }
 }

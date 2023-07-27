@@ -1,11 +1,13 @@
 ﻿using BetterCommands;
 using BetterCommands.Management;
 using BetterCommands.Permissions;
-using Compendium.Attributes;
-using Compendium.Helpers.Events;
 
+using Compendium.Helpers.Events;
+using Compendium.Helpers.Round;
 using helpers;
+using helpers.Attributes;
 using helpers.Patching;
+
 using PluginAPI.Core;
 using PluginAPI.Enums;
 
@@ -30,7 +32,8 @@ namespace Compendium.Features
         public static IReadOnlyList<IFeature> LoadedFeatures => _features;
         public static IReadOnlyList<Type> RegisteredFeatures => _knownFeatures;
 
-        [InitOnLoad]
+        [Load]
+        [Reload]
         public static void Reload()
         {
             Unload();
@@ -51,6 +54,7 @@ namespace Compendium.Features
                     _features.Add(instance);
 
                     Singleton.Set(instance);
+
                     Plugin.Info($"Instantiated internal feature: {type.FullName}");
                 }
             }
@@ -80,6 +84,7 @@ namespace Compendium.Features
 
                         Singleton.Set(instance);
                         CommandManager.Register(type.Assembly);
+                        RoundHelper.ScanAssemblyForOnChanged(assembly);
 
                         Plugin.Info($"Instantiated external feature: {type.FullName}");
                     }
@@ -155,6 +160,8 @@ namespace Compendium.Features
 
                     if (feature.IsPatch)
                         PatchManager.PatchAssemblies(feature.GetType().Assembly);
+
+                    AttributeLoader.ExecuteLoadAttributes(feature.GetType().Assembly);
                 }
             }
             catch (Exception ex)
@@ -191,6 +198,8 @@ namespace Compendium.Features
         {
             try
             {
+                AttributeLoader.ExecuteUnloadAttributes(feature.GetType().Assembly);
+
                 if (feature.IsPatch)
                     PatchManager.UnpatchAssemblies(feature.GetType().Assembly);
 
@@ -409,6 +418,7 @@ namespace Compendium.Features
                 }
                 else
                 {
+                    AttributeLoader.ExecuteReloadAttributes(feature.GetType().Assembly);
                     feature.Reload();
                     return $"Feature {feature.Name} has been reloaded!";
                 }

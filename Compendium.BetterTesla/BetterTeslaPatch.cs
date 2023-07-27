@@ -9,10 +9,7 @@ namespace Compendium.BetterTesla
 {
     public static class BetterTeslaPatch
     {
-        public static readonly PatchInfo patch = new PatchInfo(
-            new PatchTarget(typeof(TeslaGateController), nameof(TeslaGateController.FixedUpdate)),
-            new PatchTarget(typeof(BetterTeslaPatch), nameof(BetterTeslaPatch.Prefix)), PatchType.Prefix, "Tesla Patch");
-
+        [Patch(typeof(TeslaGateController), nameof(TeslaGateController.FixedUpdate))]
         public static bool Prefix(TeslaGateController __instance)
         {
             var removed = __instance.TeslaGates.RemoveAll(tesla => tesla is null || tesla.gameObject is null || tesla.gameObject.transform is null);

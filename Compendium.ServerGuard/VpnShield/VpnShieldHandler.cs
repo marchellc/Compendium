@@ -2,6 +2,8 @@
 using BetterCommands.Permissions;
 
 using Compendium.Features;
+using Compendium.Helpers;
+using Compendium.TokenCache;
 using Compendium.ServerGuard.Dispatch;
 
 using helpers.Configuration.Ini;
@@ -12,8 +14,6 @@ using PluginAPI.Core;
 
 using System;
 using System.Collections.Generic;
-
-using Compendium.Logging;
 
 namespace Compendium.ServerGuard.VpnShield
 {
@@ -77,34 +77,8 @@ namespace Compendium.ServerGuard.VpnShield
                 return;
             }
 
-            if (_vpnCache.TryGet(d => 
-                       d.Ip == hub.connectionToClient.address 
-                    || d.UserId == hub.characterClassManager.UserId 
-                    || d.Token == hub.characterClassManager.AuthToken, out var data))
-            {
-                var hasChanged = false;
-
-                if (string.IsNullOrWhiteSpace(data.Ip) || data.Ip != hub.connectionToClient.address)
-                {
-                    data.Ip = hub.connectionToClient.address;
-                    hasChanged = true;
-                }
-
-                if (string.IsNullOrWhiteSpace(data.UserId) || data.UserId != hub.characterClassManager.UserId)
-                {
-                    data.UserId = hub.characterClassManager.UserId;
-                    hasChanged = true;
-                }
-
-                if (string.IsNullOrWhiteSpace(data.Token) || data.Token != hub.characterClassManager.AuthToken)
-                {
-                    data.Token = hub.characterClassManager.AuthToken;
-                    hasChanged = true;
-                }
-
-                if (hasChanged)
-                    _vpnCache.Save();
-
+            if (_vpnCache.TryFirst(d => d.UniqueId == hub.UniqueId(), out VpnShieldData data))
+            { 
                 if (data.Flags != VpnShieldFlags.Clean)
                 {
                     FLog.Warn($"Kicked {hub.LoggedNameFromRefHub()} ({hub.connectionToClient.address}) ({hub.characterClassManager.AuthTokenSerial}) - cached detection.");
@@ -130,12 +104,8 @@ namespace Compendium.ServerGuard.VpnShield
                         _vpnCache.Add(new VpnShieldData()
                         {
                             Flags = response.Flags,
-                            Ip = hub.connectionToClient.address,
-                            Token = hub.characterClassManager.AuthToken,
-                            UserId = hub.characterClassManager.UserId
+                            UniqueId = hub.UniqueId()
                         });
-
-                        _vpnCache.Save();
 
                         if (response.Flags != VpnShieldFlags.Clean)
                         {
@@ -166,38 +136,37 @@ namespace Compendium.ServerGuard.VpnShield
         }
 
         private static void Kick(ReferenceHub hub, string reason)
-            => ServerConsole.Disconnect(hub.connectionToClient, $"Kicked by VPN shield: {reason}");
+            => ServerConsole.Disconnect(hub.connectionToClient, $"Kicked by Server Guard: {reason}");
 
         [Command("vpnwhitelist", CommandType.RemoteAdmin, CommandType.GameConsole)]
         [CommandAliases("vpnwh")]
         [Permission(PermissionNodeMode.AnyOf, "guard.vpn.whitelist")]
         private static string WhitelistCommand(Player sender, string ip)
         {
-            if (_vpnCache.TryGet(d => d.Ip == ip, out var data))
+            if (!TokenCacheHandler.TryRetrieveByIp(ip, out var token))
+                return "Unknown IP provided.";
+                    
+            if (_vpnCache.TryFirst(d => d.UniqueId == token.UniqueId, out VpnShieldData data))
             {
                 if (data.Flags == VpnShieldFlags.Clean)
                 {
-                    _vpnCache.Remove(data);
-                    _vpnCache.Save();
-
-                    return $"{data.Ip} ({data.UserId}) IP whitelist removed.";
+                    _vpnCache.Remove(data, true);
+                    return $"{token.LastIp} ({token.LastId}) IP whitelist removed.";
                 }
 
                 data.Flags = VpnShieldFlags.Clean;
 
                 _vpnCache.Save();
+
                 return $"IP {ip} succesfully whitelisted.";
             }
 
             _vpnCache.Add(new VpnShieldData
             {
                 Flags = VpnShieldFlags.Clean,
-                Ip = ip,
-                Token = "empty",
-                UserId = "empty"
+                UniqueId = token.UniqueId
             });
 
-            _vpnCache.Save();
             return $"IP {ip} succesfully whitelisted.";
         }
     }

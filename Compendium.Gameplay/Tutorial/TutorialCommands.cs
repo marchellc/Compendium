@@ -4,9 +4,10 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace Compendium.Fun
+namespace Compendium.Gameplay.Tutorial
 {
-    public static class FunConfig
+    public static class TutorialCommands
     {
+
     }
 }

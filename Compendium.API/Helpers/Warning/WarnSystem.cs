@@ -4,10 +4,9 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace Compendium.Fun
+namespace Compendium.Helpers.Warning
 {
-    public static class FunCommands
+    internal class WarnSystem
     {
-        public static string Rocket() { return null; }
     }
 }

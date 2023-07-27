@@ -27,9 +27,7 @@ namespace Compendium.Features
                 throw new InvalidOperationException($"Failed to find log name for type: {type.FullName}");
 
             if (parameters != null && parameters.Any())
-            {
-                msg += $"\nParameters ({parameters.Length}):\n{JsonHelper.ToJson(parameters, JsonOptionsBuilder.Indented)}";
-            }
+                msg += $"\nParameters ({parameters.Length}):\n{JsonHelper.ToJson(parameters)}";
 
             Log.Warning(msg, logName);
         }
@@ -47,9 +45,7 @@ namespace Compendium.Features
                 return;
 
             if (parameters != null && parameters.Any())
-            {
-                msg += $"\nParameters ({parameters.Length}):\n{JsonHelper.ToJson(parameters, JsonOptionsBuilder.Indented)}";
-            }
+                msg += $"\nParameters ({parameters.Length}):\n{JsonHelper.ToJson(parameters)}";
 
             Log.Debug(msg, true, feature.Name);
         }
@@ -67,9 +63,7 @@ namespace Compendium.Features
                 throw new InvalidOperationException($"Failed to find log name for type: {type.FullName}");
 
             if (parameters != null && parameters.Any())
-            {
-                msg += $"\nParameters ({parameters.Length}):\n{JsonHelper.ToJson(parameters, JsonOptionsBuilder.Indented)}";
-            }
+                msg += $"\nParameters ({parameters.Length}):\n{JsonHelper.ToJson(parameters)}";
 
             Log.Error(msg, logName);
         }
@@ -87,9 +81,7 @@ namespace Compendium.Features
                 throw new InvalidOperationException($"Failed to find log name for type: {type.FullName}");
 
             if (parameters != null && parameters.Any())
-            {
-                msg += $"\nParameters ({parameters.Length}):\n{JsonHelper.ToJson(parameters, JsonOptionsBuilder.Indented)}";
-            }
+                msg += $"\nParameters ({parameters.Length}):\n{JsonHelper.ToJson(parameters)}";
 
             Log.Info(msg, logName);
         }
@@ -97,9 +89,7 @@ namespace Compendium.Features
         public static bool CanDebug(this Assembly assembly, out IFeature feature)
         {
             if (FeatureManager.LoadedFeatures.TryGetFirst(f => f.GetType().Assembly == assembly, out feature))
-            {
                 return Plugin.Config.FeatureSettings.Debug.Contains(feature.Name) || Plugin.Config.FeatureSettings.Debug.Contains("*");
-            }
 
             return false;
         }
