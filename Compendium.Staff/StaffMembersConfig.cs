@@ -1,5 +1,5 @@
 ﻿using Compendium.Features;
-using Compendium.Helpers.UserId;
+using Compendium.UserId;
 
 using helpers.Extensions;
 

@@ -2,7 +2,7 @@
 using BetterCommands.Permissions;
 
 using Compendium.Features;
-using Compendium.Helpers;
+using Compendium;
 using Compendium.TokenCache;
 using Compendium.ServerGuard.Dispatch;
 
@@ -14,6 +14,7 @@ using PluginAPI.Core;
 
 using System;
 using System.Collections.Generic;
+using helpers.Attributes;
 
 namespace Compendium.ServerGuard.VpnShield
 {
@@ -51,6 +52,7 @@ namespace Compendium.ServerGuard.VpnShield
         [IniConfig(Name = "Blocked Providers", Description = "A list of blocked internet service providers.")]
         public static List<string> BlockedProviders { get; set; } = new List<string>();
 
+        [Load]
         public static void Initialize()
         {
             _vpnCache = new SingleFileStorage<VpnShieldData>($"{FeatureManager.DirectoryPath}/vpn_cache");

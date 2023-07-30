@@ -1,17 +1,41 @@
 ﻿using Compendium.Features;
-using Compendium.Helpers.Calls;
+using Compendium.Calls;
 
 using helpers;
+using helpers.Attributes;
+
+using Compendium.Round;
 
 using PlayerRoles;
 using PlayerRoles.FirstPersonControl;
 
 using UnityEngine;
+using System.Linq;
+using helpers.Pooling.Pools;
+using Compendium.Colors;
 
 namespace Compendium.Fixes.RoleSpawn
 {
     public static class RoleSpawnHandler
     {
+        public static readonly RoleTypeId[] ScpRoles = new RoleTypeId[6]
+        {
+            RoleTypeId.Scp049,
+            RoleTypeId.Scp173,
+            RoleTypeId.Scp106,
+            RoleTypeId.Scp096,
+            RoleTypeId.Scp079,
+            RoleTypeId.Scp939
+        };
+
+        public static readonly RoleTypeId[] PossibleRoles = new RoleTypeId[]
+        {
+            RoleTypeId.Scientist,
+            RoleTypeId.ClassD,
+            RoleTypeId.FacilityGuard
+        };
+
+        [Load]
         public static void Load()
         {
             if (!Reflection.TryAddHandler<PlayerRoleManager.RoleChanged>(typeof(PlayerRoleManager), "OnRoleChanged", OnRoleChanged))
@@ -20,6 +44,7 @@ namespace Compendium.Fixes.RoleSpawn
                 FLog.Info($"Succesfully registered role spawn handler.");
         }
 
+        [Unload]
         public static void Unload()
         {
             if (!Reflection.TryRemoveHandler<PlayerRoleManager.RoleChanged>(typeof(PlayerRoleManager), "OnRoleChanged", OnRoleChanged))
@@ -33,10 +58,45 @@ namespace Compendium.Fixes.RoleSpawn
             hub.TryOverridePosition(position, rotation);
         }
 
+        [RoundStateChanged(RoundState.InProgress)]
+        private static void OnRoundStarted()
+        {
+            CallHelper.CallWithDelay(() =>
+            {
+                ScpRoles.ForEach(scpRole =>
+                {
+                    if (Hub.Hubs.Count(hub => hub.RoleId() == scpRole) > 1)
+                    {
+                        var plysToRemove = ListPool<ReferenceHub>.Pool.Get();
+
+                        while (Hub.Hubs.Count(hub => hub.RoleId() == scpRole && !plysToRemove.Contains(hub)) > 1)
+                            plysToRemove.Add(Hub.Hubs.Last(hub => hub.RoleId() == scpRole && !plysToRemove.Contains(hub)));
+
+                        if (plysToRemove.Count > 0)
+                        {
+                            plysToRemove.ForEach(hub =>
+                            {
+                                FLog.Debug($"Removing duplicate SCP role from {hub.GetLogName(false, false)}: {scpRole}");
+
+                                var newRole = PossibleRoles.RandomItem();
+
+                                hub.RoleId(newRole);
+                                hub.Hint($"\n\n<b><color={ColorValues.LightGreen}>Your role was set to <color={ColorValues.Red}>{newRole}</color> to prevent duplicate SCPs.</color></b>", 5f, true);
+                            });
+                        }
+
+                        ListPool<ReferenceHub>.Pool.Push(plysToRemove);
+                    }
+                });
+            }, 1.5f);
+        }
+
         private static void OnRoleChanged(ReferenceHub hub, PlayerRoleBase prevRole, PlayerRoleBase newRole)
         {
             CallHelper.CallWithDelay(() =>
             {
+                hub.Health(hub.MaxHealth());
+
                 var role = hub.GetRoleId();
 
                 if (RoleSpawnValidator.IsEnabled(role, RoleSpawnValidationType.YAxis, out var axisValue))

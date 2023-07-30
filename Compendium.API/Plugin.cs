@@ -1,4 +1,4 @@
-﻿using Compendium.Helpers.Events;
+﻿using Compendium.Events;
 
 using helpers;
 using helpers.Events;
@@ -13,7 +13,7 @@ using System.Reflection;
 
 using Log = PluginAPI.Core.Log;
 
-using Compendium.Helpers.Calls;
+using Compendium.Calls;
 using Compendium.Logging;
 using Compendium.Features;
 using helpers.Patching;
@@ -50,8 +50,6 @@ namespace Compendium
             Instance = this;
             HandlerInstance = PluginHandler.Get(this);
 
-            EventConverter.Initialize();
-
             if (Config.UseExceptionHandler)
             {
                 ExceptionManager.Load();
@@ -71,12 +69,14 @@ namespace Compendium
                 helpers.Log.AddLogger<LoggingProxy>();
                 helpers.Log.AddLogger(new FileLogger(FileLoggerMode.AppendToFile, 0));
                 helpers.Log.Blacklist(LogLevel.Debug);
+
                 Warn($"Support library logger enabled - this might get messy!");
             }
 
             if (Config.LogSettings.ShowDebug)
             {
                 helpers.Log.Unblacklist(LogLevel.Debug);
+
                 Warn($"Debug enabled - this will get messy.");
             }
 
@@ -88,6 +88,7 @@ namespace Compendium
 
                     PatchManager.PatchAssemblies(exec);
                     AttributeLoader.ExecuteLoadAttributes(exec);
+                    EventRegistry.RegisterEvents(exec);
 
                     LoadConfig();
 
@@ -108,6 +109,11 @@ namespace Compendium
         {
             AttributeLoader.ExecuteUnloadAttributes();
 
+            var exec = Assembly.GetExecutingAssembly();
+
+            PatchManager.UnpatchAssemblies(exec);
+            EventRegistry.UnregisterEvents(exec);
+
             SaveConfig();
 
             OnUnloaded.Invoke();
@@ -122,7 +128,6 @@ namespace Compendium
         {
             LoadConfig();
 
-            FeatureManager.Reload();
             AttributeLoader.ExecuteReloadAttributes();
 
             OnReloaded.Invoke();

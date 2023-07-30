@@ -1,8 +1,8 @@
-﻿using Compendium.Helpers;
+﻿using Compendium;
 using Compendium.Features;
-using Compendium.Helpers.Calls;
-using Compendium.Helpers.Colors;
-using Compendium.Helpers.Events;
+using Compendium.Calls;
+using Compendium.Colors;
+using Compendium.Events;
 
 using helpers;
 using helpers.IO.Storage;
@@ -32,9 +32,6 @@ namespace Compendium.PersistentOverwatch
             Storage.Reload();
 
             Reflection.TryAddHandler<PlayerRoleManager.RoleChanged>(typeof(PlayerRoleManager), "OnRoleChanged", OnRoleChanged);
-
-            ServerEventType.PlayerJoined.AddHandler<Action<PlayerJoinedEvent>>(OnPlayerJoined);
-
             FLog.Info($"Overwatch storage loaded.");
         }
 
@@ -52,9 +49,6 @@ namespace Compendium.PersistentOverwatch
             Storage = null;
 
             Reflection.TryRemoveHandler<PlayerRoleManager.RoleChanged>(typeof(PlayerRoleManager), "OnRoleChanged", OnRoleChanged);
-
-            ServerEventType.PlayerJoined.RemoveHandler<Action<PlayerJoinedEvent>>(OnPlayerJoined);
-
             FLog.Info($"Unloaded.");
         }
 
@@ -87,6 +81,7 @@ namespace Compendium.PersistentOverwatch
             }
         }
 
+        [Event]
         private static void OnPlayerJoined(PlayerJoinedEvent ev)
         {
             if (!FeatureManager.GetFeature<PersistentOverwatchFeature>().IsEnabled || Storage is null)

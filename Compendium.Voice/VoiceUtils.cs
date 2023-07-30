@@ -1,5 +1,5 @@
-﻿using Compendium.Helpers;
-using Compendium.Helpers.Colors;
+﻿using Compendium;
+using Compendium.Colors;
 using Compendium.Input;
 using Compendium.Voice.Profiles;
 

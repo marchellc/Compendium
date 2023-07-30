@@ -14,7 +14,7 @@ namespace Compendium.Features
 {
     public static class FLog
     {
-        public static void Warn(object message, params DebugParameter[] parameters)
+        public static void Warn(object message, params LogParameter[] parameters)
         {
             var stack = new StackTrace();
             var frame = stack.GetFrames().Skip(1).First();
@@ -32,7 +32,7 @@ namespace Compendium.Features
             Log.Warning(msg, logName);
         }
 
-        public static void Debug(object message, params DebugParameter[] parameters)
+        public static void Debug(object message, params LogParameter[] parameters)
         {
             var stack = new StackTrace();
             var frame = stack.GetFrames().Skip(1).First();
@@ -50,7 +50,7 @@ namespace Compendium.Features
             Log.Debug(msg, true, feature.Name);
         }
 
-        public static void Error(object message, params DebugParameter[] parameters)
+        public static void Error(object message, params LogParameter[] parameters)
         {
             var stack = new StackTrace();
             var frame = stack.GetFrames().Skip(1).First();
@@ -68,7 +68,7 @@ namespace Compendium.Features
             Log.Error(msg, logName);
         }
 
-        public static void Info(object message, params DebugParameter[] parameters)
+        public static void Info(object message, params LogParameter[] parameters)
         {
             var stack = new StackTrace();
             var frame = stack.GetFrames().Skip(1).First();

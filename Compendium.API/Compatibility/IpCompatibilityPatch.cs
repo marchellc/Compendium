@@ -14,6 +14,7 @@ namespace Compendium.Compatibility
         public static bool AddressPatch(NetworkConnection __instance, ref string __result)
         {
             if (Plugin.Config.ApiSetttings.IpCompatibilityMode
+                && Plugin.Config.ApiSetttings.IpCompatibilityModePatch
                 && __instance.identity != null
                 && ReferenceHub.TryGetHubNetID(__instance.identity.netId, out var hub)
                 && TokenCacheHandler.TryRetrieve(hub, null, out var token))

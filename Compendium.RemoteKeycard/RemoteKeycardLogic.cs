@@ -1,6 +1,9 @@
 ﻿using Compendium.Features;
+using Compendium;
+using Compendium.Round;
 
 using helpers.Configuration.Ini;
+using helpers.Extensions;
 
 using Interactables.Interobjects.DoorUtils;
 using InventorySystem.Items.Keycards;
@@ -8,13 +11,10 @@ using InventorySystem.Items.Keycards;
 using MapGeneration.Distributors;
 
 using System.Linq;
-using static PlayerList;
-using UnityEngine;
+
 using PluginAPI.Events;
+
 using PlayerRoles;
-using Compendium.Helpers;
-using helpers.Extensions;
-using Compendium.Helpers.Round;
 
 namespace Compendium.RemoteKeycard
 {
@@ -213,10 +213,7 @@ namespace Compendium.RemoteKeycard
             var flag = ply.GetRoleId() == RoleTypeId.Scp079 || target.RequiredPermissions.CheckPermissions(ply.inventory.CurInstance, ply);
 
             if (!flag)
-            {
-                if (CanBypass(ply, target))
-                    flag = true;
-            }
+                flag = CanBypass(ply, target);
 
             if (!EventManager.ExecuteEvent(new PlayerInteractDoorEvent(ply, target, flag)))
                 return false;

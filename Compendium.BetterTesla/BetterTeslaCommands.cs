@@ -1,7 +1,7 @@
 ﻿using BetterCommands;
 
 using Compendium.Extensions;
-using Compendium.Helpers.Calls;
+using Compendium.Calls;
 
 using PlayerRoles;
 

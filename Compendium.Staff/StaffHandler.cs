@@ -1,10 +1,10 @@
 ﻿using Compendium.Extensions;
 using Compendium.Features;
-using Compendium.Helpers;
-using Compendium.Helpers.Calls;
-using Compendium.Helpers.Colors;
-using Compendium.Helpers.Events;
-using Compendium.Helpers.UserId;
+using Compendium;
+using Compendium.Calls;
+using Compendium.Colors;
+using Compendium.Events;
+using Compendium.UserId;
 
 using helpers.Configuration.Ini;
 using helpers.Extensions;
@@ -138,8 +138,6 @@ namespace Compendium.Staff
 
             StaffFeature.Singleton.Config.OnReadFinished.Register(_reload);
 
-            ServerEventType.PlayerJoined.AddHandler<Action<PlayerJoinedEvent>>(OnPlayerJoined);
-
             Members.Reload();
         }
 
@@ -198,10 +196,7 @@ namespace Compendium.Staff
         public static void Unload()
         {
             Members.Unload(MemberSaver);
-
             StaffFeature.Singleton.Config.OnReadFinished.Unregister(_reload);
-
-            ServerEventType.PlayerJoined.RemoveHandler<Action<PlayerJoinedEvent>>(OnPlayerJoined);
         }
 
         private static void MemberSaver(Dictionary<string, string> members)
@@ -339,6 +334,7 @@ namespace Compendium.Staff
             CallHelper.CallWithDelay(() => RefreshRoles(), 1f);
         }
 
+        [Event]
         private static void OnPlayerJoined(PlayerJoinedEvent ev)
         {
             if (Members.TryGetKey(ev.Player.UserId, out var roleKey))

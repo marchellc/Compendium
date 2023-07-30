@@ -1,5 +1,5 @@
 ﻿using Compendium.Features;
-using Compendium.Helpers.Events;
+using Compendium.Events;
 using Compendium.Voice.Prefabs;
 using Compendium.Voice.Profiles;
 
@@ -14,6 +14,7 @@ using System;
 using System.Collections.Generic;
 
 using VoiceChat;
+using Compendium.Round;
 
 namespace Compendium.Voice
 {
@@ -133,6 +134,7 @@ namespace Compendium.Voice
             }
         }
 
+        [RoundStateChanged(RoundState.Restarting)]
         private static void OnRoundRestart()
         {
             _isRestarting = true;
@@ -145,6 +147,7 @@ namespace Compendium.Voice
             PriorityVoice = null;
         }
 
+        [RoundStateChanged(RoundState.WaitingForPlayers)]
         private static void OnWaiting()
         {
             _isRestarting = false;
@@ -153,20 +156,12 @@ namespace Compendium.Voice
         private static void RegisterEvents()
         {
             Reflection.TryAddHandler<PlayerRoleManager.RoleChanged>(typeof(PlayerRoleManager), "OnRoleChanged", OnRoleChanged);
-
-            ServerEventType.RoundRestart.AddHandler<Action>(OnRoundRestart);
-            ServerEventType.WaitingForPlayers.AddHandler<Action>(OnWaiting);
-
             FLog.Debug($"Registered events.");
         }
 
         private static void UnregisterEvents()
         {
             Reflection.TryRemoveHandler<PlayerRoleManager.RoleChanged>(typeof(PlayerRoleManager), "OnRoleChanged", OnRoleChanged);
-
-            ServerEventType.RoundRestart.RemoveHandler<Action>(OnRoundRestart);
-            ServerEventType.WaitingForPlayers.RemoveHandler<Action>(OnWaiting);
-
             FLog.Debug($"Unregistered events.");
         }
     }

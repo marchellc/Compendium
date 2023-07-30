@@ -1,5 +1,6 @@
-﻿using Compendium.Helpers.Events;
-using Compendium.Helpers.Prefabs;
+﻿using Compendium.Events;
+using Compendium.Prefabs;
+using Compendium.Round;
 using helpers.Attributes;
 using helpers.Extensions;
 using helpers.Random;
@@ -36,12 +37,6 @@ namespace Compendium.Npc
             }
         }
 
-        [Load]
-        internal static void Initialize()
-        {
-            ServerEventType.RoundEnd.AddHandler<Action>(OnRoundEnd);
-        }
-
         internal static void OnNpcCreated(INpc npc)
         {
             m_All.Add(npc);
@@ -66,6 +61,7 @@ namespace Compendium.Npc
             m_Spawned.Add(npc);
         }
 
+        [RoundStateChanged(RoundState.Ending)]
         internal static void OnRoundEnd()
         {
             m_All.ForEach(npc =>

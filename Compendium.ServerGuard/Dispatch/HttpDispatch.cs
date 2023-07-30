@@ -1,4 +1,5 @@
-﻿using Compendium.Helpers.Calls;
+﻿using Compendium.Calls;
+using Compendium.Events;
 
 using helpers.Configuration.Ini;
 using helpers.Extensions;
@@ -16,8 +17,6 @@ namespace Compendium.ServerGuard.Dispatch
         private static readonly ConcurrentQueue<HttpDispatchData> _queue = new ConcurrentQueue<HttpDispatchData>();
         private static HttpClient _client = new HttpClient();
 
-        public static bool IsPaused { get; set; }
-
         [IniConfig(Name = "Dispatch Requeue", Description = "Whether or not to put failed requests back into the queue.")]
         public static bool Requeue { get; set; } = true;
 
@@ -33,11 +32,9 @@ namespace Compendium.ServerGuard.Dispatch
                 _queue.Enqueue(data);
         }
 
+        [UpdateEvent]
         public static void OnUpdate()
         {
-            if (IsPaused)
-                return;
-
             lock (_queue)
             {
                 if (_queue.TryDequeue(out var dispatch))

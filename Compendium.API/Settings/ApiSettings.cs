@@ -12,5 +12,8 @@ namespace Compendium.Settings
 
         [Description("Whether or not to retrieve player IP's from their auth tokens.")]
         public bool IpCompatibilityMode { get; set; }
+
+        [Description("Whether or not to patch the connection address getter.")]
+        public bool IpCompatibilityModePatch { get; set; }
     }
 }

@@ -1,6 +1,6 @@
 ﻿using Compendium.Extensions;
-using Compendium.Helpers;
-using Compendium.Helpers.Calls;
+using Compendium;
+using Compendium.Calls;
 
 using helpers.Extensions;
 using helpers.Random;

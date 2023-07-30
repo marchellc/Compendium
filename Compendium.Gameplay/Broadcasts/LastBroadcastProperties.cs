@@ -1,4 +1,4 @@
-﻿using Compendium.Helpers.Colors;
+﻿using Compendium.Colors;
 
 using helpers.Configuration.Ini;
 

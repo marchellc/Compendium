@@ -2,14 +2,14 @@
 using BetterCommands.Management;
 using BetterCommands.Permissions;
 
-using Compendium.Helpers.Events;
-using Compendium.Helpers.Round;
+using Compendium.Events;
+using Compendium.Round;
+
 using helpers;
 using helpers.Attributes;
 using helpers.Patching;
 
 using PluginAPI.Core;
-using PluginAPI.Enums;
 
 using System;
 using System.Collections.Generic;
@@ -21,7 +21,6 @@ namespace Compendium.Features
 {
     public static class FeatureManager
     {
-        private static bool _handlerAdded;
         private static bool _pauseUpdate;
 
         private static readonly List<Type> _knownFeatures = new List<Type>();
@@ -31,6 +30,8 @@ namespace Compendium.Features
 
         public static IReadOnlyList<IFeature> LoadedFeatures => _features;
         public static IReadOnlyList<Type> RegisteredFeatures => _knownFeatures;
+
+        public static bool IsUpdatePaused => _pauseUpdate;
 
         [Load]
         [Reload]
@@ -98,6 +99,7 @@ namespace Compendium.Features
 
         public static bool IsRegistered<TFeature>() where TFeature : IFeature => _knownFeatures.Contains(typeof(TFeature));
         public static bool IsRegistered(Type type) => _knownFeatures.Contains(type);
+
         public static bool IsInstantiated(Type type) => TryGetFeature(type, out _);
         public static bool IsInstantiated<TFeature>() where TFeature : IFeature => TryGetFeature<TFeature>(out _);
 
@@ -156,12 +158,16 @@ namespace Compendium.Features
             {
                 if (!Plugin.Config.FeatureSettings.Disabled.Contains(feature.Name))
                 {
+                    var assembly = feature.GetType().Assembly;
+
                     feature.Load();
 
-                    if (feature.IsPatch)
-                        PatchManager.PatchAssemblies(feature.GetType().Assembly);
+                    AttributeLoader.ExecuteLoadAttributes(assembly);
 
-                    AttributeLoader.ExecuteLoadAttributes(feature.GetType().Assembly);
+                    if (feature.IsPatch)
+                        PatchManager.PatchAssemblies(assembly);
+
+                    EventRegistry.RegisterEvents(assembly);
                 }
             }
             catch (Exception ex)
@@ -274,32 +280,16 @@ namespace Compendium.Features
         public static void Load()
         {
             _features.ForEach(Load);
-
-            ServerEventType.RoundRestart.AddHandler<Action>(OnRestart);
-            ServerEventType.WaitingForPlayers.AddHandler<Action>(OnWaiting);
-
-            Reflection.TryAddHandler<Action>(typeof(StaticUnityMethods), "OnUpdate", OnUpdate);
-
-            _handlerAdded = true;
         }
 
         public static void Unload()
         {
-            if (_handlerAdded)
-            {
-                ServerEventType.RoundRestart.RemoveHandler<Action>(OnRestart);
-                ServerEventType.WaitingForPlayers.RemoveHandler<Action>(OnWaiting);
-
-                Reflection.TryRemoveHandler<Action>(typeof(StaticUnityMethods), "OnUpdate", OnUpdate);
-
-                _handlerAdded = false;
-            }
-
             _features.ForEach(Unload);
             _features.Clear();
             _knownFeatures.Clear();
         }
 
+        [RoundStateChanged(RoundState.WaitingForPlayers)]
         private static void OnWaiting()
         {
             _features.ForEach(feature =>
@@ -319,6 +309,7 @@ namespace Compendium.Features
             _pauseUpdate = false;
         }
 
+        [RoundStateChanged(RoundState.Restarting)]
         private static void OnRestart()
         {
             _pauseUpdate = true;
@@ -338,6 +329,7 @@ namespace Compendium.Features
             });
         }
 
+        [UpdateEvent]
         private static void OnUpdate()
         {
             if (_pauseUpdate)
@@ -359,7 +351,7 @@ namespace Compendium.Features
             });
         }
 
-        [Command("disablefeature", BetterCommands.CommandType.RemoteAdmin, BetterCommands.CommandType.GameConsole)]
+        [Command("disablefeature", CommandType.RemoteAdmin, CommandType.GameConsole)]
         [CommandAliases("dfeature", "disablef")]
         [Permission(PermissionLevel.Administrator)]
         private static string DisableFeature(Player sender, string featureName)
@@ -382,7 +374,7 @@ namespace Compendium.Features
             }
         }
 
-        [Command("enablefeature", BetterCommands.CommandType.RemoteAdmin, BetterCommands.CommandType.GameConsole)]
+        [Command("enablefeature", CommandType.RemoteAdmin, CommandType.GameConsole)]
         [CommandAliases("efeature", "enablef")]
         [Permission(PermissionLevel.Administrator)]
         private static string EnableFeature(Player sender, string featureName)

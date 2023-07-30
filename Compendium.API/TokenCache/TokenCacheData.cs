@@ -1,4 +1,5 @@
-﻿using PluginAPI.Core;
+﻿using helpers.Time;
+
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -38,13 +39,14 @@ namespace Compendium.TokenCache
                 // key - join
                 // value - leave
 
-                RecordSessionEnd();
-
                 var totalSeconds = 0;
 
                 foreach (var session in Sessions)
                 {
                     var value = session.Value;
+
+                    if (value == DateTime.MinValue)
+                        continue;
 
                     totalSeconds += (int)Math.Ceiling((value - session.Key).TotalSeconds);
                 }
@@ -59,8 +61,6 @@ namespace Compendium.TokenCache
             {
                 var minDay = DateTime.Now.Day - 13;
                 var totalSeconds = 0;
-
-                RecordSessionEnd();
 
                 foreach (var session in Sessions)
                 {
@@ -79,8 +79,6 @@ namespace Compendium.TokenCache
             // key - join
             // value - leave
 
-            RecordSessionEnd();
-
             var totalSeconds = 0;
 
             foreach (var session in Sessions)
@@ -91,6 +89,9 @@ namespace Compendium.TokenCache
                     continue;
 
                 if (value < min || value > max)
+                    continue;
+
+                if (value == DateTime.MinValue)
                     continue;
 
                 totalSeconds += (int)Math.Ceiling((value - session.Key).TotalSeconds);
@@ -153,17 +154,9 @@ namespace Compendium.TokenCache
         }
 
         public void RecordSessionStart()
-        {
-            if (Sessions.Any())
-            {
-                if (Sessions.Last().Value <= DateTime.MinValue)
-                    RecordSessionEnd();
-            }
-
-            Sessions[DateTime.Now.ToLocalTime()] = DateTime.MinValue;
-        }
+            => Sessions[TimeUtils.LocalTime] = DateTime.MinValue;
 
         public void RecordSessionEnd()
-            => Sessions[Sessions.Last().Key] = DateTime.Now.ToLocalTime();
+            => Sessions[Sessions.Last().Key] = TimeUtils.LocalTime;
     }
 }

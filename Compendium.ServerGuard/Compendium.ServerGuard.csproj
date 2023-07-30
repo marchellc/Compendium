@@ -107,6 +107,7 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="AccountShield\AccountData.cs" />
     <Compile Include="AccountShield\AccountShieldData.cs" />
     <Compile Include="AccountShield\AccountShieldFlags.cs" />
     <Compile Include="AccountShield\AccountShieldHandler.cs" />

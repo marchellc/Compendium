@@ -1,10 +1,8 @@
 ﻿using Compendium.Extensions;
-using Compendium.Features;
-using Compendium.Helpers.Events;
+using Compendium.Events;
 
 using helpers;
 using helpers.Configuration.Ini;
-using helpers.Patching;
 
 using PlayerRoles;
 
@@ -15,6 +13,7 @@ using System;
 using System.Collections.Generic;
 
 using UnityEngine;
+using Compendium.Round;
 
 namespace Compendium.BetterTesla
 {
@@ -37,21 +36,11 @@ namespace Compendium.BetterTesla
                 if (!value)
                 {
                     _isEnabled = false;
-
-                    ServerEventType.RoundRestart.RemoveHandler<Action>(OnRoundRestart);
-                    ServerEventType.PlayerShotWeapon.RemoveHandler<Action<PlayerShotWeaponEvent>>(OnShot);
-                    ServerEventType.GrenadeExploded.RemoveHandler<Action<GrenadeExplodedEvent>>(OnGrenadeExplode);
-
                     Log.Info($"Better Tesla disabled.");
                 }
                 else
                 {
                     _isEnabled = true;
-
-                    ServerEventType.RoundRestart.AddHandler<Action>(OnRoundRestart);
-                    ServerEventType.PlayerShotWeapon.AddHandler<Action<PlayerShotWeaponEvent>>(OnShot);
-                    ServerEventType.GrenadeExploded.AddHandler<Action<GrenadeExplodedEvent>>(OnGrenadeExplode);
-
                     Log.Info($"Better Tesla enabled.");
                 }
             }
@@ -129,6 +118,7 @@ namespace Compendium.BetterTesla
                 return status = (_damage[gate] = new TeslaDamageStatus(gate));
         }
 
+        [Event]
         private static void OnShot(PlayerShotWeaponEvent ev)
         {
             if (!AllowTeslaDamage)
@@ -151,6 +141,7 @@ namespace Compendium.BetterTesla
             }
         }
 
+        [Event]
         private static void OnGrenadeExplode(GrenadeExplodedEvent ev)
         {
             if (TeslaGateController.Singleton is null)
@@ -183,6 +174,7 @@ namespace Compendium.BetterTesla
             return baseDamage;
         }
 
+        [RoundStateChanged(RoundState.Restarting)]
         private static void OnRoundRestart()
         {
             RoundDisabled = false;
