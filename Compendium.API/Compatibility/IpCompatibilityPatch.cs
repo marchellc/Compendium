@@ -1,4 +1,5 @@
-﻿using Compendium.TokenCache;
+﻿using Compendium.PlayerData;
+using Compendium.TokenCache;
 
 using HarmonyLib;
 
@@ -16,10 +17,9 @@ namespace Compendium.Compatibility
             if (Plugin.Config.ApiSetttings.IpCompatibilityMode
                 && Plugin.Config.ApiSetttings.IpCompatibilityModePatch
                 && __instance.identity != null
-                && ReferenceHub.TryGetHubNetID(__instance.identity.netId, out var hub)
-                && TokenCacheHandler.TryRetrieve(hub, null, out var token))
+                && ReferenceHub.TryGetHubNetID(__instance.identity.netId, out var hub))
             {
-                __result = token.LastIp;
+                __result = PlayerDataRecorder.GetToken(hub).Ip;
                 return false;
             }
 

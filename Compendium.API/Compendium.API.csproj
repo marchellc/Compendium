@@ -30,6 +30,7 @@
     <DefineConstants>TRACE</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="0Harmony, Version=2.2.2.0, Culture=neutral, processorArchitecture=MSIL">
@@ -115,11 +116,12 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Activity\ActivityData.cs" />
+    <Compile Include="Activity\ActivityRecorder.cs" />
+    <Compile Include="Activity\ActivitySession.cs" />
     <Compile Include="Compatibility\IpCompatibilityPatch.cs" />
     <Compile Include="Config.cs" />
     <Compile Include="Extensions\ColorExtensions.cs" />
-    <Compile Include="Banning\BanData.cs" />
-    <Compile Include="Banning\BanRemovalReason.cs" />
     <Compile Include="Door.cs" />
     <Compile Include="Events\EventAttribute.cs" />
     <Compile Include="Events\EventRegistry.cs" />
@@ -128,8 +130,10 @@
     <Compile Include="Events\LateUpdateEventAttribute.cs" />
     <Compile Include="Events\UpdateEventAttribute.cs" />
     <Compile Include="Events\UpdateType.cs" />
-    <Compile Include="Fixes\Scp079CameraRotationSyncNullRefFix.cs" />
-    <Compile Include="Fixes\Scp079CameraRotationSyncNullRefMethData.cs" />
+    <Compile Include="Fixes\Scp079\Scp079CameraRotationSyncNullRefFix.cs" />
+    <Compile Include="Fixes\Scp079\Scp079CameraRotationSyncNullRefMethData.cs" />
+    <Compile Include="Http\HttpDispatch.cs" />
+    <Compile Include="Http\HttpDispatchData.cs" />
     <Compile Include="Hub.cs" />
     <Compile Include="Extensions\RichText\RichTextAlignment.cs" />
     <Compile Include="Extensions\RichText\RichTextCapitalization.cs" />
@@ -141,12 +145,17 @@
     <Compile Include="Features\FeatureManager.cs" />
     <Compile Include="Features\FLog.cs" />
     <Compile Include="Features\IFeature.cs" />
-    <Compile Include="Banning\BanSystem.cs" />
     <Compile Include="Calls\CallHelper.cs" />
     <Compile Include="Colors\ColorValues.cs" />
     <Compile Include="Health\CustomHealthStat.cs" />
     <Compile Include="Hints\BasicHintEffectType.cs" />
-    <Compile Include="Moderation\ModerationUtils.cs" />
+    <Compile Include="Input\IInputHandler.cs" />
+    <Compile Include="Input\InputManager.cs" />
+    <Compile Include="Input\InputBinding.cs" />
+    <Compile Include="Patches\NextRoundActionPatch.cs" />
+    <Compile Include="PlayerData\PlayerDataCache.cs" />
+    <Compile Include="PlayerData\PlayerDataRecord.cs" />
+    <Compile Include="PlayerData\PlayerDataRecorder.cs" />
     <Compile Include="Prefabs\PrefabHelper.cs" />
     <Compile Include="Prefabs\PrefabName.cs" />
     <Compile Include="RoleHistory\RoleHistoryEntry.cs" />
@@ -156,17 +165,18 @@
     <Compile Include="Round\RoundStateChangedAttribute.cs" />
     <Compile Include="Rules\RuleData.cs" />
     <Compile Include="Rules\RuleSystem.cs" />
+    <Compile Include="Settings\HttpSettings.cs" />
+    <Compile Include="Settings\VoiceSettings.cs" />
     <Compile Include="Snapshots\InventorySnapshot.cs" />
     <Compile Include="Snapshots\PlayerSnapshot.cs" />
     <Compile Include="Snapshots\RoleSnapshot.cs" />
     <Compile Include="Snapshots\SnapshotHelper.cs" />
-    <Compile Include="TokenCache\TokenData.cs" />
-    <Compile Include="TokenCache\TokenParser.cs" />
+    <Compile Include="Tokens\TokenData.cs" />
+    <Compile Include="Tokens\TokenParser.cs" />
     <Compile Include="Units\UnitHelper.cs" />
     <Compile Include="UserId\UserIdValue.cs" />
     <Compile Include="UserId\UserIdHelper.cs" />
     <Compile Include="UserId\UserIdType.cs" />
-    <Compile Include="Warning\WarnSystem.cs" />
     <Compile Include="IdCache\IdGenerator.cs" />
     <Compile Include="Logging\LogParameter.cs" />
     <Compile Include="Logging\LoggingProxy.cs" />
@@ -186,8 +196,24 @@
     <Compile Include="Settings\FeatureSettings.cs" />
     <Compile Include="Settings\LogSettings.cs" />
     <Compile Include="Settings\RuleSettings.cs" />
-    <Compile Include="TokenCache\TokenCacheData.cs" />
-    <Compile Include="TokenCache\TokenCacheHandler.cs" />
+    <Compile Include="Voice\IVoiceChatState.cs" />
+    <Compile Include="Voice\IVoicePrefab.cs" />
+    <Compile Include="Voice\IVoiceProfile.cs" />
+    <Compile Include="Voice\Pools\PacketPool.cs" />
+    <Compile Include="Voice\Prefabs\BasePrefab.cs" />
+    <Compile Include="Voice\Prefabs\Scp\ScpVoicePrefab.cs" />
+    <Compile Include="Voice\Profiles\BaseProfile.cs" />
+    <Compile Include="Voice\Profiles\Scp\ScpVoiceKeybind.cs" />
+    <Compile Include="Voice\Profiles\Scp\ScpVoiceProfile.cs" />
+    <Compile Include="Voice\Profiles\Scp\ScpVoiceFlag.cs" />
+    <Compile Include="Voice\States\GlobalVoice\GlobalVoiceFlag.cs" />
+    <Compile Include="Voice\States\GlobalVoice\GlobalVoiceState.cs" />
+    <Compile Include="Voice\States\StaffVoice\StaffVoiceFlag.cs" />
+    <Compile Include="Voice\States\StaffVoice\StaffVoiceState.cs" />
+    <Compile Include="Voice\VoiceChat.cs" />
+    <Compile Include="Voice\VoiceChatUtils.cs" />
+    <Compile Include="Voice\VoiceModifier.cs" />
+    <Compile Include="Voice\VoicePacket.cs" />
   </ItemGroup>
   <ItemGroup />
   <ItemGroup>

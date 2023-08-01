@@ -26,5 +26,11 @@ namespace Compendium
 
         [Description("Settings for Compendium's custom rule system.")]
         public RuleSettings RuleSettings { get; set; } = new RuleSettings();
+
+        [Description("Settings for Compendium's HTTP dispatch.")]
+        public HttpSettings HttpSettings { get; set; } = new HttpSettings();
+
+        [Description("Settings for Compendium's custom voice chat.")]
+        public VoiceSettings VoiceSettings { get; set; } = new VoiceSettings();
     }
 }

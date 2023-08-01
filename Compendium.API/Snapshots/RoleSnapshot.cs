@@ -1,10 +1,17 @@
 ﻿using PlayerRoles;
 
+using UnityEngine;
+
 namespace Compendium.Snapshots
 {
     public struct RoleSnapshot
     {
         public RoleTypeId Role;
+
+        public Vector3 Position;
+        public Quaternion Rotation;
+
+        public InventorySnapshot Inventory;
 
         public string UnitName;
 
@@ -28,15 +35,17 @@ namespace Compendium.Snapshots
             Stamina = hub.Stamina();
             HumeShield = hub.HumeShield();
             Vigor = hub.Vigor();
+
+            Position = hub.Position();
+            Rotation = hub.Rotation();
+
+            Inventory = hub.SaveInventory();
         }
 
-        public void Apply(ReferenceHub hub, InventorySnapshot? inventorySnapshot = null)
+        public void Apply(ReferenceHub hub)
         {
             if (hub.RoleId() != Role)
                 hub.RoleId(Role, RoleSpawnFlags.None);
-
-            if (inventorySnapshot.HasValue)
-                inventorySnapshot.Value.Restore(hub);
 
             if (hub.Role() is HumanRole)
                 hub.SetUnitId(UnitId);
@@ -46,6 +55,9 @@ namespace Compendium.Snapshots
             hub.Stamina(Stamina);
             hub.HumeShield(HumeShield);
             hub.Vigor(Vigor);
+            hub.Position(Position, Rotation);
+
+            Inventory.Restore(hub);
         }
     }
 }

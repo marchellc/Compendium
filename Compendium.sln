@@ -11,8 +11,6 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Compendium.PersistentOverwa
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Compendium.BetterTesla", "Compendium.BetterTesla\Compendium.BetterTesla.csproj", "{04A1E688-73BB-424C-B250-6D4824075797}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Compendium.Voice", "Compendium.Voice\Compendium.Voice.csproj", "{BF0A729E-870D-4A62-9181-B857A3D6508B}"
-EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Compendium.Input", "Compendium.Input\Compendium.Input.csproj", "{247BC521-6A57-478E-BB87-FC290622FB64}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Compendium.Fixes", "Compendium.Fixes\Compendium.Fixes.csproj", "{46F11357-9211-4255-9E42-600A66C3005F}"
@@ -47,10 +45,6 @@ Global
 		{04A1E688-73BB-424C-B250-6D4824075797}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{04A1E688-73BB-424C-B250-6D4824075797}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{04A1E688-73BB-424C-B250-6D4824075797}.Release|Any CPU.Build.0 = Release|Any CPU
-		{BF0A729E-870D-4A62-9181-B857A3D6508B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{BF0A729E-870D-4A62-9181-B857A3D6508B}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{BF0A729E-870D-4A62-9181-B857A3D6508B}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{BF0A729E-870D-4A62-9181-B857A3D6508B}.Release|Any CPU.Build.0 = Release|Any CPU
 		{247BC521-6A57-478E-BB87-FC290622FB64}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{247BC521-6A57-478E-BB87-FC290622FB64}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{247BC521-6A57-478E-BB87-FC290622FB64}.Release|Any CPU.ActiveCfg = Release|Any CPU
