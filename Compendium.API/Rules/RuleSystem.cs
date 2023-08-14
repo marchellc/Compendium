@@ -1,19 +1,13 @@
 ﻿using helpers.Attributes;
 using helpers.Extensions;
 using helpers.IO.Storage;
-using helpers.Time;
 
 using PluginAPI.Helpers;
 
 using System;
-using System.Text;
 using System.Globalization;
 using System.Collections.Generic;
 
-using PluginAPI.Core;
-
-using BetterCommands;
-using BetterCommands.Permissions;
 
 namespace Compendium.Rules
 {
@@ -151,6 +145,7 @@ namespace Compendium.Rules
             }
         }
 
+        /*
         [Command("rules.add", CommandType.RemoteAdmin, CommandType.GameConsole)]
         [CommandAliases("arule", "addr")]
         [Permission(PermissionLevel.Administrator)]
@@ -223,5 +218,6 @@ namespace Compendium.Rules
 
             return "That rule does not exist.";
         }
+        */
     }
 }

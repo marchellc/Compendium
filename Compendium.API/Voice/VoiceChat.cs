@@ -143,6 +143,14 @@ namespace Compendium.Voice
                     profile.Process(packet);
             }
 
+            Plugin.Debug($"Showing packet destinations after processing ..");
+            Plugin.Debug($"Speaker: {packet.Speaker.GetLogName(true)}");
+
+            packet.Destinations.ForEach(p =>
+            {
+                Plugin.Debug($"Player: {p.Key.GetLogName(true)} | Channel: {p.Value}");
+            });
+
             if (packet.SenderChannel != VoiceChatChannel.None)
             {
                 speakerRole.VoiceModule.CurrentChannel = packet.SenderChannel;

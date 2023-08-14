@@ -1,22 +1,23 @@
 ﻿using Compendium.Events;
+using Compendium.Commands;
+using Compendium.Logging;
 
 using helpers;
+using helpers.Patching;
 using helpers.Events;
 using helpers.Attributes;
 using helpers.Logging.Loggers;
 
 using PluginAPI.Core;
 using PluginAPI.Core.Attributes;
+using PluginAPI.Loader;
 
 using System;
 using System.Reflection;
 
-using Log = PluginAPI.Core.Log;
+using Utils.NonAllocLINQ;
 
-using Compendium.Calls;
-using Compendium.Logging;
-using Compendium.Features;
-using helpers.Patching;
+using Log = PluginAPI.Core.Log;
 
 namespace Compendium
 {
@@ -31,12 +32,13 @@ namespace Compendium
         public static Config Config { get => Instance?.ConfigInstance ?? null; }
         public static PluginHandler Handler { get => Instance?.HandlerInstance ?? null; }
 
-        [PluginConfig] public Config ConfigInstance;
+        [PluginConfig] 
+        public Config ConfigInstance;
         public PluginHandler HandlerInstance;
 
         [PluginEntryPoint(
             "Compendium API",
-            "2.0.0",
+            "3.0.0",
             "A huge API for each Compendium component.",
             "marchellc_")]
         [PluginPriority(PluginAPI.Enums.LoadPriority.Lowest)]
@@ -80,15 +82,27 @@ namespace Compendium
                 Warn($"Debug enabled - this will get messy.");
             }
 
-            CallHelper.CallWhenFalse(() =>
+            Calls.OnFalse(() =>
             {
                 try
                 {
                     var exec = Assembly.GetExecutingAssembly();
 
                     PatchManager.PatchAssemblies(exec);
-                    AttributeLoader.ExecuteLoadAttributes(exec);
                     EventRegistry.RegisterEvents(exec);
+                    CommandHandler.RegisterCommands(exec);
+                    AttributeLoader.ExecuteLoadAttributes(exec);
+
+                    AssemblyLoader.Plugins.ForEachKey(pl =>
+                    {
+                        if (pl == exec)
+                            return;
+
+                        PatchManager.PatchAssemblies(pl);
+                        EventRegistry.RegisterEvents(pl);
+                        CommandHandler.RegisterCommands(pl);
+                        AttributeLoader.ExecuteLoadAttributes(pl);
+                    });
 
                     LoadConfig();
 
@@ -107,12 +121,24 @@ namespace Compendium
         [PluginUnload]
         public void Unload()
         {
-            AttributeLoader.ExecuteUnloadAttributes();
 
             var exec = Assembly.GetExecutingAssembly();
 
             PatchManager.UnpatchAssemblies(exec);
             EventRegistry.UnregisterEvents(exec);
+            CommandHandler.RemoveCommands(exec);
+            AttributeLoader.ExecuteUnloadAttributes(exec);
+
+            AssemblyLoader.Plugins.ForEachKey(pl =>
+            {
+                if (pl == exec)
+                    return;
+
+                PatchManager.UnpatchAssemblies(pl);
+                EventRegistry.UnregisterEvents(pl);
+                CommandHandler.RemoveCommands(pl);
+                AttributeLoader.ExecuteUnloadAttributes(pl);
+            });
 
             SaveConfig();
 
@@ -128,7 +154,8 @@ namespace Compendium
         {
             LoadConfig();
 
-            AttributeLoader.ExecuteReloadAttributes();
+            AttributeLoader.ExecuteReloadAttributes(Assembly.GetExecutingAssembly());
+            AssemblyLoader.Plugins.ForEachKey(pl => AttributeLoader.ExecuteReloadAttributes(pl));
 
             OnReloaded.Invoke();
         }
@@ -151,6 +178,8 @@ namespace Compendium
 
         public static void Debug(object message)
         {
+            UnityEngine.Debug.Log($"COMPENDIUM DEBUG LOG >> {message}");
+
             if (!Config.LogSettings.ShowDebug) 
                 return;
 

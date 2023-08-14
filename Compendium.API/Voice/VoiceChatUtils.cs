@@ -79,20 +79,25 @@ namespace Compendium.Voice
         {
             Hub.ForEach(hub =>
             {
+                Plugin.Debug($"Generating packet destination for {hub.GetLogName(true)}");
+
                 if (hub.netId == message.Speaker.netId && !CanHearSelf(hub))
                 {
                     dict[hub] = VoiceChatChannel.None;
+                    Plugin.Debug($"Destination: None, Reason: receiver == speaker");
                     return;
                 }
 
                 if (!(hub.roleManager.CurrentRole is IVoiceRole vcRole))
                 {
                     dict[hub] = VoiceChatChannel.None;
+                    Plugin.Debug("Destination: None, Reason: receiver's role is not a voice role");
                     return;
                 }
 
-                dict[hub] = vcRole.VoiceModule.ValidateReceive(message.Speaker, origChannel);           
-            }, false);
+                dict[hub] = vcRole.VoiceModule.ValidateReceive(message.Speaker, origChannel);
+                Plugin.Debug($"Destination: {dict[hub]}, reason: validated by vanilla logic");
+            });
         }
     }
 }

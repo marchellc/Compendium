@@ -30,6 +30,9 @@ namespace Compendium
         [Description("Settings for Compendium's HTTP dispatch.")]
         public HttpSettings HttpSettings { get; set; } = new HttpSettings();
 
+        [Description("Settings for Compendium's command system.")]
+        public CommandSettings CommandSettings { get; set; } = new CommandSettings();
+
         [Description("Settings for Compendium's custom voice chat.")]
         public VoiceSettings VoiceSettings { get; set; } = new VoiceSettings();
     }

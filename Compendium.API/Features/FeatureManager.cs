@@ -1,14 +1,12 @@
-﻿using BetterCommands;
-using BetterCommands.Management;
-using BetterCommands.Permissions;
-
+﻿using Compendium.Commands;
+using Compendium.Commands.Attributes;
 using Compendium.Events;
 using Compendium.Round;
 
 using helpers;
 using helpers.Attributes;
 using helpers.Patching;
-
+using Mirror;
 using PluginAPI.Core;
 
 using System;
@@ -84,8 +82,8 @@ namespace Compendium.Features
                         _features.Add(instance);
 
                         Singleton.Set(instance);
-                        CommandManager.Register(type.Assembly);
                         RoundHelper.ScanAssemblyForOnChanged(assembly);
+                        CommandHandler.RegisterCommands(assembly);
 
                         Plugin.Info($"Instantiated external feature: {type.FullName}");
                     }
@@ -351,10 +349,11 @@ namespace Compendium.Features
             });
         }
 
-        [Command("disablefeature", CommandType.RemoteAdmin, CommandType.GameConsole)]
-        [CommandAliases("dfeature", "disablef")]
-        [Permission(PermissionLevel.Administrator)]
-        private static string DisableFeature(Player sender, string featureName)
+        [RemoteAdminCommand(Name = "disable", Description = "Disables a feature.")]
+        [ServerConsoleCommand(Name = "disable", Description = "Disables a feature.")]
+        [CommandGroup(Group = "feature")]
+        [IgnoreExtraArguments]
+        private static string DisableFeature(Player sender, [Remainder] string featureName)
         {
             if (TryGetFeature(featureName, out var feature))
             {
@@ -374,9 +373,10 @@ namespace Compendium.Features
             }
         }
 
-        [Command("enablefeature", CommandType.RemoteAdmin, CommandType.GameConsole)]
-        [CommandAliases("efeature", "enablef")]
-        [Permission(PermissionLevel.Administrator)]
+        [RemoteAdminCommand(Name = "enable", Description = "Enables a feature.")]
+        [ServerConsoleCommand(Name = "enable", Description = "Enables a feature.")]
+        [CommandGroup(Group = "feature")]
+        [IgnoreExtraArguments]
         private static string EnableFeature(Player sender, string featureName)
         {
             if (TryGetFeature(featureName, out var feature))
@@ -397,9 +397,10 @@ namespace Compendium.Features
             }
         }
 
-        [Command("reloadfeature", BetterCommands.CommandType.RemoteAdmin, BetterCommands.CommandType.GameConsole)]
-        [CommandAliases("rfeature", "reloadf")]
-        [Permission(PermissionLevel.Administrator)]
+        [RemoteAdminCommand(Name = "reload", Description = "Reloads a feature.")]
+        [ServerConsoleCommand(Name = "reload", Description = "Reloads a feature.")]
+        [CommandGroup(Group = "feature")]
+        [IgnoreExtraArguments]
         private static string ReloadFeature(Player sender, string featureName)
         {
             if (TryGetFeature(featureName, out var feature))

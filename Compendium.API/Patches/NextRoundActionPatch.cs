@@ -1,20 +1,14 @@
-﻿using Compendium.Colors;
-
-using HarmonyLib;
+﻿using HarmonyLib;
 
 namespace Compendium.Patches
 {
     [HarmonyPatch(typeof(ServerStatic), nameof(ServerStatic.StopNextRound), MethodType.Setter)]
     public static class NextRoundActionPatch
     {
-        public static bool Prefix(ServerStatic.NextRoundAction __value)
+        public static void Postfix(ServerStatic.NextRoundAction __value)
         {
-            Hub.ForEach(hub =>
-            {
-                hub.Hint($"<b><color={ColorValues.LightGreen}>The server is going to restart <color={ColorValues.Red}>at the end of the round</color>!</color></b>", 5f, true);
-            }, false);
-
-            return true;
+            if (Plugin.Config.FeatureSettings.ServerActionAnnouncements.TryGetValue(__value, out var announcement))
+                World.Broadcast(announcement, 5);
         }
     }
 }

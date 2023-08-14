@@ -1,33 +1,34 @@
 ﻿using helpers.Extensions;
+
 using MEC;
 
 using System;
 using System.Collections.Generic;
 
-namespace Compendium.Calls
+namespace Compendium
 {
-    public static class CallHelper
+    public static class Calls
     {
-        public static void CallNextFrame(Action action) => Timing.RunCoroutine(CallAfterFramesCoroutine(action, 1));
-        public static void CallAfterFrames(Action action, int frameCount) => Timing.RunCoroutine(CallAfterFramesCoroutine(action, frameCount));
+        public static void NextFrame(Action action) => Timing.RunCoroutine(CallAfterFramesCoroutine(action, 1));
+        public static void AfterFrames(int frames, Action action) => Timing.RunCoroutine(CallAfterFramesCoroutine(action, frames));
 
-        public static void CallWithDelay(Action action, float delay) => Timing.CallDelayed(delay, action);
+        public static void Delay(float delay, Action action) => Timing.CallDelayed(delay, action);
 
-        public static void CallWhenTrue(Action action, Func<bool> validator) => Timing.RunCoroutine(CallWhenTrueCoroutine(action, validator));
-        public static void CallWhenFalse(Action action, Func<bool> validator) => Timing.RunCoroutine(CallWhenFalseCoroutine(action, validator));
+        public static void OnTrue(Action action, Func<bool> validator) => Timing.RunCoroutine(CallWhenTrueCoroutine(action, validator));
+        public static void OnFalse(Action action, Func<bool> validator) => Timing.RunCoroutine(CallWhenFalseCoroutine(action, validator));
 
-        public static void CallUntilFalse(Action action, Func<bool> validator, float? delay = null) => Timing.RunCoroutine(CallUntilFalseCoroutine(action, validator, delay));
-        public static void CallUntilTrue(Action action, Func<bool> validator, float? delay = null) => Timing.RunCoroutine(CallUntilTrueCoroutine(action, validator, delay));
+        public static void UntilFalse(Action action, Func<bool> validator, float? delay = null) => Timing.RunCoroutine(CallUntilFalseCoroutine(action, validator, delay));
+        public static void UntilTrue(Action action, Func<bool> validator, float? delay = null) => Timing.RunCoroutine(CallUntilTrueCoroutine(action, validator, delay));
 
-        public static void CallTimes(Action action, int amount, float? delay = null) => Timing.RunCoroutine(CallTimesCoroutine(action, amount, delay));
+        public static void Repeat(Action action, int amount, float? delay = null) => Timing.RunCoroutine(CallTimesCoroutine(action, amount, delay));
 
-        public static void CallIfTrue(Func<bool> validator, Action action)
+        public static void IfTrue(Func<bool> validator, Action action)
         {
             if (validator())
                 action?.Invoke();
         }
 
-        public static void CallIfFalse(Func<bool> validator, Action action)
+        public static void IfFalse(Func<bool> validator, Action action)
         {
             if (!validator())
                 action?.Invoke();
@@ -78,7 +79,7 @@ namespace Compendium.Calls
             }
         }
 
-        public static void SafeDelegate(Delegate del, params object[] args)
+        public static void Delegate(Delegate del, params object[] args)
         {
             try
             {
@@ -91,7 +92,7 @@ namespace Compendium.Calls
             }
         }
 
-        public static TResult SafeDelegate<TResult>(Delegate del, params object[] args)
+        public static TResult Delegate<TResult>(Delegate del, params object[] args)
         {
             try
             {
@@ -117,7 +118,7 @@ namespace Compendium.Calls
             return default;
         }
 
-        public static TResult SafeDelegate<TResult, TInput1, TInput2>(Func<TInput1, TInput2, TResult> del, TInput1 input1, TInput2 input2, TResult defResult = default)
+        public static TResult Delegate<TResult, TInput1, TInput2>(Func<TInput1, TInput2, TResult> del, TInput1 input1, TInput2 input2, TResult defResult = default)
         {
             try
             {
@@ -133,6 +134,14 @@ namespace Compendium.Calls
 
                 return defResult;
             }
+        }
+
+        public static void Call(Func<bool> validator, Action ifFalse, Action ifTrue)
+        {
+            if (!validator())
+                Delegate(ifFalse);
+            else
+                Delegate(ifTrue);
         }
     }
 }

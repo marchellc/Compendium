@@ -1,6 +1,4 @@
-﻿using Compendium.Calls;
-
-using System;
+﻿using System;
 using System.Net.Http;
 
 namespace Compendium.Http
@@ -34,7 +32,7 @@ namespace Compendium.Http
         internal void OnReceived(string response)
         {
             _response = response;
-            CallHelper.SafeDelegate(_onResponse, this);
+            Calls.Delegate(_onResponse, this);
         }
     }
 }

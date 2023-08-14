@@ -1,5 +1,4 @@
-﻿using Compendium.Calls;
-using Compendium.Round;
+﻿using Compendium.Round;
 
 using helpers;
 using helpers.Attributes;
@@ -401,7 +400,7 @@ namespace Compendium.Events
                         break;
                     }
 
-                    CallHelper.SafeDelegate(evData.Executor, args, isAllowed, continueExec);
+                    Calls.Delegate(evData.Executor, args, isAllowed, continueExec);
                 }
             }
         }
@@ -415,7 +414,7 @@ namespace Compendium.Events
             {
                 foreach (var handler in list)
                 {
-                    CallHelper.SafeDelegate(handler);
+                    Calls.Delegate(handler);
                 }
             }
         }

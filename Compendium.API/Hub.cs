@@ -2,9 +2,10 @@
 using Compendium.PlayerData;
 using Compendium.Health;
 using Compendium.Hints;
-using Compendium.RoleHistory;
 using Compendium.Units;
 using Compendium.UserId;
+using Compendium.Snapshots;
+using Compendium.Snapshots.Data;
 
 using helpers;
 using helpers.Extensions;
@@ -26,6 +27,9 @@ using System.IO;
 using System.Linq;
 
 using UnityEngine;
+
+using InventorySystem.Items;
+using InventorySystem;
 
 namespace Compendium
 {
@@ -118,8 +122,8 @@ namespace Compendium
         public static bool HasGroupKey(this ReferenceHub hub)
             => !string.IsNullOrWhiteSpace(hub.GroupKey());
 
-        public static bool HasReservedSlot(this ReferenceHub hub, bool countBypass = true)
-            => ReservedSlot.HasReservedSlot(hub.UserId(), out var bypass) || countBypass && bypass;
+        public static bool HasReservedSlot(this ReferenceHub hub, bool countBypass = false)
+            => ReservedSlot.HasReservedSlot(hub.UserId(), out var bypass) || (countBypass && bypass);
 
         public static void AddReservedSlot(this ReferenceHub hub, bool isTemporary, bool addNick = false)
         {
@@ -127,6 +131,7 @@ namespace Compendium
                 return;
 
             Plugin.Debug($"Added temporary reserved slot to {hub.GetLogName(true, false)}");
+
             ReservedSlot.Users.Add(hub.UserId());
 
             if (isTemporary)
@@ -139,8 +144,10 @@ namespace Compendium
 
             lines.Add($"{hub.UserId()}");
 
-            File.AppendAllLines(PluginAPI.Core.ReservedSlots.FilePath, new string[] { hub.UserId() });
+            File.AppendAllLines(PluginAPI.Core.ReservedSlots.FilePath, lines);
+
             ReservedSlot.Reload();
+
             Plugin.Debug($"Added permanent reserved slot to {hub.GetLogName(true, false)}");
         }
 
@@ -159,6 +166,7 @@ namespace Compendium
             }
 
             ReservedSlot.Reload();
+
             Plugin.Debug($"Removed reserved slot for {hub.GetLogName(true, false)}");
         }
 
@@ -301,7 +309,7 @@ namespace Compendium
             return (hp.CurValue = newValue.Value);
         }
 
-        public static float MaxHealth(this ReferenceHub hub, float? newValue = null)
+        public static float MaxHealth(this ReferenceHub hub, float? newValue = null, bool resetOnChange = true)
         {
             if (!hub.playerStats.TryGetModule<HealthStat>(out var hp))
                 return 0f;
@@ -310,7 +318,10 @@ namespace Compendium
                 return hp.MaxValue;
 
             if (hp is CustomHealthStat stat)
-                return (stat.CustomMaxValue = newValue.Value);
+            {
+                stat.MaxHealth = newValue.Value;
+                stat.ShouldReset = resetOnChange;
+            }
 
             return hp.MaxValue;
         }
@@ -318,15 +329,34 @@ namespace Compendium
 
     public static class HubRoleExtensions
     {
-        public static RoleHistoryEntry PreviousRole(this ReferenceHub hub)
-            => RoleHistoryRecorder.TryGetPreviousRole(hub, out var role) ? role : null;
+        public static RoleTypeId PreviousRole(this ReferenceHub hub)
+        {
+            if (SnapshotManager.TryGetSnapshots(hub, out var snapshots) && snapshots.Any())
+            {
+                var last = snapshots.LastOrDefault();
+
+                if (last is null || !last.Data.TryGetFirst(d => d.Type is SnapshotDataType.Role, out var data) || data is null || !(data is RoleData roleData))
+                    return RoleTypeId.None;
+
+                return roleData.Role;
+            }
+
+            return RoleTypeId.None;
+        }
 
         public static bool ToPreviousRole(this ReferenceHub hub)
         {
-            if (RoleHistoryRecorder.TryGetPreviousRole(hub, out var prevRole))
+            if (SnapshotManager.TryGetSnapshots(hub, out var snapshots) && snapshots.Any())
             {
-                prevRole.Snapshot.Role.Apply(hub);
-                return true;
+                var snapshot = snapshots.LastOrDefault();
+
+                if (snapshot != null)
+                {
+                    snapshot.Apply(hub);
+                    return true;
+                }
+                else
+                    return false;
             }
 
             return false;
@@ -367,10 +397,7 @@ namespace Compendium
         public static PlayerRoleBase Role(this ReferenceHub hub, PlayerRoleBase newRole = null)
         {
             if (newRole != null)
-            {
                 hub.roleManager.ServerSetRole(newRole.RoleTypeId, newRole.ServerSpawnReason, newRole.ServerSpawnFlags);
-                return hub.roleManager.CurrentRole;
-            }
 
             return hub.roleManager.CurrentRole;
         }
@@ -423,7 +450,7 @@ namespace Compendium
             if (!isRemoteAdmin)
                 hub.characterClassManager.ConsolePrint(content.ToString(), "red");
             else
-                hub.queryProcessor.TargetReply(hub.connectionToClient, $"SYS#{content}", true, false, string.Empty);
+                hub.queryProcessor.TargetReply(hub.connectionToClient, $"API#{content}", true, false, string.Empty);
         }
 
         public static Vector3 Position(this ReferenceHub hub, Vector3? newPos = null, Quaternion? newRot = null)
@@ -513,10 +540,10 @@ namespace Compendium
             if (room != null)
                 return room.Name;
 
-            return RoomName.Unnamed;
+            return MapGeneration.RoomName.Unnamed;
         }
 
-        public static string RoomIdName(this ReferenceHub hub)
+        public static string RoomName(this ReferenceHub hub)
         {
             var room = hub.Room();
 
@@ -524,6 +551,66 @@ namespace Compendium
                 return room.name;
 
             return "unknown room";
+        }
+    }
+
+    public static class InventoryExtensions
+    {
+        public static ItemType[] GetItemIds(this ReferenceHub hub)
+            => hub.inventory.UserInventory.Items.Select(p => p.Value.ItemTypeId).ToArray();
+
+        public static ItemType GetCurrentItemId(this ReferenceHub hub)
+            => hub.inventory._curInstance?.ItemTypeId ?? ItemType.None;
+
+        public static bool SetCurrentItemId(this ReferenceHub hub, ItemType item, bool useInventory = true)
+        {
+            if (useInventory && hub.inventory.UserInventory.Items.TryGetFirst(p => p.Value.ItemTypeId == item, out var pair) && pair.Value != null)
+            {
+                hub.inventory.ServerSelectItem(pair.Key);
+                return hub.inventory._curInstance != null && hub.inventory._curInstance.ItemTypeId == item;
+            }
+            else
+            {
+                var itemObj = hub.AddItem(item, false);
+
+                if (itemObj is null)
+                    return false;
+
+                hub.inventory.ServerSelectItem(itemObj.ItemSerial);
+
+                return hub.inventory._curInstance != null && hub.inventory._curInstance.ItemSerial == itemObj.ItemSerial;
+            }
+        }
+
+        public static ItemBase AddItem(this ReferenceHub hub, ItemType item, bool dropIfFull = true)
+        {
+            if (hub.inventory.UserInventory.Items.Count >= 8)
+            {
+                if (dropIfFull)
+                    World.SpawnItem(item, hub.Position(), hub.Rotation());
+
+                return null;
+            }
+
+            return hub.inventory.ServerAddItem(item);
+        }
+
+        public static ItemBase[] GetItems(this ReferenceHub hub)
+            => hub.inventory.UserInventory.Items.Select(p => p.Value).ToArray();
+
+        public static ItemBase[] GetItems(this ReferenceHub hub, ItemType itemType)
+            => hub.inventory.UserInventory.Items.Where(p => p.Value.ItemTypeId == itemType).Select(p => p.Value).ToArray();
+
+        public static void ClearItems(this ReferenceHub hub)
+            => hub.GetItems().ForEach(item => hub.inventory.ServerRemoveItem(item.ItemSerial, item.PickupDropModel));
+
+        public static ushort GetAmmo(this ReferenceHub hub, ItemType ammoType)
+            => hub.inventory.UserInventory.ReserveAmmo.TryGetValue(ammoType, out var amount) ? amount : ushort.MinValue;
+
+        public static void SetAmmo(this ReferenceHub hub, ItemType ammoType, ushort amount)
+        {
+            hub.inventory.UserInventory.ReserveAmmo[ammoType] = amount;
+            hub.inventory.SendAmmoNextFrame = true;
         }
     }
 
@@ -540,7 +627,7 @@ namespace Compendium
             {
                 var room = hub.Room();
 
-                if (zoneFilter != null)
+                if (zoneFilter != null && zoneFilter.Any())
                 {
                     if (room is null)
                         return;
@@ -549,7 +636,7 @@ namespace Compendium
                         return;
                 }
 
-                if (roomFilter != null)
+                if (roomFilter != null && roomFilter.Any())
                 {
                     if (room is null)
                         return;
@@ -563,16 +650,16 @@ namespace Compendium
 
                 list.Add(hub);
 
-            }, false);
+            });
 
             return list.ToArray();
         }
 
-        public static void ForEach(this Action<ReferenceHub> action, bool includeServer = false, Predicate<ReferenceHub> predicate = null)
+        public static void ForEach(this Action<ReferenceHub> action, Predicate<ReferenceHub> predicate = null)
         {
             ReferenceHub.AllHubs.ForEach(hub =>
             {
-                if (hub.Mode != ClientInstanceMode.ReadyClient && !includeServer)
+                if (hub.Mode != ClientInstanceMode.ReadyClient)
                     return;
 
                 if (predicate != null && !predicate(hub))
@@ -583,10 +670,10 @@ namespace Compendium
         }
 
         public static void ForEach(this Action<ReferenceHub> action, params RoleTypeId[] roleFilter)
-            => ForEach(action, false, hub => roleFilter.Contains(hub.GetRoleId()));
+            => ForEach(action, hub => roleFilter.Contains(hub.GetRoleId()));
 
-        public static void ForEach(this Action<ReferenceHub> action, bool includeUnknown, params FacilityZone[] zoneFilter)
-            => ForEach(action, false, hub =>
+        public static void ForEachZone(this Action<ReferenceHub> action, bool includeUnknown, params FacilityZone[] zoneFilter)
+            => ForEach(action, hub =>
             {
                 var zone = hub.Zone();
 
@@ -596,8 +683,8 @@ namespace Compendium
                 return zoneFilter.Contains(zone);
             });
 
-        public static void ForEach(this Action<ReferenceHub> action, bool includeUnknown, params RoomName[] roomFilter)
-            => ForEach(action, false, hub =>
+        public static void ForEachRoom(this Action<ReferenceHub> action, bool includeUnknown, params RoomName[] roomFilter)
+            => ForEach(action, hub =>
             {
                 var room = hub.RoomId();
 

@@ -26,9 +26,6 @@ namespace Compendium.Round
             set
             {
                 _state = value;
-
-                Plugin.Debug($"Current round state has been changed to {_state.ToString().SpaceByPascalCase()}");
-
                 _onChanged.ForEach(pair =>
                 {
                     try

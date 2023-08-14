@@ -43,9 +43,6 @@
       <SpecificVersion>False</SpecificVersion>
       <HintPath>..\..\..\..\..\..\Program Files (x86)\Steam\steamapps\common\SCP Secret Laboratory Dedicated Server\SCPSL_Data\Managed\Assembly-CSharp_publicized.dll</HintPath>
     </Reference>
-    <Reference Include="BetterCommands">
-      <HintPath>..\..\BetterCommands\BetterCommands\bin\Debug\BetterCommands.dll</HintPath>
-    </Reference>
     <Reference Include="CommandSystem.Core">
       <HintPath>..\..\..\..\..\..\Program Files (x86)\Steam\steamapps\common\SCP Secret Laboratory Dedicated Server\SCPSL_Data\Managed\CommandSystem.Core.dll</HintPath>
     </Reference>
@@ -119,8 +116,55 @@
     <Compile Include="Activity\ActivityData.cs" />
     <Compile Include="Activity\ActivityRecorder.cs" />
     <Compile Include="Activity\ActivitySession.cs" />
+    <Compile Include="Commands\Attributes\CommandAliasesAttribute.cs" />
+    <Compile Include="Commands\Attributes\CommandAttributeBase.cs" />
+    <Compile Include="Commands\Attributes\CommandGroupAttribute.cs" />
+    <Compile Include="Commands\Attributes\CommandPriorityAttribute.cs" />
+    <Compile Include="Commands\Attributes\ConditionAttribute.cs" />
+    <Compile Include="Commands\Attributes\IgnoreExtraArgumentsAttribute.cs" />
+    <Compile Include="Commands\Attributes\MultipleAttribute.cs" />
+    <Compile Include="Commands\Attributes\PlayerConsoleCommandAttribute.cs" />
+    <Compile Include="Commands\Attributes\RemoteAdminCommandAttribute.cs" />
+    <Compile Include="Commands\Attributes\RemainderAttribute.cs" />
+    <Compile Include="Commands\Attributes\RestrictionAttribute.cs" />
+    <Compile Include="Commands\Attributes\ServerConsoleCommandAttribute.cs" />
+    <Compile Include="Commands\Command.cs" />
+    <Compile Include="Commands\CommandSource.cs" />
+    <Compile Include="Commands\CommandUsageGenerator.cs" />
+    <Compile Include="Commands\Conditions\ConditionUtils.cs" />
+    <Compile Include="Commands\Context\CommandContext.cs" />
+    <Compile Include="Commands\Groups\CommandGroup.cs" />
+    <Compile Include="Commands\Groups\SourceCommandGroup.cs" />
+    <Compile Include="Commands\ICommand.cs" />
+    <Compile Include="Commands\ICommandContext.cs" />
+    <Compile Include="Commands\ICommandGroup.cs" />
+    <Compile Include="Commands\ICommandModule.cs" />
+    <Compile Include="Commands\ICondition.cs" />
+    <Compile Include="Commands\IResponse.cs" />
+    <Compile Include="Commands\Modules\CommandModule.cs" />
+    <Compile Include="Commands\Modules\IModuleCommand.cs" />
+    <Compile Include="Commands\Parameters\IParameterData.cs" />
+    <Compile Include="Commands\Parameters\IParameterParser.cs" />
+    <Compile Include="Commands\Parameters\IParameterRestriction.cs" />
+    <Compile Include="Commands\Parameters\Parameter.cs" />
+    <Compile Include="Commands\Parameters\ParameterFlags.cs" />
+    <Compile Include="Commands\Parameters\ParameterParserResult.cs" />
+    <Compile Include="Commands\Parameters\ParameterType.cs" />
+    <Compile Include="Commands\Parameters\ParameterUtils.cs" />
+    <Compile Include="Commands\Parsing\ParsingUtils.cs" />
+    <Compile Include="Commands\Parsing\StringParser.cs" />
+    <Compile Include="Commands\Parsing\StringParserPart.cs" />
+    <Compile Include="Commands\Parsing\StringParserSettings.cs" />
+    <Compile Include="Commands\Responses\ContinuedResponse.cs" />
+    <Compile Include="Commands\Responses\ContinuedResponseBase.cs" />
+    <Compile Include="Commands\Responses\StringResponse.cs" />
+    <Compile Include="Commands\CommandHandler.cs" />
     <Compile Include="Compatibility\IpCompatibilityPatch.cs" />
     <Compile Include="Config.cs" />
+    <Compile Include="EasyComponents\EasyComponent.cs" />
+    <Compile Include="EasyComponents\EasyComponentFlags.cs" />
+    <Compile Include="EasyComponents\EasyComponentManager.cs" />
+    <Compile Include="EasyComponents\RangedTickRateEasyComponent.cs" />
     <Compile Include="Extensions\ColorExtensions.cs" />
     <Compile Include="Door.cs" />
     <Compile Include="Events\EventAttribute.cs" />
@@ -132,6 +176,7 @@
     <Compile Include="Events\UpdateType.cs" />
     <Compile Include="Fixes\Scp079\Scp079CameraRotationSyncNullRefFix.cs" />
     <Compile Include="Fixes\Scp079\Scp079CameraRotationSyncNullRefMethData.cs" />
+    <Compile Include="Health\CustomHealthFlags.cs" />
     <Compile Include="Http\HttpDispatch.cs" />
     <Compile Include="Http\HttpDispatchData.cs" />
     <Compile Include="Hub.cs" />
@@ -145,7 +190,7 @@
     <Compile Include="Features\FeatureManager.cs" />
     <Compile Include="Features\FLog.cs" />
     <Compile Include="Features\IFeature.cs" />
-    <Compile Include="Calls\CallHelper.cs" />
+    <Compile Include="Calls.cs" />
     <Compile Include="Colors\ColorValues.cs" />
     <Compile Include="Health\CustomHealthStat.cs" />
     <Compile Include="Hints\BasicHintEffectType.cs" />
@@ -158,19 +203,21 @@
     <Compile Include="PlayerData\PlayerDataRecorder.cs" />
     <Compile Include="Prefabs\PrefabHelper.cs" />
     <Compile Include="Prefabs\PrefabName.cs" />
-    <Compile Include="RoleHistory\RoleHistoryEntry.cs" />
-    <Compile Include="RoleHistory\RoleHistoryRecorder.cs" />
     <Compile Include="Round\RoundHelper.cs" />
     <Compile Include="Round\RoundState.cs" />
     <Compile Include="Round\RoundStateChangedAttribute.cs" />
     <Compile Include="Rules\RuleData.cs" />
     <Compile Include="Rules\RuleSystem.cs" />
+    <Compile Include="Settings\CommandSettings.cs" />
     <Compile Include="Settings\HttpSettings.cs" />
     <Compile Include="Settings\VoiceSettings.cs" />
-    <Compile Include="Snapshots\InventorySnapshot.cs" />
-    <Compile Include="Snapshots\PlayerSnapshot.cs" />
-    <Compile Include="Snapshots\RoleSnapshot.cs" />
-    <Compile Include="Snapshots\SnapshotHelper.cs" />
+    <Compile Include="Snapshots\Capture\RoleDataCapture.cs" />
+    <Compile Include="Snapshots\Data\RoleData.cs" />
+    <Compile Include="Snapshots\ISnapshotCapture.cs" />
+    <Compile Include="Snapshots\ISnapshotData.cs" />
+    <Compile Include="Snapshots\Snapshot.cs" />
+    <Compile Include="Snapshots\SnapshotDataType.cs" />
+    <Compile Include="Snapshots\SnapshotManager.cs" />
     <Compile Include="Tokens\TokenData.cs" />
     <Compile Include="Tokens\TokenParser.cs" />
     <Compile Include="Units\UnitHelper.cs" />
@@ -214,6 +261,7 @@
     <Compile Include="Voice\VoiceChatUtils.cs" />
     <Compile Include="Voice\VoiceModifier.cs" />
     <Compile Include="Voice\VoicePacket.cs" />
+    <Compile Include="World.cs" />
   </ItemGroup>
   <ItemGroup />
   <ItemGroup>

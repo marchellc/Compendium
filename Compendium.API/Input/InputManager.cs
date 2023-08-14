@@ -1,5 +1,4 @@
-﻿using BetterCommands;
-
+﻿using Compendium.Commands.Attributes;
 using Compendium.Events;
 
 using GameCore;
@@ -14,7 +13,6 @@ using PluginAPI.Events;
 
 using System;
 using System.Collections.Generic;
-
 using UnityEngine;
 
 namespace Compendium.Input
@@ -136,13 +134,14 @@ namespace Compendium.Input
                     Plugin.Error(ex);
 
                     player.Message($"Failed to execute key bind: {actionId}");
-                    player.Message(ex);
+                    player.Message(ex.Message);
                 }
             }
         }
 
-        [Command("input", CommandType.PlayerConsole)]
-        private static string OnInputCommand(Player sender, string actionId)
+        [PlayerConsoleCommand(Name = "input", Description = "Executes a keybind.")]
+        [IgnoreExtraArguments]
+        private static string OnInputCommand(Player sender, [Remainder] string actionId)
         {
             if (!IsEnabled)
                 return "Key binds are disabled on this server.";
@@ -151,14 +150,16 @@ namespace Compendium.Input
             return "Keybind executed.";
         }
 
-        [Command("inputsync", CommandType.PlayerConsole)]
+        [PlayerConsoleCommand(Name = "inputsync", Description = "Synchronizes server-side keybinds.")]
+        [IgnoreExtraArguments]
         private static string OnSyncCommand(Player sender)
         {
             SyncPlayer(sender.ReferenceHub);
             return "Synchronized keybinds.";
         }
 
-        [Command("rebind", CommandType.PlayerConsole)]
+        [PlayerConsoleCommand(Name = "rebind", Description = "Customizes a keybind.")]
+        [IgnoreExtraArguments]
         private static string OnRebindCommand(ReferenceHub sender, string actionId, KeyCode newKey)
         {
             if (_binds.TryFirst<InputBinding>(bind => bind.Id == actionId && bind.OwnerId == sender.UniqueId(), out var binding))

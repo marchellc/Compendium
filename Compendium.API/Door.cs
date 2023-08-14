@@ -1,5 +1,4 @@
-﻿using Compendium.Calls;
-using Compendium.Round;
+﻿using Compendium.Round;
 
 using helpers.Extensions;
 using helpers.Patching;
@@ -119,7 +118,7 @@ namespace Compendium
         {
             var state = !door.NetworkTargetState;
             newState = state;
-            CallHelper.CallWithDelay(() => door.SetOpened(state), seconds);
+            Calls.Delay(seconds, () => door.SetOpened(state));
         }
 
         public static void ToggleAfterDelay(this DoorVariant door, float seconds)
@@ -129,31 +128,31 @@ namespace Compendium
             => door.SetOpened(false);
 
         public static void CloseAfterDelay(this DoorVariant door, float seconds)
-            => CallHelper.CallWithDelay(door.Close, seconds);
+            => Calls.Delay(seconds, door.Close);
 
         public static void Open(this DoorVariant door)
             => door.SetOpened();
 
         public static void OpenAfterDelay(this DoorVariant door, float seconds)
-            => CallHelper.CallWithDelay(door.Open, seconds);
+            => Calls.Delay(seconds, door.Open);
 
         public static void Lock(this DoorVariant door, DoorLockReason lockType = DoorLockReason.AdminCommand)
             => door.ServerChangeLock(lockType, true);
 
         public static void LockAfterDelay(this DoorVariant door, float seconds, DoorLockReason lockType = DoorLockReason.AdminCommand)
-            => CallHelper.CallWithDelay(() => door.Lock(lockType), seconds);
+            => Calls.Delay(seconds, () => door.Lock(lockType));
 
         public static void Unlock(this DoorVariant door, DoorLockReason lockType = DoorLockReason.AdminCommand)
             => door.ServerChangeLock(lockType, false);
 
         public static void UnlockAfterDelay(this DoorVariant door, float seconds, DoorLockReason lockType = DoorLockReason.AdminCommand)
-            => CallHelper.CallWithDelay(() => door.Unlock(lockType), seconds);
+            => Calls.Delay(seconds, () => door.Unlock(lockType));
 
         public static void UnlockAll(this DoorVariant door)
             => LockTypes.ForEach(door.Unlock);
 
         public static void UnlockAllAfterDelay(this DoorVariant door, float seconds)
-            => CallHelper.CallWithDelay(door.UnlockAll, seconds);
+            => Calls.Delay(seconds, door.UnlockAll);
 
         public static void Whitelist(this DoorVariant door, ReferenceHub hub)
         {
@@ -177,11 +176,11 @@ namespace Compendium
                 breakableDoor.Network_destroyed = true;
 
             if (clearDebris)
-                CallHelper.CallWithDelay(door.Delete, 1.2f);
+                Calls.Delay(1.25f, door.Delete);
         }
 
         public static void DestroyAfterDelay(this DoorVariant door, float seconds, bool clearDebris = false)
-            => CallHelper.CallWithDelay(() => door.Destroy(clearDebris), seconds);
+            => Calls.Delay(seconds, () => door.Destroy(clearDebris));
 
         public static float GetHealth(this DoorVariant door)
             => door is BreakableDoor breakableDoor ? breakableDoor.RemainingHealth : 0f;
@@ -216,7 +215,7 @@ namespace Compendium
             => NetworkServer.UnSpawn(door.gameObject);
 
         public static void DeleteAfterDelay(this DoorVariant door, float seconds)
-            => CallHelper.CallWithDelay(door.Delete, seconds);
+            => Calls.Delay(seconds, door.Delete);
 
         public static void PlayPermissionsDenied(this DoorVariant door, ReferenceHub hub)
             => door.PermissionsDenied(hub, 0);
@@ -265,7 +264,7 @@ namespace Compendium
         {
             if (__instance.HasCustomAccessModifier(out var modifier))
             {
-                if (CallHelper.SafeDelegate(modifier, __instance, ply, true))
+                if (Calls.Delegate(modifier, __instance, ply, true))
                 {
                     if (__instance.AllowInteracting(ply, colliderId))
                     {
