@@ -17,9 +17,7 @@ namespace Compendium.Voice.Profiles.Scp
             var profile = VoiceChat.GetProfile(player);
 
             if (profile != null && profile is ScpVoiceProfile scpProfile)
-            {
                 scpProfile.OnSwitchUsed();
-            }
         }
     }
 }

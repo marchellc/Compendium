@@ -1,6 +1,5 @@
 ﻿using Compendium.Extensions;
 using Compendium;
-using Compendium.Calls;
 
 using helpers.Extensions;
 using helpers.Random;
@@ -78,20 +77,20 @@ namespace Compendium.BetterTesla
                             light.ServerFlickerLights(BetterTeslaLogic.DamagedBlackoutDuration);
                         });
 
-                        CallHelper.CallWithDelay(() =>
+                        Calls.Delay(BetterTeslaLogic.DamagedBlackoutDuration + 0.2f, () =>
                         {
                             doors.ForEach(door =>
                             {
                                 door.ServerChangeLock(DoorLockReason.AdminCommand, false);
                             });
-                        }, BetterTeslaLogic.DamagedBlackoutDuration + 0.2f);
+                        });
                     }
                 }
 
-                CallHelper.CallWithDelay(() =>
+                Calls.Delay(time, () =>
                 {
                     Reset();
-                }, time);
+                });
             }
         }
 

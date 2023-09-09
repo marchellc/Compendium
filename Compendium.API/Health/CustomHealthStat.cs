@@ -15,8 +15,8 @@ namespace Compendium.Health
 
         public CustomHealthStat(ReferenceHub owner)
         {
-            Hub.playerStats._dictionarizedTypes[typeof(HealthStat)] = this;
-            Hub.playerStats.StatModules[0] = this;
+            owner.playerStats._dictionarizedTypes[typeof(HealthStat)] = this;
+            owner.playerStats.StatModules[0] = this;
 
             base.Init(owner);
         }

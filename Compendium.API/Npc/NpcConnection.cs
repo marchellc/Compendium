@@ -8,10 +8,6 @@ namespace Compendium.Npc
     {
         public NpcConnection(int networkConnectionId) : base(networkConnectionId) { }
         public override string address => "localhost";
-
-        public override void Send(ArraySegment<byte> segment, int channelId = 0)
-        {
-            
-        }
+        public override void Send(ArraySegment<byte> segment, int channelId = 0) { }
     }
 }

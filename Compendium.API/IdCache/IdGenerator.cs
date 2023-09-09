@@ -24,27 +24,32 @@ namespace Compendium.IdCache
                 newId = RandomGeneration.Default.GetReadableString(length).TrimEnd('=');
 
             _generationStorage.Add(newId);
-            
+
+            Plugin.Debug($"Generated unique ID: {newId}");         
             return newId;
         }
 
         [Load]
         private static void Initialize()
         {
-            _generationStorage = new SingleFileStorage<string>($"{Plugin.Handler.PluginDirectoryPath}/generation_storage");
+            _generationStorage = new SingleFileStorage<string>($"{Directories.ThisData}/SavedGenerations");
             _generationStorage.Load();
+
+            Plugin.Info($"ID Generator initialized.");
         }
 
         [Reload]
         private static void Reload()
         {
             _generationStorage.Reload();
+            Plugin.Info("ID Generator reloaded.");
         }
 
         [Unload]
         private static void Unload()
         {
             _generationStorage.Save();
+            Plugin.Info("ID Generator unloaded.");
         }
     }
 }

@@ -1,12 +1,11 @@
 ﻿using Compendium.Events;
-using Compendium.Commands;
 using Compendium.Logging;
+using Compendium.Parsers;
 
 using helpers;
 using helpers.Patching;
 using helpers.Events;
 using helpers.Attributes;
-using helpers.Logging.Loggers;
 
 using PluginAPI.Core;
 using PluginAPI.Core.Attributes;
@@ -38,7 +37,7 @@ namespace Compendium
 
         [PluginEntryPoint(
             "Compendium API",
-            "3.0.0",
+            "3.3.0",
             "A huge API for each Compendium component.",
             "marchellc_")]
         [PluginPriority(PluginAPI.Enums.LoadPriority.Lowest)]
@@ -47,40 +46,16 @@ namespace Compendium
             if (Instance != null)
                 throw new InvalidOperationException($"This plugin has already been loaded!");
 
-            Info("Loading ..");
-
             Instance = this;
             HandlerInstance = PluginHandler.Get(this);
 
-            if (Config.UseExceptionHandler)
-            {
-                ExceptionManager.Load();
-
-                ExceptionManager.LogToConsole = true;
-                ExceptionManager.LogPath = $"{Handler.PluginDirectoryPath}/exceptions.txt";
-                ExceptionManager.LogAll = true;
-
-                ExceptionManager.UnhandledLogAll = true;
-                ExceptionManager.UnhandledLogPath = $"{Handler.PluginDirectoryPath}/unhandled_exceptions.txt";
-
-                Info($"Exception handler is enabled.");
-            }
-
             if (Config.UseLoggingProxy)
-            {
                 helpers.Log.AddLogger<LoggingProxy>();
-                helpers.Log.AddLogger(new FileLogger(FileLoggerMode.AppendToFile, 0));
-                helpers.Log.Blacklist(LogLevel.Debug);
 
-                Warn($"Support library logger enabled - this might get messy!");
-            }
+            PlayerDataRecordParser.Load();
+            Directories.Load();
 
-            if (Config.LogSettings.ShowDebug)
-            {
-                helpers.Log.Unblacklist(LogLevel.Debug);
-
-                Warn($"Debug enabled - this will get messy.");
-            }
+            Info("Loading ..");
 
             Calls.OnFalse(() =>
             {
@@ -90,19 +65,7 @@ namespace Compendium
 
                     PatchManager.PatchAssemblies(exec);
                     EventRegistry.RegisterEvents(exec);
-                    CommandHandler.RegisterCommands(exec);
                     AttributeLoader.ExecuteLoadAttributes(exec);
-
-                    AssemblyLoader.Plugins.ForEachKey(pl =>
-                    {
-                        if (pl == exec)
-                            return;
-
-                        PatchManager.PatchAssemblies(pl);
-                        EventRegistry.RegisterEvents(pl);
-                        CommandHandler.RegisterCommands(pl);
-                        AttributeLoader.ExecuteLoadAttributes(pl);
-                    });
 
                     LoadConfig();
 
@@ -121,12 +84,10 @@ namespace Compendium
         [PluginUnload]
         public void Unload()
         {
-
             var exec = Assembly.GetExecutingAssembly();
 
             PatchManager.UnpatchAssemblies(exec);
             EventRegistry.UnregisterEvents(exec);
-            CommandHandler.RemoveCommands(exec);
             AttributeLoader.ExecuteUnloadAttributes(exec);
 
             AssemblyLoader.Plugins.ForEachKey(pl =>
@@ -136,7 +97,6 @@ namespace Compendium
 
                 PatchManager.UnpatchAssemblies(pl);
                 EventRegistry.UnregisterEvents(pl);
-                CommandHandler.RemoveCommands(pl);
                 AttributeLoader.ExecuteUnloadAttributes(pl);
             });
 
@@ -178,7 +138,7 @@ namespace Compendium
 
         public static void Debug(object message)
         {
-            UnityEngine.Debug.Log($"COMPENDIUM DEBUG LOG >> {message}");
+            helpers.Log.Debug(message);
 
             if (!Config.LogSettings.ShowDebug) 
                 return;
@@ -186,8 +146,28 @@ namespace Compendium
             Log.Debug(message?.ToString() ?? "Null Message!", helpers.Log.ResolveCaller(1));
         }
 
-        public static void Error(object message) => Log.Error(message?.ToString() ?? "Null Message!", helpers.Log.ResolveCaller(1));
-        public static void Warn(object message) => Log.Warning(message?.ToString() ?? "Null Message!", helpers.Log.ResolveCaller(1));
-        public static void Info(object message) => Log.Info(message?.ToString() ?? "Null Message!", helpers.Log.ResolveCaller(1));
+        public static void Error(object message)
+        {
+            if (!Config.UseLoggingProxy)
+                helpers.Log.Error(message);
+
+            Log.Error(message?.ToString() ?? "Null Message!", helpers.Log.ResolveCaller(1));
+        }
+
+        public static void Warn(object message)
+        {
+            if (!Config.UseLoggingProxy)
+                helpers.Log.Warn(message);
+
+            Log.Warning(message?.ToString() ?? "Null Message!", helpers.Log.ResolveCaller(1));
+        }
+
+        public static void Info(object message)
+        {
+            if (!Config.UseLoggingProxy)
+                helpers.Log.Info(message);
+
+            Log.Info(message?.ToString() ?? "Null Message!", helpers.Log.ResolveCaller(1));
+        }
     }
 }

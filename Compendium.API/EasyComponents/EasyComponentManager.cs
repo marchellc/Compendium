@@ -3,7 +3,7 @@
 using helpers.Attributes;
 using helpers.Enums;
 using helpers.Extensions;
-
+using PlayerStatsSystem;
 using PluginAPI.Events;
 
 using System;
@@ -158,7 +158,15 @@ namespace Compendium.EasyComponents
         [Event]
         private static bool OnDamaged(PlayerDamageEvent ev)
         {
-            var comps = GetComponents(ev.Player.ReferenceHub);
+            ReferenceHub targetHub = null;
+
+            if (ev.DamageHandler is AttackerDamageHandler attackerDamage)
+                targetHub = attackerDamage.Attacker.Hub;
+
+            if (targetHub is null && (targetHub = (ev.Player?.ReferenceHub ?? ev.Target?.ReferenceHub)) is null)
+                return true;
+
+            var comps = GetComponents(targetHub);
             var result = true;
 
             foreach (var comp in comps)

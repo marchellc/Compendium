@@ -1,4 +1,5 @@
-﻿using Compendium.Commands.Attributes;
+﻿using BetterCommands;
+
 using Compendium.Events;
 
 using GameCore;
@@ -13,6 +14,7 @@ using PluginAPI.Events;
 
 using System;
 using System.Collections.Generic;
+
 using UnityEngine;
 
 namespace Compendium.Input
@@ -40,12 +42,16 @@ namespace Compendium.Input
             }
 
             _handlers.Add(new THandler());
+            Plugin.Debug($"Input registered: {typeof(THandler)}");
         }
 
         public static void Unregister<THandler>() where THandler : IInputHandler, new()
         {
             if (_handlers.RemoveWhere(h => h is THandler) > 0)
+            {
                 OnKeyUnregistered.Invoke(typeof(THandler));
+                Plugin.Debug($"Input unregistered: {typeof(THandler)}");
+            }
         }
 
         public static bool TryGetHandler(string actionId, out IInputHandler handler)
@@ -94,7 +100,7 @@ namespace Compendium.Input
 
             if (_binds is null)
             {
-                _binds = new SingleFileStorage<InputBinding>($"{Plugin.Handler.PluginDirectoryPath}/player_binds");
+                _binds = new SingleFileStorage<InputBinding>($"{Directories.ThisData}/SavedPlayerBinds");
                 _binds.Load();
             }
             else
@@ -120,12 +126,15 @@ namespace Compendium.Input
 
         private static void ReceiveKey(ReferenceHub player, string actionId)
         {
+            Plugin.Debug($"Received input action from player {player.GetLogName(true)}: {actionId}");
+
             OnKeyPressed.Invoke(player, actionId);
 
             if (_handlers.TryGetFirst(h => h.Id == actionId, out var handler))
             {
                 try
                 {
+                    Plugin.Debug($"Executing handler: {handler}");
                     handler.OnPressed(player);
                 }
                 catch (Exception ex)
@@ -139,9 +148,9 @@ namespace Compendium.Input
             }
         }
 
-        [PlayerConsoleCommand(Name = "input", Description = "Executes a keybind.")]
-        [IgnoreExtraArguments]
-        private static string OnInputCommand(Player sender, [Remainder] string actionId)
+        [Command("input", CommandType.PlayerConsole)]
+        [Description("Executes a key bind on the server.")]
+        private static string OnInputCommand(Player sender, string actionId)
         {
             if (!IsEnabled)
                 return "Key binds are disabled on this server.";
@@ -150,16 +159,16 @@ namespace Compendium.Input
             return "Keybind executed.";
         }
 
-        [PlayerConsoleCommand(Name = "inputsync", Description = "Synchronizes server-side keybinds.")]
-        [IgnoreExtraArguments]
+        [Command("inputsync", CommandType.PlayerConsole)]
+        [Description("Synchronizes server-side keybinds.")]
         private static string OnSyncCommand(Player sender)
         {
             SyncPlayer(sender.ReferenceHub);
             return "Synchronized keybinds.";
         }
 
-        [PlayerConsoleCommand(Name = "rebind", Description = "Customizes a keybind.")]
-        [IgnoreExtraArguments]
+        [Command("rebind", CommandType.PlayerConsole)]
+        [Description("Allows you to customize your key binds.")]
         private static string OnRebindCommand(ReferenceHub sender, string actionId, KeyCode newKey)
         {
             if (_binds.TryFirst<InputBinding>(bind => bind.Id == actionId && bind.OwnerId == sender.UniqueId(), out var binding))

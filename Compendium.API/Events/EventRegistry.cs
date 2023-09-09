@@ -4,8 +4,6 @@ using helpers;
 using helpers.Attributes;
 using helpers.Extensions;
 
-using MonoMod.Utils;
-
 using PluginAPI.Enums;
 using PluginAPI.Events;
 
@@ -24,7 +22,7 @@ namespace Compendium.Events
         [Load]
         private static void Initialize()
         {
-            EventManager.OnExecutingEvent += OnExecutingEvent;
+            EventBridge.OnExecuting = OnExecutingEvent;
 
             Reflection.TryAddHandler<Action>(typeof(StaticUnityMethods), "OnUpdate", OnUpdate);
             Reflection.TryAddHandler<Action>(typeof(StaticUnityMethods), "OnFixedUpdate", OnFixedUpdate);
@@ -34,7 +32,7 @@ namespace Compendium.Events
         [Unload]
         private static void Unload()
         {
-            EventManager.OnExecutingEvent -= OnExecutingEvent;
+            EventBridge.OnExecuting = null;
 
             Reflection.TryRemoveHandler<Action>(typeof(StaticUnityMethods), "OnUpdate", OnUpdate);
             Reflection.TryRemoveHandler<Action>(typeof(StaticUnityMethods), "OnFixedUpdate", OnFixedUpdate);
@@ -85,7 +83,6 @@ namespace Compendium.Events
                     }
 
                     eventAttribute.Type = evType;
-                    Plugin.Debug($"Recognized server event type for method {method.ToLogName(false)}: {evType}");
                 }
 
                 var data = new EventRegistryData();
@@ -109,7 +106,7 @@ namespace Compendium.Events
                                 continue;
                             }
 
-                            if (data.Params[i].ParameterType == typeof(ValueContainer))
+                            if (data.Params[i].ParameterType == typeof(ValueReference))
                             {
                                 if (data.Params[i].Name == "isAllowed")
                                 {
@@ -123,7 +120,7 @@ namespace Compendium.Events
                                     continue;
                                 }
 
-                                Plugin.Warn($"Unrecognized ValueContainer argument ({data.Params[i].Name}) at index {i} in method {data.Method.ToLogName(false)}!");
+                                Plugin.Warn($"Unrecognized ValueReference argument ({data.Params[i].Name}) at index {i} in method {data.Method.ToLogName(false)}!");
                                 continue;
                             }
 
@@ -191,7 +188,7 @@ namespace Compendium.Events
 
                 if (method.TryGetAttribute<FixedUpdateEventAttribute>(out _))
                 {
-                    var del = method.IsStatic ? method.CreateDelegate<Action>() : method.CreateDelegate<Action>(instance);
+                    var del = (Action)(method.IsStatic ? method.CreateDelegate(typeof(Action)) : method.CreateDelegate(typeof(Action), instance));
 
                     if (del != null)
                     {
@@ -203,7 +200,7 @@ namespace Compendium.Events
                 }
                 else if (method.TryGetAttribute<LateUpdateEventAttribute>(out _))
                 {
-                    var del = method.IsStatic ? method.CreateDelegate<Action>() : method.CreateDelegate<Action>(instance);
+                    var del = (Action)(method.IsStatic ? method.CreateDelegate(typeof(Action)) : method.CreateDelegate(typeof(Action), instance));
 
                     if (del != null)
                     {
@@ -215,7 +212,7 @@ namespace Compendium.Events
                 }
                 else if (method.TryGetAttribute<UpdateEventAttribute>(out _))
                 {
-                    var del = method.IsStatic ? method.CreateDelegate<Action>() : method.CreateDelegate<Action>(instance);
+                    var del = (Action)(method.IsStatic ? method.CreateDelegate(typeof(Action)) : method.CreateDelegate(typeof(Action), instance));
 
                     if (del != null)
                     {
@@ -386,23 +383,25 @@ namespace Compendium.Events
             return true;
         }
 
-        private static void OnExecutingEvent(ServerEventType type, IEventArguments args, Event ev, ValueContainer isAllowed, ValueContainer continueExec)
+        private static bool OnExecutingEvent(IEventArguments args, Event ev, ValueReference isAllowed)
         {
-            continueExec.Value = true;
+            var continueExec = new ValueReference() { Value = true };
 
-            if (_registry.TryGetValue(type, out var list))
+            if (_registry.TryGetValue(args.BaseType, out var list))
             {
                 foreach (var evData in list)
                 {
                     if (continueExec.Value != null && continueExec.Value is bool shC && !shC)
-                    {
-                        Plugin.Debug($"Should continue has been set to false.");
                         break;
-                    }
 
                     Calls.Delegate(evData.Executor, args, isAllowed, continueExec);
                 }
             }
+
+            if (continueExec.Value != null && continueExec.Value is bool shContinue)
+                return shContinue;
+
+            return true;
         }
 
         private static void FireUpdate(UpdateType type)

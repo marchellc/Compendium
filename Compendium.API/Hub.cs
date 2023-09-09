@@ -30,6 +30,7 @@ using UnityEngine;
 
 using InventorySystem.Items;
 using InventorySystem;
+using System.Runtime.Remoting.Messaging;
 
 namespace Compendium
 {
@@ -188,7 +189,7 @@ namespace Compendium
             => hub.GetInstanceID();
 
         public static string GetLogName(this ReferenceHub hub, bool includeIp = false, bool includeRole = true)
-            => $"[{hub.PlayerId}]:{(includeRole ? $" {hub.GetRoleId().ToString().SpaceByPascalCase()} " : "  ")}{hub.Nick()} ({hub.UserId()}){(includeIp ? $" <{hub.Ip()}>" : "")}";
+            => $"[ {hub.PlayerId} ]{(includeRole ? $" {hub.GetRoleId().ToString().SpaceByPascalCase()} " : "  ")}{hub.Nick()} {hub.UserId()}{(includeIp ? $" {hub.Ip()}" : "")}";
     }
 
     public static class HubModerationExtensions
@@ -274,7 +275,7 @@ namespace Compendium
         {
             if (hub.Role() is Scp106Role scp106Role)
             {
-                if (!scp106Role.SubroutineModule.TryGetSubroutine<Scp106Vigor>(out var vigor))
+                if (!scp106Role.SubroutineModule.TryGetSubroutine<Scp106VigorAbilityBase>(out var vigor))
                     return 0f;
 
                 if (!newValue.HasValue)
@@ -618,6 +619,26 @@ namespace Compendium
     { 
         public static IReadOnlyList<ReferenceHub> Hubs => ReferenceHub.AllHubs.Where(hub => hub.IsPlayer()).ToList();
         public static int Count => Hubs.Count;
+
+        public static ReferenceHub GetHub(this PlayerDataRecord record, bool supplyServer = true)
+            => TryGetHub(record, out var hub) ? hub : (supplyServer ? ReferenceHub.HostHub : null);
+
+        public static bool TryGetHub(this PlayerDataRecord record, out ReferenceHub hub)
+            => Hubs.TryGetFirst(h => 
+                    record.Id == h.UniqueId() ||
+                    record.IdTracking.LastValue == h.UserId() ||
+                    record.IpTracking.LastValue == h.Ip() ||
+                    record.IdTracking.AllValues.ContainsValue(h.UserId()) || 
+                    record.IpTracking.AllValues.ContainsValue(h.Ip()), out hub);
+
+        public static void TryInvokeHub(this PlayerDataRecord record, Action<ReferenceHub> target)
+        {
+            if (record is null)
+                return;
+
+            if (record.TryGetHub(out var hub) && hub != null)
+                Calls.Delegate(target, hub);
+        }
 
         public static ReferenceHub[] InRadius(Vector3 position, float radius, FacilityZone[] zoneFilter = null, RoomName[] roomFilter = null)
         {

@@ -1,9 +1,18 @@
-﻿using Compendium.Extensions;
+﻿using BetterCommands;
+using Compendium.Colors;
+using Compendium.Events;
+using Compendium.Extensions;
+using Compendium.Features;
 using Compendium.Input;
-
+using helpers.Attributes;
 using helpers.Extensions;
+using helpers.IO.Storage;
+using helpers.Pooling.Pools;
 
 using PlayerRoles;
+using PlayerRoles.Spectating;
+
+using System;
 
 using VoiceChat;
 
@@ -11,11 +20,11 @@ namespace Compendium.Voice.Profiles.Scp
 {
     public class ScpVoiceProfile : BaseProfile
     {
-        public ScpVoiceProfile(ReferenceHub owner) : base(owner)
-        {
-            if (!InputManager.TryGetHandler<ScpVoiceKeybind>(out _))
-                InputManager.Register<ScpVoiceKeybind>();
-        }
+        private DateTime? _lastHint;
+
+        private static SingleFileStorage<string> _mutes;
+
+        public ScpVoiceProfile(ReferenceHub owner) : base(owner) { }
 
         public ScpVoiceFlag Flag { get; set; } = ScpVoiceFlag.ScpChatOnly;
 
@@ -34,7 +43,16 @@ namespace Compendium.Voice.Profiles.Scp
         }
 
         public void OnSwitchUsed()
-            => Flag = NextFlag;
+        {
+            Flag = NextFlag;
+            Owner.Broadcast($"\n\n<b><color={ColorValues.LightGreen}>Voice přepnut na {TypeAndColor()} chat</color></b>", 3, true);
+        }
+
+        public override void Disable()
+        {
+            base.Disable();
+            _lastHint = null;
+        }
 
         public override void Process(VoicePacket packet)
         {
@@ -43,69 +61,184 @@ namespace Compendium.Voice.Profiles.Scp
 
             if (Owner.IsSCP())
             {
-                packet.SenderChannel = VoiceChatChannel.ScpChat;
-                packet.Destinations.ForEach(p =>
+                if (packet.SenderChannel != VoiceChatChannel.Mimicry)
+                    packet.SenderChannel = VoiceChatChannel.ScpChat;
+
+                var destinations = DictionaryPool<ReferenceHub, VoiceChatChannel>.Pool.Get(packet.Destinations);
+
+                foreach (var p in packet.Destinations)
                 {
                     if (p.Key.netId == packet.Speaker.netId)
-                        return;
+                        continue;
+
+                    if (!destinations.ContainsKey(p.Key))
+                        continue;
+
+                    if (destinations[p.Key] is VoiceChatChannel.Mimicry)
+                        continue;
+
+                    if (p.Key.RoleId() is RoleTypeId.Overwatch 
+                        && Owner.IsSpectatedBy(p.Key)
+                        && !_mutes.Contains(p.Key.UserId()))
+                    {
+                        destinations[p.Key] = VoiceChatChannel.RoundSummary;
+                        continue;
+                    }
 
                     if (Flag is ScpVoiceFlag.ScpChatOnly)
                     {
                         if (!p.Key.IsSCP())
                         {
-                            packet.Destinations[p.Key] = VoiceChatChannel.None;
-                            return;
+                            destinations[p.Key] = VoiceChatChannel.None;
+                            continue;
                         }
 
-                        packet.Destinations[p.Key] = VoiceChatChannel.ScpChat;
+                        destinations[p.Key] = VoiceChatChannel.ScpChat;
+                        continue;
                     }
                     else if (Flag is ScpVoiceFlag.ProximityAndScpChat)
                     {
                         if (p.Key.IsSCP())
-                            packet.Destinations[p.Key] = VoiceChatChannel.ScpChat;
+                        {
+                            destinations[p.Key] = VoiceChatChannel.ScpChat;
+                            continue;
+                        }
                         else
                         {
-                            if (Plugin.Config.VoiceSettings.AllowedScpChat.Contains(Owner.RoleId()))
+                            if (!_mutes.Contains(p.Key.UserId()))
                             {
-                                if (p.Key.Position().IsWithinDistance(Owner.Position(), Plugin.Config.VoiceSettings.ScpChatDistance))
+                                if (Plugin.Config.VoiceSettings.AllowedScpChat.Contains(Owner.RoleId()))
                                 {
-                                    packet.Destinations[p.Key] = VoiceChatChannel.RoundSummary;
+                                    if (p.Key.Position().IsWithinDistance(Owner.Position(), Plugin.Config.VoiceSettings.ScpChatDistance))
+                                    {
+                                        destinations[p.Key] = VoiceChatChannel.RoundSummary;
+                                        continue;
+                                    }
+                                    else
+                                    {
+                                        destinations[p.Key] = VoiceChatChannel.None;
+                                        continue;
+                                    }
                                 }
                                 else
                                 {
-                                    packet.Destinations[p.Key] = VoiceChatChannel.None;
+                                    destinations[p.Key] = VoiceChatChannel.None;
+                                    continue;
                                 }
-                            }
-                            else
-                            {
-                                packet.Destinations[p.Key] = VoiceChatChannel.None;
                             }
                         }
                     }
-                    else
+                    else if (Flag is ScpVoiceFlag.ProximityChatOnly)
                     {
-                        if (p.Key.IsSCP())
-                            packet.Destinations[p.Key] = VoiceChatChannel.None;
-                        else
+                        if (!_mutes.Contains(p.Key.UserId()))
                         {
-                            if (Plugin.Config.VoiceSettings.AllowedScpChat.Contains(Owner.RoleId()))
+                            if (p.Key.IsSCP())
                             {
-                                if (p.Key.Position().IsWithinDistance(Owner.Position(), Plugin.Config.VoiceSettings.ScpChatDistance))
-                                {
-                                    packet.Destinations[p.Key] = VoiceChatChannel.RoundSummary;
-                                }
-                                else
-                                {
-                                    packet.Destinations[p.Key] = VoiceChatChannel.None;
-                                }
+                                destinations[p.Key] = VoiceChatChannel.None;
+                                continue;
                             }
                             else
                             {
-                                packet.Destinations[p.Key] = VoiceChatChannel.None;
+                                if (Plugin.Config.VoiceSettings.AllowedScpChat.Contains(Owner.RoleId()))
+                                {
+                                    if (p.Key.Position().IsWithinDistance(Owner.Position(), Plugin.Config.VoiceSettings.ScpChatDistance))
+                                    {
+                                        destinations[p.Key] = VoiceChatChannel.RoundSummary;
+                                        continue;
+                                    }
+                                    else
+                                    {
+                                        destinations[p.Key] = VoiceChatChannel.None;
+                                        continue;
+                                    }
+                                }
+                                else
+                                {
+                                    destinations[p.Key] = VoiceChatChannel.None;
+                                    continue;
+                                }
                             }
                         }
                     }
-                });
+                }
+
+                packet.Destinations.Clear();
+                packet.Destinations.AddRange(destinations);
+
+                DictionaryPool<ReferenceHub, VoiceChatChannel>.Pool.Push(destinations);
+            }
+        }
+
+        private string TypeAndColor()
+        {
+            switch (Flag)
+            {
+                case ScpVoiceFlag.ScpChatOnly:
+                    return $"<color={ColorValues.Red}>SCP</color>";
+
+                case ScpVoiceFlag.ProximityChatOnly:
+                    return $"<color={ColorValues.Green}>Proximity</color>";
+
+                case ScpVoiceFlag.ProximityAndScpChat:
+                    return $"<color={ColorValues.Red}>SCP</color> a <color={ColorValues.Green}>Proximity</color>";
+
+                default:
+                    return $"<color={ColorValues.Red}>UNKNOWN</color>";
+            }
+        }
+
+        [UpdateEvent]
+        private static void ChatStateHintHandler()
+        {
+            foreach (var profile in VoiceChat.Profiles)
+            {
+                if (profile is ScpVoiceProfile scpVoice 
+                    && scpVoice.IsEnabled 
+                    && scpVoice.Owner != null)
+                {
+                    if (scpVoice._lastHint.HasValue
+                        && !((DateTime.Now - scpVoice._lastHint.Value).TotalMilliseconds >= 500))
+                        continue;
+
+                    scpVoice._lastHint = DateTime.Now;
+                    scpVoice.Owner.Hint($"\n\n\n\n\n\n\n<b><color={ColorValues.LightGreen}>Aktivní voice: {scpVoice.TypeAndColor()}</color></b>", 0.7f, false);
+                }
+            }
+        }
+
+        [Command("muteproximity", CommandType.PlayerConsole)]
+        [CommandAliases("mprox", "mutep")]
+        [Description("Mutes SCP proximity chat.")]
+        private static string MuteProximityCommand(ReferenceHub sender)
+        {
+            if (_mutes is null)
+            {
+                _mutes = new SingleFileStorage<string>($"{Directories.ThisData}/SavedProximityMutes");
+                _mutes.Load();
+            }
+
+            if (_mutes.Contains(sender.UserId()))
+            {
+                _mutes.Remove(sender.UserId());
+                return "SCP proximity chat unmuted.";
+            }
+            else
+            {
+                _mutes.Add(sender.UserId());
+                return "SCP proximity chat muted.";
+            }
+        }
+
+        [Load]
+        private static void Load()
+        {
+            if (!InputManager.TryGetHandler<ScpVoiceKeybind>(out _))
+                InputManager.Register<ScpVoiceKeybind>();
+
+            if (_mutes is null)
+            {
+                _mutes = new SingleFileStorage<string>($"{Directories.ThisData}/SavedProximityMutes");
+                _mutes.Load();
             }
         }
     }

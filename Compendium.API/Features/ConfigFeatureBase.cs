@@ -1,6 +1,7 @@
-﻿using helpers.Configuration.Converters.Yaml;
-using helpers.Configuration.Ini;
+﻿using helpers.Configuration;
 using helpers.Events;
+
+using System.IO;
 
 namespace Compendium.Features
 {
@@ -8,12 +9,17 @@ namespace Compendium.Features
     {
         private bool _isEnabled;
 
-        public virtual string Name => "Feature Base";
-        public virtual bool IsPatch => false;
+        public virtual string Name => "Config Feature Base";
+        public virtual bool IsPatch => true;
 
         public bool IsEnabled => _isEnabled;
+        public string Path => CanBeShared && Plugin.Config.ApiSetttings.GlobalDirectories.Contains(Name) 
+            ? $"{Directories.ThisConfigs}/{Name}.ini" 
+            : $"{Directories.MainPath}/configs_{ServerStatic.ServerPort}/{Name}.ini";
 
-        public IniConfigHandler Config { get; private set; }
+        public virtual bool CanBeShared { get; } = true;
+
+        public ConfigHandler Config { get; private set; }
 
         public readonly EventProvider OnLoad = new EventProvider();
         public readonly EventProvider OnUnload = new EventProvider();
@@ -38,7 +44,6 @@ namespace Compendium.Features
 
         public virtual void Reload()
         {
-            Config?.Read();
             OnReload.Invoke();
         }
 
@@ -49,7 +54,7 @@ namespace Compendium.Features
 
         public virtual void OnWaiting()
         {
-            Config?.Read();
+            Config?.Load();
             OnWaitingForPlayers.Invoke();
         }
 
@@ -58,6 +63,9 @@ namespace Compendium.Features
             _isEnabled = false;
 
             OnUnload.Invoke();
+
+            if (Config != null)
+                Config.OnLoaded = null;
 
             Config?.Save();
             Config = null;
@@ -70,16 +78,17 @@ namespace Compendium.Features
         {
             if (Config is null)
             {
-                Config = new IniConfigBuilder()
-                    .WithConverter<YamlConfigConverter>()
-                    .WithWatcher()
-                    .WithNamingRule(helpers.Configuration.ConfigNamingRule.SetValue)
-                    .WithAssembly(GetType().Assembly)
-                    .WithPath($"{FeatureManager.DirectoryPath}/{Name}_config.ini")
-                    .Build();
+                var directory = System.IO.Path.GetDirectoryName(Path);
+
+                if (!Directory.Exists(directory))
+                    Directory.CreateDirectory(directory);
+
+                Config = new ConfigHandler(Path);
+                Config.BindAll(GetType().Assembly);
+                Config.OnLoaded = () => Reload();
             }
 
-            Config.Read();
+            Config.Load();
         }
     }
 }

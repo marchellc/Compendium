@@ -1,5 +1,4 @@
-﻿using helpers;
-using helpers.Patching;
+﻿using helpers.Patching;
 
 using PlayerRoles;
 
@@ -15,7 +14,7 @@ namespace Compendium.BetterTesla
             var removed = __instance.TeslaGates.RemoveAll(tesla => tesla is null || tesla.gameObject is null || tesla.gameObject.transform is null);
 
             if (removed > 0)
-                Log.Warn($"Removed {removed} invalid Tesla Gate instances!");
+                Plugin.Warn($"Removed {removed} invalid Tesla Gate instances!");
 
             if (BetterTeslaLogic.RoundDisabled)
                 return false;

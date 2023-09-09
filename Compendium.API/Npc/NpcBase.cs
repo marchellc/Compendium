@@ -1,4 +1,6 @@
 ﻿using Compendium.Npc.Targeting;
+using helpers;
+using helpers.Random;
 
 using MEC;
 
@@ -28,11 +30,10 @@ namespace Compendium.Npc
         private NpcMovementMode m_MoveMode;
         private NpcMovementMode? m_ForcedMode;
 
-        private CoroutineHandle m_Movement;
-
         private bool m_IsSpawned;
         private bool m_PropsSet;
         private bool m_EnableScp079;
+        private bool m_MovReg;
         private string m_CustomId;
         private float m_CurrentSpeed;
         private float? m_ForcedSpeed;
@@ -59,6 +60,15 @@ namespace Compendium.Npc
         public Vector3 Position => IsSpawned ? m_Hub.transform.position : Vector3.zero;
         public Vector3 Rotation => IsSpawned ? m_Hub.transform.rotation.eulerAngles : Vector3.zero;
 
+        public Vector3 Scale
+        {
+            get => IsSpawned ? m_Hub.transform.localScale : Vector3.zero;
+            set
+            {
+
+            }
+        }
+
         public RoleTypeId RoleId { get => m_Hub.GetRoleId(); set => m_Hub.roleManager.ServerSetRole(value, RoleChangeReason.RemoteAdmin, RoleSpawnFlags.None); }
 
         public PlayerRoleBase Role { get => m_Hub.roleManager.CurrentRole; set => m_Hub.roleManager.CurrentRole = value; }
@@ -74,13 +84,12 @@ namespace Compendium.Npc
         public bool Enable079Logic { get => m_EnableScp079; set => m_EnableScp079 = value; }
 
         public string Nick { get => m_Hub.nicknameSync.Network_myNickSync; set => m_Hub.nicknameSync.Network_myNickSync = value; }
-        public string UserId { get => m_Hub.characterClassManager.UserId2; set => m_Hub.characterClassManager.UserId2 = value; }
+        public string UserId { get => m_Hub.characterClassManager.UserId; set => m_Hub.characterClassManager.UserId = value; }
         public string CustomId { get => m_CustomId; set => m_CustomId = value; }
 
         public int Id { get => m_Hub._playerId.Value; set => m_Hub.Network_playerId = new RecyclablePlayerId(value); }
 
         public float CurrentSpeed => m_CurrentSpeed;
-
         public float? ForcedSpeed { get => m_ForcedSpeed; set => m_ForcedSpeed = value; }
 
         public NpcBase()
@@ -90,7 +99,8 @@ namespace Compendium.Npc
 
         public void Despawn()
         {
-            if (!IsSpawned) return;
+            if (!IsSpawned) 
+                return;
 
             NetworkServer.UnSpawn(m_Hub.gameObject);
 
@@ -101,11 +111,19 @@ namespace Compendium.Npc
 
         public virtual void Destroy()
         {
-            if (m_Hub != null)
-                NetworkServer.Destroy(m_Hub.gameObject);
+            m_Hub.OnDestroy();
 
-            Timing.KillCoroutines(m_Movement);
-            NpcManager.OnNpcDestroyed(this);
+            CustomNetworkManager.TypedSingleton?.OnServerDisconnect(m_Hub.connectionToClient);
+
+            UnityEngine.Object.Destroy(m_Hub.gameObject);
+
+            m_Target = null;
+            m_ForcedMode = null;
+            m_ForcedSpeed = null;
+            m_Hub = null;
+            m_PropsSet = false;
+
+            CustomId = null;
         }
 
         public void Move(Vector3 destination)
@@ -115,45 +133,83 @@ namespace Compendium.Npc
 
         public virtual void Spawn(Action<INpc> modify = null)
         {
-            if (m_Hub is null)
+            try
             {
-                m_Hub = NpcManager.NewHub;
-                m_PropsSet = false;
+                Plugin.Info($"Spawning NPC");
+
+                if (m_Hub is null)
+                {
+                    m_Hub = NpcManager.NewHub;
+                    m_PropsSet = false;
+
+                    Plugin.Info($"Retrieved new ReferenceHub");
+                }
+
+                if (m_Hub is null)
+                {
+                    PluginAPI.Core.Log.Error($"Failed to instantiate a new ReferenceHub prefab!", "Npc Base");
+                    m_PropsSet = false;
+                    return;
+                }
+
+                if (!m_MovReg)
+                    m_MovReg = Reflection.TryAddHandler<Action>(typeof(StaticUnityMethods), "OnUpdate", MovementLogic);
+
+                modify?.Invoke(this);
+
+                if (!m_PropsSet)
+                {
+                    Plugin.Info($"Setting properties");
+
+                    NetworkServer.AddPlayerForConnection(new NpcConnection(Id), m_Hub.gameObject);
+
+                    Plugin.Info($"Added connection");
+
+                    try
+                    {
+                        m_Hub.characterClassManager.UserId = "npc@server";
+                    }
+                    catch { }
+
+                    Plugin.Info("Set user ID");
+
+                    m_Hub.characterClassManager.InstanceMode = ClientInstanceMode.Host;
+
+                    Plugin.Info($"Set instance mode: {m_Hub.characterClassManager.InstanceMode}");
+
+                    try
+                    {
+                        m_Hub.nicknameSync.Network_myNickSync = $"NPC [{Id}]";
+                    }
+                    catch { }
+
+                    Plugin.Info("Set nick");
+
+                    CustomId = RandomGeneration.Default.GetReadableString(5);
+
+                    Plugin.Info("Generated custom ID");
+
+                    m_PropsSet = true;
+                    m_IsSpawned = true;
+
+                    Plugin.Info("Started movement");
+
+                    Calls.Delay(0.2f, () =>
+                    {
+                        m_Hub.roleManager.ServerSetRole(RoleTypeId.ClassD, RoleChangeReason.RemoteAdmin, RoleSpawnFlags.All);
+                        Plugin.Info("Set role");
+                    });
+                }
+
+                if (!m_IsSpawned)
+                {
+                    NetworkServer.Spawn(m_Hub.gameObject);
+                    NpcManager.OnNpcSpawned(this);
+                }
             }
-
-            if (m_Hub is null)
+            catch (Exception ex)
             {
-                Log.Error($"Failed to instantiate a new ReferenceHub prefab!", "Npc Base");
-                m_PropsSet = false;
-                return;
-            }
-
-            if (Timing.IsRunning(m_Movement))
-                Timing.KillCoroutines(m_Movement);
-
-            modify?.Invoke(this);
-
-            if (!m_PropsSet)
-            {
-                m_Hub.Network_playerId = new RecyclablePlayerId(true);
-
-                RoleId = RoleTypeId.ClassD;
-                Nick = $"NPC [{Id}]";
-                UserId = $"npc_{Id}@server";
-                CustomId = UserId;
-
-                m_Movement = Timing.RunCoroutine(MovementLogicCoroutine());
-                m_PropsSet = true;
-            }
-            else
-            {
-                NetworkServer.Spawn(m_Hub.gameObject);
-            }
-
-            if (!m_IsSpawned)
-            {
-                m_IsSpawned = true;
-                NpcManager.OnNpcSpawned(this);
+                Plugin.Error(ex);
             }
         }
 
@@ -191,26 +247,23 @@ namespace Compendium.Npc
             return speed;
         }
 
-        private IEnumerator<float> MovementLogicCoroutine()
+        private void MovementLogic()
         {
-            while (true)
+            if (!IsSpawned || m_Hub is null || !m_Hub.IsAlive())
+                return;
+
+            var hasTarget = m_Target != null && m_Target.IsValid;
+
+            if (RoleId is RoleTypeId.Scp079)
             {
-                if (!IsSpawned || m_Hub is null)
-                    continue;
+                if (m_EnableScp079)
+                    UpdateScp079(hasTarget);
 
-                var hasTarget = m_Target != null && m_Target.IsValid;
-
-                if (RoleId is RoleTypeId.Scp079)
-                {
-                    if (m_EnableScp079)
-                        UpdateScp079(hasTarget);
-
-                    continue;
-                }
-
-                UpdateMovement(hasTarget);
-                UpdateCamera(hasTarget);
+                return;
             }
+
+            UpdateMovement(hasTarget);
+            UpdateCamera(hasTarget);
         }
 
         public virtual void UpdateCamera(bool hasTarget)
@@ -265,6 +318,7 @@ namespace Compendium.Npc
             }
 
             var closestCamera = NpcHelper.GetClosestCamera(m_Target.Position);
+
             if (closestCamera is null)
                 return;
 

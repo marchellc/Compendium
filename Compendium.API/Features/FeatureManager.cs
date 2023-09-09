@@ -1,12 +1,17 @@
-﻿using Compendium.Commands;
-using Compendium.Commands.Attributes;
+﻿using BetterCommands;
+using BetterCommands.Management;
+
+using Compendium.Colors;
 using Compendium.Events;
 using Compendium.Round;
 
 using helpers;
 using helpers.Attributes;
+using helpers.Extensions;
 using helpers.Patching;
-using Mirror;
+using helpers.Pooling.Pools;
+using helpers.Time;
+
 using PluginAPI.Core;
 
 using System;
@@ -23,8 +28,6 @@ namespace Compendium.Features
 
         private static readonly List<Type> _knownFeatures = new List<Type>();
         private static readonly List<IFeature> _features = new List<IFeature>();
-
-        public static string DirectoryPath => $"{Plugin.Handler.PluginDirectoryPath}/features";
 
         public static IReadOnlyList<IFeature> LoadedFeatures => _features;
         public static IReadOnlyList<Type> RegisteredFeatures => _knownFeatures;
@@ -58,35 +61,39 @@ namespace Compendium.Features
                 }
             }
 
-            if (!Directory.Exists(DirectoryPath))
-                Directory.CreateDirectory(DirectoryPath);
-
             Plugin.Info($"Loading external features ..");
 
-            foreach (var file in Directory.GetFiles(DirectoryPath, "*.dll"))
+            foreach (var file in Directory.GetFiles(Directories.ThisFeatures, "*.dll"))
             {
-                var rawAssembly = File.ReadAllBytes(file);
-                var assembly = Assembly.Load(rawAssembly);
+                Plugin.Debug($"Loading file: {Path.GetFileName(file)}");
 
-                foreach (var type in assembly.GetTypes())
+                try
                 {
-                    if (type == typeof(FeatureBase) || type == typeof(ConfigFeatureBase))
-                        continue;
+                    var rawAssembly = File.ReadAllBytes(file);
+                    var assembly = Assembly.Load(rawAssembly);
 
-                    if (Reflection.HasInterface<IFeature>(type))
+                    foreach (var type in assembly.GetTypes())
                     {
-                        _knownFeatures.Add(type);
+                        if (Reflection.HasInterface<IFeature>(type))
+                        {
+                            _knownFeatures.Add(type);
 
-                        var instance = Reflection.Instantiate<IFeature>(type);
+                            var instance = Reflection.Instantiate<IFeature>(type);
 
-                        _features.Add(instance);
+                            _features.Add(instance);
 
-                        Singleton.Set(instance);
-                        RoundHelper.ScanAssemblyForOnChanged(assembly);
-                        CommandHandler.RegisterCommands(assembly);
+                            Singleton.Set(instance);
+                            RoundHelper.ScanAssemblyForOnChanged(assembly);
 
-                        Plugin.Info($"Instantiated external feature: {type.FullName}");
+                            Plugin.Info($"Instantiated external feature: {type.FullName}");
+                        }
                     }
+                }
+                catch (Exception ex)
+                {
+                    Plugin.Error($"Failed to load file: {file}");
+                    Plugin.Error(ex);
+                    continue;
                 }
             }
 
@@ -166,6 +173,7 @@ namespace Compendium.Features
                         PatchManager.PatchAssemblies(assembly);
 
                     EventRegistry.RegisterEvents(assembly);
+                    CommandManager.Register(assembly);
                 }
             }
             catch (Exception ex)
@@ -202,10 +210,29 @@ namespace Compendium.Features
         {
             try
             {
-                AttributeLoader.ExecuteUnloadAttributes(feature.GetType().Assembly);
+                var assembly = feature.GetType().Assembly;
+
+                AttributeLoader.ExecuteUnloadAttributes(assembly);
 
                 if (feature.IsPatch)
-                    PatchManager.UnpatchAssemblies(feature.GetType().Assembly);
+                    PatchManager.UnpatchAssemblies(assembly);
+
+                EventRegistry.UnregisterEvents(assembly);
+
+                var rList = ListPool<CommandData>.Pool.Get();
+
+                CommandManager.Commands.ForEach(cmd =>
+                {
+                    cmd.Value.ForEach(c =>
+                    {
+                        if (c.DeclaringType.Assembly == assembly)
+                            rList.Add(c);
+                    });
+                });
+
+                rList.ForEach(cmd => CommandManager.TryUnregister(cmd.Name, CommandType.RemoteAdmin));
+                rList.ForEach(cmd => CommandManager.TryUnregister(cmd.Name, CommandType.GameConsole));
+                rList.ForEach(cmd => CommandManager.TryUnregister(cmd.Name, CommandType.PlayerConsole));
 
                 feature.Unload();
             }
@@ -349,11 +376,10 @@ namespace Compendium.Features
             });
         }
 
-        [RemoteAdminCommand(Name = "disable", Description = "Disables a feature.")]
-        [ServerConsoleCommand(Name = "disable", Description = "Disables a feature.")]
-        [CommandGroup(Group = "feature")]
-        [IgnoreExtraArguments]
-        private static string DisableFeature(Player sender, [Remainder] string featureName)
+        [Command("dfeature", CommandType.RemoteAdmin, CommandType.GameConsole)]
+        [CommandAliases("df")]
+        [Description("Disables the specified feature.")]
+        private static string DisableFeature(Player sender, string featureName)
         {
             if (TryGetFeature(featureName, out var feature))
             {
@@ -373,10 +399,9 @@ namespace Compendium.Features
             }
         }
 
-        [RemoteAdminCommand(Name = "enable", Description = "Enables a feature.")]
-        [ServerConsoleCommand(Name = "enable", Description = "Enables a feature.")]
-        [CommandGroup(Group = "feature")]
-        [IgnoreExtraArguments]
+        [Command("efeature", CommandType.RemoteAdmin, CommandType.GameConsole)]
+        [CommandAliases("ef")]
+        [Description("Enables the specified feature.")]
         private static string EnableFeature(Player sender, string featureName)
         {
             if (TryGetFeature(featureName, out var feature))
@@ -397,10 +422,9 @@ namespace Compendium.Features
             }
         }
 
-        [RemoteAdminCommand(Name = "reload", Description = "Reloads a feature.")]
-        [ServerConsoleCommand(Name = "reload", Description = "Reloads a feature.")]
-        [CommandGroup(Group = "feature")]
-        [IgnoreExtraArguments]
+        [Command("rfeature", CommandType.RemoteAdmin, CommandType.GameConsole)]
+        [CommandAliases("rf")]
+        [Description("Reloads the specified feature.")]
         private static string ReloadFeature(Player sender, string featureName)
         {
             if (TryGetFeature(featureName, out var feature))
@@ -420,6 +444,76 @@ namespace Compendium.Features
             {
                 return $"Feature {featureName} does not exist!";
             }
+        }
+
+        [Command("lfeatures", CommandType.RemoteAdmin, CommandType.GameConsole)]
+        [CommandAliases("lf")]
+        [Description("Lists all available features.")]
+        private static string ListFeatures(Player sender)
+        {
+            if (!_features.Any())
+                return $"There aren't any loaded features ({_features.Count}/{_knownFeatures.Count})";
+
+            var sb = StringBuilderPool.Pool.Get();
+
+            sb.AppendLine($"Showing a list of {_features.Count} features:");
+
+            _features.For((i, feature) =>
+            {
+                var assembly = feature.GetType().Assembly;
+                sb.AppendLine($"<b>[ {i + 1} ]:</b> <color={ColorValues.LightGreen}>{feature?.Name ?? "UNKNOWN NAME"}</color> v{assembly.GetName().Version} [{(feature.IsEnabled ? $"<color={ColorValues.Green}>ENABLED</color>" : $"<color={ColorValues.Red}>DISABLED</color>")}]{(feature.IsPatch ? " <i>(contains patches)</i>" : "")}");
+            });
+
+            return StringBuilderPool.Pool.PushReturn(sb);
+        }
+
+        [Command("dtfeature", CommandType.RemoteAdmin, CommandType.GameConsole)]
+        [CommandAliases("dtf")]
+        [Description("Shows all details about a feature.")]
+        private static string DetailFeature(Player sender, string featureName)
+        {
+            if (!_features.TryGetFirst(f => f.Name.GetSimilarity(featureName) >= 0.8, out var feature))
+                return "There are no features matching your query.";
+
+            if (feature is null)
+                return "The requested feature's instance is null.";
+
+            var type = feature.GetType();
+            var assembly = type.Assembly;
+            var assemblyName = assembly.GetName();
+            var filePath = $"{Directories.ThisFeatures}/{assemblyName.Name}.dll";
+            var fileExists = File.Exists(filePath);
+            var fileDate = fileExists ? File.GetLastWriteTime(filePath).ToLocalTime() : DateTime.MinValue;
+            var fileDateStr = $"{fileDate.ToString("F")} ({TimeUtils.UserFriendlySpan((TimeUtils.LocalTime - fileDate))} ago)";
+            var sb = StringBuilderPool.Pool.Get();
+
+            sb.AppendLine("== Feature Detail ==");
+            sb.AppendLine($"- Name: {feature.Name}");
+            sb.AppendLine($"- Main class: {type.FullName}");
+
+            sb.AppendLine($"- Assembly: {assemblyName.FullName}");
+            sb.AppendLine($"- Version: {assemblyName.Version}");
+
+            sb.AppendLine($"- File Location: {filePath}");
+            sb.AppendLine($"- File Time: {fileDateStr}");
+
+            if (feature is ConfigFeatureBase configFeature)
+                sb.AppendLine($"- Config File Location: {configFeature.Config?.Path ?? "UNKNOWN"}");
+
+            if (feature.IsPatch)
+                sb.AppendLine($"- Contains Patches");
+
+            sb.AppendLine();
+            sb.AppendLine($"Listing all types ..");
+
+            var types = assembly.GetTypes().OrderBy(t => t.FullName);
+
+            types.For((i, t) =>
+            {
+                sb.AppendLine($"[ {i} ]: {t.FullName} ({(t.IsSealed && t.IsAbstract ? "static" : "instance")})");
+            });
+
+            return StringBuilderPool.Pool.PushReturn(sb);
         }
     }
 }

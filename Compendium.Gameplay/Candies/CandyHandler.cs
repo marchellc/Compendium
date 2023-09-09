@@ -1,4 +1,4 @@
-﻿using helpers.Configuration.Ini;
+﻿using helpers.Configuration;
 using helpers.Patching;
 using helpers.Random;
 
@@ -11,7 +11,7 @@ namespace Compendium.Gameplay.Candies
 {
     public static class CandyHandler
     {
-        [IniConfig(Name = "Candy Chances", Description = "A list of candies and their chances to be picked.")]
+        [Config(Name = "Candy Chances", Description = "A list of candies and their chances to be picked.")]
         public static Dictionary<CandyKindID, int> Chances { get; set; } = new Dictionary<CandyKindID, int>()
         {
             [CandyKindID.Blue] = 16,

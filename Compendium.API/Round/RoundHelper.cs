@@ -49,56 +49,43 @@ namespace Compendium.Round
         public static bool IsWaitingForPlayers => State is RoundState.WaitingForPlayers;
         public static bool IsReady => State != RoundState.Restarting;
 
-        public static bool TryGenerateEndPreventingPlayerList(out List<ReferenceHub> hubs)
-        {
-            if (!IsStarted)
-            {
-                hubs = null;
-                return false;
-            }
-
-            hubs = ReferenceHub.AllHubs.Where(hub => hub.Mode is ClientInstanceMode.ReadyClient && hub.IsAlive()).ToList();
-
-            if (!hubs.Any())
-                return false;
-
-            if (hubs.Any(hub => hub.IsSCP()))
-            {
-
-            }
-
-            return true;
-        }
-
         internal static void ScanAssemblyForOnChanged(Assembly assembly)
         {
-            assembly.ForEachType(type =>
+            try
             {
-                type.ForEachMethod(method =>
+                assembly.ForEachType(type =>
                 {
-                    if (!method.IsStatic)
-                        return;
-
-                    if (!method.TryGetAttribute<RoundStateChangedAttribute>(out var roundStateChangedAttribute))
-                        return;
-
-                    var args = method.GetParameters();
-                    var hasState = false;
-
-                    if (args != null && args.Any())
+                    type.ForEachMethod(method =>
                     {
-                        if (args.Length != 1)
+                        if (!method.IsStatic)
                             return;
 
-                        if (args[0].ParameterType != typeof(RoundState))
+                        if (!method.TryGetAttribute<RoundStateChangedAttribute>(out var roundStateChangedAttribute))
                             return;
 
-                        hasState = true;
-                    }
+                        var args = method.GetParameters();
+                        var hasState = false;
 
-                    _onChanged[method] = new Tuple<bool, RoundState[]>(hasState, roundStateChangedAttribute.TargetStates);
+                        if (args != null && args.Any())
+                        {
+                            if (args.Length != 1)
+                                return;
+
+                            if (args[0].ParameterType != typeof(RoundState))
+                                return;
+
+                            hasState = true;
+                        }
+
+                        _onChanged[method] = new Tuple<bool, RoundState[]>(hasState, roundStateChangedAttribute.TargetStates);
+                    });
                 });
-            });
+            }
+            catch (Exception ex)
+            {
+                Plugin.Error($"Failed to find round-state attributes in assembly: {assembly.FullName}");
+                Plugin.Error(ex);
+            }
         }
 
         [Unload]

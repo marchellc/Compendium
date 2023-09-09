@@ -36,12 +36,19 @@
     <Reference Include="0Harmony, Version=2.2.2.0, Culture=neutral, processorArchitecture=MSIL">
       <HintPath>..\packages\Lib.Harmony.2.2.2\lib\net48\0Harmony.dll</HintPath>
     </Reference>
+    <Reference Include="AngleSharp, Version=1.0.4.0, Culture=neutral, PublicKeyToken=e83494dcdc6d31ea, processorArchitecture=MSIL">
+      <HintPath>..\packages\AngleSharp.1.0.4\lib\net472\AngleSharp.dll</HintPath>
+    </Reference>
     <Reference Include="Assembly-CSharp-firstpass">
       <HintPath>..\..\..\..\..\..\Program Files (x86)\Steam\steamapps\common\SCP Secret Laboratory Dedicated Server\SCPSL_Data\Managed\Assembly-CSharp-firstpass.dll</HintPath>
     </Reference>
     <Reference Include="Assembly-CSharp_publicized, Version=0.0.0.0, Culture=neutral, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
       <HintPath>..\..\..\..\..\..\Program Files (x86)\Steam\steamapps\common\SCP Secret Laboratory Dedicated Server\SCPSL_Data\Managed\Assembly-CSharp_publicized.dll</HintPath>
+    </Reference>
+    <Reference Include="BetterCommands, Version=1.0.0.0, Culture=neutral, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>..\..\BetterCommands\BetterCommands\bin\Debug\BetterCommands.dll</HintPath>
     </Reference>
     <Reference Include="CommandSystem.Core">
       <HintPath>..\..\..\..\..\..\Program Files (x86)\Steam\steamapps\common\SCP Secret Laboratory Dedicated Server\SCPSL_Data\Managed\CommandSystem.Core.dll</HintPath>
@@ -50,15 +57,25 @@
       <HintPath>..\..\helpers\helpers\bin\Release\helpers.dll</HintPath>
     </Reference>
     <Reference Include="Microsoft.Bcl.AsyncInterfaces, Version=8.0.0.0, Culture=neutral, PublicKeyToken=cc7b13ffcd2ddd51, processorArchitecture=MSIL">
-      <HintPath>..\packages\Microsoft.Bcl.AsyncInterfaces.8.0.0-preview.6.23329.7\lib\net462\Microsoft.Bcl.AsyncInterfaces.dll</HintPath>
+      <HintPath>..\packages\Microsoft.Bcl.AsyncInterfaces.8.0.0-preview.7.23375.6\lib\net462\Microsoft.Bcl.AsyncInterfaces.dll</HintPath>
     </Reference>
     <Reference Include="Mirror_publicized">
       <HintPath>..\..\..\..\..\..\Program Files (x86)\Steam\steamapps\common\SCP Secret Laboratory Dedicated Server\SCPSL_Data\Managed\Mirror_publicized.dll</HintPath>
     </Reference>
+    <Reference Include="Newtonsoft.Json, Version=13.0.0.0, Culture=neutral, PublicKeyToken=30ad4fe6b2a6aeed, processorArchitecture=MSIL">
+      <HintPath>..\packages\Newtonsoft.Json.13.0.3\lib\net45\Newtonsoft.Json.dll</HintPath>
+    </Reference>
     <Reference Include="NorthwoodLib">
       <HintPath>..\..\..\..\..\..\Program Files (x86)\Steam\steamapps\common\SCP Secret Laboratory Dedicated Server\SCPSL_Data\Managed\NorthwoodLib.dll</HintPath>
     </Reference>
-    <Reference Include="PluginAPI">
+    <Reference Include="NVorbis, Version=0.10.5.0, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>..\packages\NVorbis.0.10.5\lib\net45\NVorbis.dll</HintPath>
+    </Reference>
+    <Reference Include="OggVorbisEncoder, Version=1.2.2.0, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>..\packages\OggVorbisEncoder.1.2.2\lib\net461\OggVorbisEncoder.dll</HintPath>
+    </Reference>
+    <Reference Include="PluginAPI, Version=13.1.1.0, Culture=neutral, processorArchitecture=AMD64">
+      <SpecificVersion>False</SpecificVersion>
       <HintPath>..\..\..\..\..\..\Program Files (x86)\Steam\steamapps\common\SCP Secret Laboratory Dedicated Server\SCPSL_Data\Managed\PluginAPI.dll</HintPath>
     </Reference>
     <Reference Include="Pooling">
@@ -69,6 +86,7 @@
       <HintPath>..\packages\System.Buffers.4.5.1\lib\net461\System.Buffers.dll</HintPath>
     </Reference>
     <Reference Include="System.Core" />
+    <Reference Include="System.Management" />
     <Reference Include="System.Memory, Version=4.0.1.2, Culture=neutral, PublicKeyToken=cc7b13ffcd2ddd51, processorArchitecture=MSIL">
       <HintPath>..\packages\System.Memory.4.5.5\lib\net461\System.Memory.dll</HintPath>
     </Reference>
@@ -79,11 +97,19 @@
     <Reference Include="System.Runtime.CompilerServices.Unsafe, Version=7.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL">
       <HintPath>..\packages\System.Runtime.CompilerServices.Unsafe.7.0.0-preview.2.22152.2\lib\net462\System.Runtime.CompilerServices.Unsafe.dll</HintPath>
     </Reference>
+    <Reference Include="System.Runtime.InteropServices.RuntimeInformation, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL">
+      <HintPath>..\packages\System.Runtime.InteropServices.RuntimeInformation.4.0.0\lib\net45\System.Runtime.InteropServices.RuntimeInformation.dll</HintPath>
+      <Private>True</Private>
+      <Private>True</Private>
+    </Reference>
+    <Reference Include="System.Text.Encoding.CodePages, Version=8.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL">
+      <HintPath>..\packages\System.Text.Encoding.CodePages.8.0.0-preview.7.23375.6\lib\net462\System.Text.Encoding.CodePages.dll</HintPath>
+    </Reference>
     <Reference Include="System.Text.Encodings.Web, Version=8.0.0.0, Culture=neutral, PublicKeyToken=cc7b13ffcd2ddd51, processorArchitecture=MSIL">
-      <HintPath>..\packages\System.Text.Encodings.Web.8.0.0-preview.6.23329.7\lib\net462\System.Text.Encodings.Web.dll</HintPath>
+      <HintPath>..\packages\System.Text.Encodings.Web.8.0.0-preview.7.23375.6\lib\net462\System.Text.Encodings.Web.dll</HintPath>
     </Reference>
     <Reference Include="System.Text.Json, Version=8.0.0.0, Culture=neutral, PublicKeyToken=cc7b13ffcd2ddd51, processorArchitecture=MSIL">
-      <HintPath>..\packages\System.Text.Json.8.0.0-preview.6.23329.7\lib\net462\System.Text.Json.dll</HintPath>
+      <HintPath>..\packages\System.Text.Json.8.0.0-preview.7.23375.6\lib\net462\System.Text.Json.dll</HintPath>
     </Reference>
     <Reference Include="System.Threading.Tasks.Extensions, Version=4.2.0.1, Culture=neutral, PublicKeyToken=cc7b13ffcd2ddd51, processorArchitecture=MSIL">
       <HintPath>..\packages\System.Threading.Tasks.Extensions.4.5.4\lib\net461\System.Threading.Tasks.Extensions.dll</HintPath>
@@ -111,56 +137,28 @@
       <SpecificVersion>False</SpecificVersion>
       <HintPath>..\..\..\..\..\..\Program Files (x86)\Steam\steamapps\common\SCP Secret Laboratory Dedicated Server\SCPSL_Data\Managed\UnityEngine.PhysicsModule.dll</HintPath>
     </Reference>
+    <Reference Include="UnityEngine.UnityWebRequestModule, Version=0.0.0.0, Culture=neutral, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>..\..\..\..\..\..\Program Files (x86)\Steam\steamapps\common\SCP Secret Laboratory Dedicated Server\SCPSL_Data\Managed\UnityEngine.UnityWebRequestModule.dll</HintPath>
+    </Reference>
+    <Reference Include="UnityEngine.UnityWebRequestWWWModule, Version=0.0.0.0, Culture=neutral, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>..\..\..\..\..\..\Program Files (x86)\Steam\steamapps\common\SCP Secret Laboratory Dedicated Server\SCPSL_Data\Managed\UnityEngine.UnityWebRequestWWWModule.dll</HintPath>
+    </Reference>
+    <Reference Include="Xabe.FFmpeg, Version=5.2.6.0, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>..\packages\Xabe.FFmpeg.5.2.6\lib\netstandard2.0\Xabe.FFmpeg.dll</HintPath>
+    </Reference>
+    <Reference Include="YoutubeExplode, Version=6.3.4.0, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>..\packages\YoutubeExplode.6.3.4\lib\net461\YoutubeExplode.dll</HintPath>
+    </Reference>
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Activity\ActivityData.cs" />
     <Compile Include="Activity\ActivityRecorder.cs" />
     <Compile Include="Activity\ActivitySession.cs" />
-    <Compile Include="Commands\Attributes\CommandAliasesAttribute.cs" />
-    <Compile Include="Commands\Attributes\CommandAttributeBase.cs" />
-    <Compile Include="Commands\Attributes\CommandGroupAttribute.cs" />
-    <Compile Include="Commands\Attributes\CommandPriorityAttribute.cs" />
-    <Compile Include="Commands\Attributes\ConditionAttribute.cs" />
-    <Compile Include="Commands\Attributes\IgnoreExtraArgumentsAttribute.cs" />
-    <Compile Include="Commands\Attributes\MultipleAttribute.cs" />
-    <Compile Include="Commands\Attributes\PlayerConsoleCommandAttribute.cs" />
-    <Compile Include="Commands\Attributes\RemoteAdminCommandAttribute.cs" />
-    <Compile Include="Commands\Attributes\RemainderAttribute.cs" />
-    <Compile Include="Commands\Attributes\RestrictionAttribute.cs" />
-    <Compile Include="Commands\Attributes\ServerConsoleCommandAttribute.cs" />
-    <Compile Include="Commands\Command.cs" />
-    <Compile Include="Commands\CommandSource.cs" />
-    <Compile Include="Commands\CommandUsageGenerator.cs" />
-    <Compile Include="Commands\Conditions\ConditionUtils.cs" />
-    <Compile Include="Commands\Context\CommandContext.cs" />
-    <Compile Include="Commands\Groups\CommandGroup.cs" />
-    <Compile Include="Commands\Groups\SourceCommandGroup.cs" />
-    <Compile Include="Commands\ICommand.cs" />
-    <Compile Include="Commands\ICommandContext.cs" />
-    <Compile Include="Commands\ICommandGroup.cs" />
-    <Compile Include="Commands\ICommandModule.cs" />
-    <Compile Include="Commands\ICondition.cs" />
-    <Compile Include="Commands\IResponse.cs" />
-    <Compile Include="Commands\Modules\CommandModule.cs" />
-    <Compile Include="Commands\Modules\IModuleCommand.cs" />
-    <Compile Include="Commands\Parameters\IParameterData.cs" />
-    <Compile Include="Commands\Parameters\IParameterParser.cs" />
-    <Compile Include="Commands\Parameters\IParameterRestriction.cs" />
-    <Compile Include="Commands\Parameters\Parameter.cs" />
-    <Compile Include="Commands\Parameters\ParameterFlags.cs" />
-    <Compile Include="Commands\Parameters\ParameterParserResult.cs" />
-    <Compile Include="Commands\Parameters\ParameterType.cs" />
-    <Compile Include="Commands\Parameters\ParameterUtils.cs" />
-    <Compile Include="Commands\Parsing\ParsingUtils.cs" />
-    <Compile Include="Commands\Parsing\StringParser.cs" />
-    <Compile Include="Commands\Parsing\StringParserPart.cs" />
-    <Compile Include="Commands\Parsing\StringParserSettings.cs" />
-    <Compile Include="Commands\Responses\ContinuedResponse.cs" />
-    <Compile Include="Commands\Responses\ContinuedResponseBase.cs" />
-    <Compile Include="Commands\Responses\StringResponse.cs" />
-    <Compile Include="Commands\CommandHandler.cs" />
     <Compile Include="Compatibility\IpCompatibilityPatch.cs" />
     <Compile Include="Config.cs" />
+    <Compile Include="Directories.cs" />
     <Compile Include="EasyComponents\EasyComponent.cs" />
     <Compile Include="EasyComponents\EasyComponentFlags.cs" />
     <Compile Include="EasyComponents\EasyComponentManager.cs" />
@@ -174,8 +172,6 @@
     <Compile Include="Events\LateUpdateEventAttribute.cs" />
     <Compile Include="Events\UpdateEventAttribute.cs" />
     <Compile Include="Events\UpdateType.cs" />
-    <Compile Include="Fixes\Scp079\Scp079CameraRotationSyncNullRefFix.cs" />
-    <Compile Include="Fixes\Scp079\Scp079CameraRotationSyncNullRefMethData.cs" />
     <Compile Include="Health\CustomHealthFlags.cs" />
     <Compile Include="Http\HttpDispatch.cs" />
     <Compile Include="Http\HttpDispatchData.cs" />
@@ -197,6 +193,8 @@
     <Compile Include="Input\IInputHandler.cs" />
     <Compile Include="Input\InputManager.cs" />
     <Compile Include="Input\InputBinding.cs" />
+    <Compile Include="Invisibility\InvisibilityControl.cs" />
+    <Compile Include="Parsers\PlayerDataRecordParser.cs" />
     <Compile Include="Patches\NextRoundActionPatch.cs" />
     <Compile Include="PlayerData\PlayerDataCache.cs" />
     <Compile Include="PlayerData\PlayerDataRecord.cs" />
@@ -208,9 +206,10 @@
     <Compile Include="Round\RoundStateChangedAttribute.cs" />
     <Compile Include="Rules\RuleData.cs" />
     <Compile Include="Rules\RuleSystem.cs" />
-    <Compile Include="Settings\CommandSettings.cs" />
+    <Compile Include="Settings\AudioSettings.cs" />
     <Compile Include="Settings\HttpSettings.cs" />
     <Compile Include="Settings\VoiceSettings.cs" />
+    <Compile Include="Settings\WarnSettings.cs" />
     <Compile Include="Snapshots\Capture\RoleDataCapture.cs" />
     <Compile Include="Snapshots\Data\RoleData.cs" />
     <Compile Include="Snapshots\ISnapshotCapture.cs" />
@@ -218,6 +217,19 @@
     <Compile Include="Snapshots\Snapshot.cs" />
     <Compile Include="Snapshots\SnapshotDataType.cs" />
     <Compile Include="Snapshots\SnapshotManager.cs" />
+    <Compile Include="Sounds\Audio.cs" />
+    <Compile Include="Sounds\AudioConverter.cs" />
+    <Compile Include="Sounds\AudioData.cs" />
+    <Compile Include="Sounds\AudioPlayer.cs" />
+    <Compile Include="Sounds\AudioSearch.cs" />
+    <Compile Include="Sounds\AudioStatus.cs" />
+    <Compile Include="Sounds\AudioStore.cs" />
+    <Compile Include="Sounds\AudioUtils.cs" />
+    <Compile Include="Sounds\AudioVoiceProfile.cs" />
+    <Compile Include="Staff\StaffGroup.cs" />
+    <Compile Include="Staff\StaffHandler.cs" />
+    <Compile Include="Staff\StaffReader.cs" />
+    <Compile Include="Staff\StaffWriter.cs" />
     <Compile Include="Tokens\TokenData.cs" />
     <Compile Include="Tokens\TokenParser.cs" />
     <Compile Include="Units\UnitHelper.cs" />
@@ -261,6 +273,8 @@
     <Compile Include="Voice\VoiceChatUtils.cs" />
     <Compile Include="Voice\VoiceModifier.cs" />
     <Compile Include="Voice\VoicePacket.cs" />
+    <Compile Include="Warns\WarnData.cs" />
+    <Compile Include="Warns\WarnSystem.cs" />
     <Compile Include="World.cs" />
   </ItemGroup>
   <ItemGroup />

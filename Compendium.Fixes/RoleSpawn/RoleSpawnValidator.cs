@@ -1,7 +1,7 @@
 ﻿using Compendium.Extensions;
 using Compendium.Features;
 
-using helpers.Configuration.Ini;
+using helpers.Configuration;
 
 using PlayerRoles;
 
@@ -13,21 +13,21 @@ namespace Compendium.Fixes.RoleSpawn
 {
     public static class RoleSpawnValidator
     {
-        [IniConfig(Name = "Enabled Validators", Description = "A list of enabled spawn point validators.")]
+        [Config(Name = "Enabled Validators", Description = "A list of enabled spawn point validators.")]
         public static List<RoleSpawnValidationType> EnabledValidators { get; set; } = new List<RoleSpawnValidationType>()
         {
             RoleSpawnValidationType.SpawnpointDistance,
             RoleSpawnValidationType.YAxis
         };
 
-        [IniConfig(Name = "Blacklisted Roles", Description = "A list of blacklisted roles.")]
+        [Config(Name = "Blacklisted Roles", Description = "A list of blacklisted roles.")]
         public static Dictionary<RoleSpawnValidationType, List<RoleTypeId>> BlacklistedRoles { get; set; } = new Dictionary<RoleSpawnValidationType, List<RoleTypeId>>()
         {
             [RoleSpawnValidationType.SpawnpointDistance] = new List<RoleTypeId>() { RoleTypeId.Tutorial },
             [RoleSpawnValidationType.YAxis] = new List<RoleTypeId>() { RoleTypeId.Tutorial }
         };
 
-        [IniConfig(Name = "Minimum Axis Values", Description = "A list of minimum axis values.")]
+        [Config(Name = "Minimum Axis Values", Description = "A list of minimum axis values.")]
         public static Dictionary<Team, Dictionary<RoleSpawnValidationType, float>> MinimumAxisValues { get; set; } = new Dictionary<Team, Dictionary<RoleSpawnValidationType, float>>()
         {
             [Team.ClassD] = new Dictionary<RoleSpawnValidationType, float>()

@@ -8,6 +8,14 @@ using System;
 using System.Globalization;
 using System.Collections.Generic;
 
+using BetterCommands;
+using BetterCommands.Permissions;
+
+using System.Text;
+
+using PluginAPI.Core;
+
+using helpers.Time;
 
 namespace Compendium.Rules
 {
@@ -16,7 +24,7 @@ namespace Compendium.Rules
         private static SingleFileStorage<RuleData> _ruleStorage;
 
         public static IReadOnlyCollection<RuleData> Rules => _ruleStorage.Data;
-        public static string Path => Plugin.Config.RuleSettings.IsGlobal ? $"{Paths.SecretLab}/rule_data" : $"{Plugin.Handler.PluginDirectoryPath}/rule_Data";
+        public static string Path => $"{Directories.ThisData}/SavedRules";
 
         [Reload]
         public static void Reload()
@@ -145,10 +153,10 @@ namespace Compendium.Rules
             }
         }
 
-        /*
-        [Command("rules.add", CommandType.RemoteAdmin, CommandType.GameConsole)]
+        [Command("addrule", CommandType.RemoteAdmin, CommandType.GameConsole)]
         [CommandAliases("arule", "addr")]
         [Permission(PermissionLevel.Administrator)]
+        [Description("Adds a rule.")]
         private static string AddRuleCommand(Player sender, string name, string text, double number, TimeSpan[] strikes)
         {
             if (TryAddRule(number, name, text, strikes))
@@ -159,9 +167,10 @@ namespace Compendium.Rules
             return "Failed to add that rule. Perhaps it already exists?";
         }
 
-        [Command("rules.remove", CommandType.RemoteAdmin, CommandType.GameConsole)]
+        [Command("deleterule", CommandType.RemoteAdmin, CommandType.GameConsole)]
         [CommandAliases("drule", "delr")]
         [Permission(PermissionLevel.Administrator)]
+        [Description("Deletes a rule.")]
         private static string RemoveRuleCommand(Player sender, double number)
         {
             if (TryRemoveRule(number))
@@ -170,8 +179,9 @@ namespace Compendium.Rules
             return "Failed to remove that rule. Perhaps it doesn't exist?";
         }
 
-        [Command("rules.list", CommandType.RemoteAdmin, CommandType.GameConsole)]
+        [Command("listrules", CommandType.RemoteAdmin, CommandType.GameConsole)]
         [CommandAliases("lrules", "listr")]
+        [Description("Lists all rules.")]
         private static string ListRulesCommmand(Player sender)
         {
             if (!Rules.Any())
@@ -198,8 +208,9 @@ namespace Compendium.Rules
             return sb.ToString();
         }
 
-        [Command("rules.view", CommandType.RemoteAdmin, CommandType.GameConsole)]
+        [Command("viewrule", CommandType.RemoteAdmin, CommandType.GameConsole)]
         [CommandAliases("vrule", "viewr")]
+        [Description("Shows details of a certain rule.")]
         private static string ViewRuleCommand(Player sender, double ruleNumber)
         {
             if (TryGetRule(ruleNumber, out var rule))
@@ -218,6 +229,5 @@ namespace Compendium.Rules
 
             return "That rule does not exist.";
         }
-        */
     }
 }

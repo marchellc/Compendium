@@ -53,10 +53,6 @@ namespace Compendium.TokenCache
                         else if (line.StartsWith("Global ban: "))
                         {
                             var gBanStr = line.Remove("Global ban: ");
-
-                            if (gBanStr != "NO")
-                                Plugin.Warn($"Unknown global ban string: {gBanStr}");
-
                             tokenData.IsGloballyBanned = gBanStr != "NO";
                         }
                         else if (line.StartsWith("VAC session: "))
@@ -100,46 +96,26 @@ namespace Compendium.TokenCache
                         else if (line.StartsWith("Skip IP Check: "))
                         {
                             var sIpCStr = line.Remove("Skip IP Check: ");
-
-                            if (sIpCStr != "YES" && sIpCStr != "NO")
-                                Plugin.Warn($"Unknown Skip IP Check value: {sIpCStr}");
-
                             tokenData.ShouldSkipIpCheck = sIpCStr == "YES";
                         }
                         else if (line.StartsWith("Bypass bans: "))
                         {
                             var bbStr = line.Remove("Bypass bans: ");
-
-                            if (bbStr != "YES" && bbStr != "NO")
-                                Plugin.Warn($"Unknown Bypass bans value: {bbStr}");
-
                             tokenData.CanBypassBans = bbStr == "YES";
                         }
                         else if (line.StartsWith("Bypass geo restrictions: "))
                         {
                             var bgStr = line.Remove("Bypass geo restrictions: ");
-
-                            if (bgStr != "YES" && bgStr != "NO")
-                                Plugin.Warn($"Unknown Bypass GEO value: {bgStr}");
-
                             tokenData.CanBypassGeoRestrictions = bgStr == "YES";
                         }
                         else if (line.StartsWith("Bypass WL: "))
                         {
                             var bwhStr = line.Remove("Bypass WL: ");
-
-                            if (bwhStr != "YES" && bwhStr != "NO")
-                                Plugin.Warn($"Unknown Bypass WL value: {bwhStr}");
-
                             tokenData.CanBypassWhitelist = bwhStr == "YES";
                         }
                         else if (line.StartsWith("Global badge: "))
                         {
                             var gbStr = line.Remove("Global badge: ");
-
-                            if (gbStr != "NO")
-                                Plugin.Warn($"Unknown Global badge value: {gbStr}");
-
                             tokenData.HasGlobalBadge = gbStr != "NO";
                         }
                         else if (line.StartsWith("EHID: "))

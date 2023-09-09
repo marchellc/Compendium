@@ -12,16 +12,13 @@ namespace Compendium.Staff
         public override void Load()
         {
             base.Load();
-
             Singleton = this;
-
             StaffHandler.Initialize();
         }
 
         public override void Reload()
         {
             base.Reload();
-
             StaffHandler.Reload();
         }
     }

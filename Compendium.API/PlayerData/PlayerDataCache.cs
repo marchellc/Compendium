@@ -6,51 +6,30 @@ using System.Collections.Generic;
 
 namespace Compendium.PlayerData
 {
-    public class PlayerDataCache<TValue> 
+    public class PlayerDataCache
     {
         public DateTime LastChangeTime { get; set; } = DateTime.MinValue;
-        public Optional<TValue> LastValue { get; set; } = Optional<TValue>.Null;
 
-        public Dictionary<DateTime, TValue> AllValues { get; set; } = new Dictionary<DateTime, TValue>();
+        public string LastValue { get; set; } = default;
 
-        public bool Compare(Optional<TValue> newValue)
+        public Dictionary<DateTime, string> AllValues { get; set; } = new Dictionary<DateTime, string>();
+
+        public bool Compare(string newValue)
         {
-            if (!newValue.HasValue)
+            if (newValue is null)
+                return false;
+
+            if (LastValue is null || LastValue != newValue)
             {
-                if (LastValue.HasValue)
-                {
-                    LastValue = Optional<TValue>.Null;
-                    LastChangeTime = TimeUtils.LocalTime;
+                LastValue = newValue;
 
-                    AllValues[LastChangeTime] = default;
-
-                    return false;
-                }
+                LastChangeTime = TimeUtils.LocalTime;
+                AllValues[LastChangeTime] = LastValue;
 
                 return true;
             }
 
-            if (!LastValue.HasValue)
-            {
-                LastValue.SetValue(newValue.Value);
-                LastChangeTime = TimeUtils.LocalTime;
-
-                AllValues[LastChangeTime] = LastValue.Value;
-
-                return false;
-            }
-
-            if (!newValue.Value.Equals(LastValue.Value))
-            {
-                LastValue.SetValue(newValue.Value);
-                LastChangeTime = TimeUtils.LocalTime;
-
-                AllValues[LastChangeTime] = LastValue.Value;
-
-                return false;
-            }
-
-            return true;
+            return false;
         }
     }
 }

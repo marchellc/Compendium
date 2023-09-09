@@ -1,8 +1,9 @@
 ﻿using Compendium.Features;
-using Compendium.Calls;
+using Compendium.Colors;
 
 using helpers;
 using helpers.Attributes;
+using helpers.Pooling.Pools;
 
 using Compendium.Round;
 
@@ -10,9 +11,8 @@ using PlayerRoles;
 using PlayerRoles.FirstPersonControl;
 
 using UnityEngine;
+
 using System.Linq;
-using helpers.Pooling.Pools;
-using Compendium.Colors;
 
 namespace Compendium.Fixes.RoleSpawn
 {
@@ -61,7 +61,7 @@ namespace Compendium.Fixes.RoleSpawn
         [RoundStateChanged(RoundState.InProgress)]
         private static void OnRoundStarted()
         {
-            CallHelper.CallWithDelay(() =>
+            Calls.Delay(1.5f, () =>
             {
                 ScpRoles.ForEach(scpRole =>
                 {
@@ -88,12 +88,12 @@ namespace Compendium.Fixes.RoleSpawn
                         ListPool<ReferenceHub>.Pool.Push(plysToRemove);
                     }
                 });
-            }, 1.5f);
+            });
         }
 
         private static void OnRoleChanged(ReferenceHub hub, PlayerRoleBase prevRole, PlayerRoleBase newRole)
         {
-            CallHelper.CallWithDelay(() =>
+            Calls.Delay(0.4f, () =>
             {
                 hub.Health(hub.MaxHealth());
 
@@ -158,7 +158,7 @@ namespace Compendium.Fixes.RoleSpawn
 
                     FixPosition(hub, pos, new Vector3(rot, rot, rot));
                 }
-            }, 0.4f);
+            });
         }
     }
 }

@@ -12,7 +12,7 @@ namespace Compendium.Events
         public MethodInfo Method;
         public ParameterInfo[] Params;
 
-        public Action<IEventArguments, ValueContainer, ValueContainer> Executor;
+        public Action<IEventArguments, ValueReference, ValueReference> Executor;
 
         public Priority Priority;
 

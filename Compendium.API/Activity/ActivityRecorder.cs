@@ -69,13 +69,12 @@ namespace Compendium.Activity
 
         public static ActivityData GetRecord(PlayerDataRecord playerDataRecord)
         {
-            if (_records.TryFirst<ActivityData>(data => data.Id == playerDataRecord.Id, out var activityData))
+            if (_records.Data.TryGetFirst(data => data.Id == playerDataRecord.Id, out var activityData))
                 return activityData;
 
             activityData = new ActivityData { Id = playerDataRecord.Id };
 
-            _records.Append(activityData);
-
+            _records.Add(activityData);
             return activityData;
         }
 
@@ -89,10 +88,12 @@ namespace Compendium.Activity
                 return;
             }
 
-            _records = new SingleFileStorage<ActivityData>($"{Paths.SecretLab}/activity_recording");
+            _records = new SingleFileStorage<ActivityData>($"{Directories.ThisData}/ActivityRecords");
             _records.Load();
 
             PlayerDataRecorder.OnRecordUpdated.Register(_onUpdated);
+
+            Plugin.Info("Activity recording loaded.");
         }
 
         [Unload]
@@ -102,9 +103,11 @@ namespace Compendium.Activity
                 _records.Save();
 
             PlayerDataRecorder.OnRecordUpdated.Unregister(_onUpdated);
+
+            Plugin.Info("Activity recording unloaded.");
         }
 
-        private static void OnPlayerJoined(ReferenceHub hub, PlayerDataRecord record)
+        public static void OnPlayerJoined(ReferenceHub hub, PlayerDataRecord record)
         {
             var acRecord = GetRecord(record);
             acRecord.BeginSession();
@@ -118,7 +121,6 @@ namespace Compendium.Activity
             var acRecord = GetRecord(dataRecord);
 
             acRecord.EndSession();
-
             _records.Save();
         }
 

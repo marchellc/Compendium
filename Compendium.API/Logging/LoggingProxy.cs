@@ -16,6 +16,7 @@ namespace Compendium.Logging
                 return;
 
             ServerConsole.AddLog(str, GetColor(str));
+            UnityEngine.Debug.Log(str);
         }
 
         private static ConsoleColor GetColor(string log)

@@ -1,6 +1,5 @@
 ﻿using Compendium;
 using Compendium.Features;
-using Compendium.Calls;
 using Compendium.Colors;
 using Compendium.Events;
 
@@ -20,7 +19,7 @@ namespace Compendium.PersistentOverwatch
     {
         public override string Name => "Persistent Overwatch";
 
-        public static string StoragePath => $"{FeatureManager.DirectoryPath}/overwatch_storage";
+        public static string StoragePath => $"{Directories.ThisData}/SavedOverwatchPlayers";
 
         public static SingleFileStorage<string> Storage { get; set; }
 
@@ -32,6 +31,7 @@ namespace Compendium.PersistentOverwatch
             Storage.Reload();
 
             Reflection.TryAddHandler<PlayerRoleManager.RoleChanged>(typeof(PlayerRoleManager), "OnRoleChanged", OnRoleChanged);
+
             FLog.Info($"Overwatch storage loaded.");
         }
 
@@ -89,13 +89,13 @@ namespace Compendium.PersistentOverwatch
 
             if (Storage.Contains(ev.Player.UserId))
             {
-                CallHelper.CallWithDelay(() =>
+                Calls.Delay(0.7f, () =>
                 {
                     ev.Player.SetRole(RoleTypeId.Overwatch);
                     ev.Player.ReferenceHub.Hint(
                         $"\n\n<b><color={ColorValues.LightGreen}>[Persistent Overwatch]</color></b>\n" +
                         $"<b>Role changed to <color={ColorValues.Green}>Overwatch</color>.</b>", 3f, true);
-                }, 0.7f);
+                });
             }
         }
     }

@@ -36,12 +36,14 @@
         RegularKeycard,
 
         Ak,
+        A7,
         Com15,
         Com18,
         Com45,
         Crossvec,
         Disruptor,
         Fsp9,
+        FrMg0,
         Jailbird,
         MicroHid,
 

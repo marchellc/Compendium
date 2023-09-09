@@ -1,13 +1,13 @@
-﻿using HarmonyLib;
+﻿using helpers.Patching;
 
 namespace Compendium.Patches
 {
-    [HarmonyPatch(typeof(ServerStatic), nameof(ServerStatic.StopNextRound), MethodType.Setter)]
     public static class NextRoundActionPatch
     {
-        public static void Postfix(ServerStatic.NextRoundAction __value)
+        [Patch(typeof(ServerStatic), nameof(ServerStatic.StopNextRound), PatchType.Postfix, PatchMethodType.PropertySetter, "Server Action Announcement Patch")]
+        public static void Postfix(ServerStatic.NextRoundAction value)
         {
-            if (Plugin.Config.FeatureSettings.ServerActionAnnouncements.TryGetValue(__value, out var announcement))
+            if (Plugin.Config.FeatureSettings.ServerActionAnnouncements.TryGetValue(value, out var announcement))
                 World.Broadcast(announcement, 5);
         }
     }

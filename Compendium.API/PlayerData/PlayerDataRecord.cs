@@ -8,9 +8,9 @@ namespace Compendium.PlayerData
     {
         public string Id { get; set; }
 
-        public PlayerDataCache<string> IdTracking { get; set; } = new PlayerDataCache<string>();
-        public PlayerDataCache<string> IpTracking { get; set; } = new PlayerDataCache<string>();
-        public PlayerDataCache<string> NameTracking { get; set; } = new PlayerDataCache<string>();
+        public PlayerDataCache IdTracking { get; set; } = new PlayerDataCache();
+        public PlayerDataCache IpTracking { get; set; } = new PlayerDataCache();
+        public PlayerDataCache NameTracking { get; set; } = new PlayerDataCache();
 
         public DateTime LastActivity { get; set; } = DateTime.MinValue;
         public DateTime CreationTime { get; set; } = TimeUtils.LocalTime;

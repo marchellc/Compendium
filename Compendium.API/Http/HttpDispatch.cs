@@ -78,6 +78,12 @@ namespace Compendium.Http
         [Load]
         private static void Initialize()
         {
+            if (!Plugin.Config.HttpSettings.IsEnabled)
+            {
+                Plugin.Warn($"HTTP Dispatch is disabled via config! Some features may fail due to this.");
+                return;
+            }
+
             _tSource = new CancellationTokenSource();
             _client = new HttpClient();
 

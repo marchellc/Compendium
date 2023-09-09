@@ -23,6 +23,7 @@ namespace Compendium.Prefabs
             [PrefabName.AntiScp207] = "AntiSCP207Pickup",
             [PrefabName.Adrenaline] = "AdrenalinePrefab",
             [PrefabName.Ak] = "AkPickup",
+            [PrefabName.A7] = "A7Pickup",
             [PrefabName.Ammo12ga] = "Ammo12gaPickup",
             [PrefabName.Ammo44cal] = "Ammo44calPickup",
             [PrefabName.Ammo556mm] = "Ammo556mmPickup",
@@ -41,6 +42,7 @@ namespace Compendium.Prefabs
             [PrefabName.FlashbangProjectile] = "FlashbangProjectile",
             [PrefabName.Flashlight] = "FlashlightPickup",
             [PrefabName.Fsp9] = "Fsp9Pickup",
+            [PrefabName.FrMg0] = "FRMG0Pickup",
             [PrefabName.HeavyArmor] = "Heavy Armor Pickup",
             [PrefabName.HegPickup] = "HegPickup",
             [PrefabName.HegProjectile] = "HegProjectile",
@@ -132,7 +134,7 @@ namespace Compendium.Prefabs
                 return false;
             }
 
-            instance = GameObject.Instantiate(prefab);
+            instance = Object.Instantiate(prefab);
             return instance != null;
         }
 
@@ -157,10 +159,15 @@ namespace Compendium.Prefabs
 
         private static void LoadPrefabs()
         {
+            m_Prefabs[PrefabName.Player] = NetworkManager.singleton.playerPrefab;
+
             foreach (var prefab in NetworkClient.prefabs.Values)
             {
                 if (m_Names.TryGetKey(prefab.name, out var prefabType))
                 {
+                    if (prefabType is PrefabName.Player)
+                        continue;
+
                     m_Prefabs[prefabType] = prefab;
                 }
                 else

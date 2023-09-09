@@ -1,12 +1,11 @@
 ﻿using Compendium.Extensions;
 using Compendium.Features;
 using Compendium;
-using Compendium.Calls;
 using Compendium.Colors;
 using Compendium.Events;
 using Compendium.UserId;
 
-using helpers.Configuration.Ini;
+using helpers.Configuration;
 using helpers.Extensions;
 using helpers.Json;
 using helpers.Pooling.Pools;
@@ -26,19 +25,19 @@ namespace Compendium.Staff
     {
         private static Action _reload;
 
-        [IniConfig(Name = "Roles", Description = "A list of roles.")]
+        [Config(Name = "Roles", Description = "A list of roles.")]
         public static List<StaffRole> Roles { get; set; } = new List<StaffRole>() { new StaffRole() };
 
-        [IniConfig(Name = "Members", Description = "A list of staff members.")]
+        [Config(Name = "Members", Description = "A list of staff members.")]
         public static Dictionary<string, string> MemberList { get; set; } = new Dictionary<string, string>() { ["default"] = "default" };
 
-        [IniConfig(Name = "Alternative Command Permissions", Description = "A list of alternative permissions required for each command.")]
+        [Config(Name = "Alternative Command Permissions", Description = "A list of alternative permissions required for each command.")]
         public static Dictionary<string, StaffPermissions> AlternativeCommandPerms { get; set; } = new Dictionary<string, StaffPermissions>()
         {
             ["default"] = StaffPermissions.GameplayData
         };
 
-        [IniConfig(Name = "Members Config Type", Description = "Location of the members config file.")]
+        [Config(Name = "Members Config Type", Description = "Location of the members config file.")]
         public static StaffMembersConfigType MembersConfigLocation { get; set; } = StaffMembersConfigType.FeatureConfig;
 
         public static StaffMembersConfig Members { get; } = new StaffMembersConfig(MemberFiller);
@@ -93,7 +92,7 @@ namespace Compendium.Staff
 
             if (ServerStatic.PermissionsHandler is null)
             {
-                CallHelper.CallWhenFalse(() => SetGroup(roles, role), () => ServerStatic.PermissionsHandler is null);
+                Calls.OnFalse(() => SetGroup(roles, role), () => ServerStatic.PermissionsHandler is null);
                 return;
             }
 
@@ -135,9 +134,6 @@ namespace Compendium.Staff
         public static void Initialize()
         {
             _reload = new Action(Reload);
-
-            StaffFeature.Singleton.Config.OnReadFinished.Register(_reload);
-
             Members.Reload();
         }
 
@@ -196,7 +192,6 @@ namespace Compendium.Staff
         public static void Unload()
         {
             Members.Unload(MemberSaver);
-            StaffFeature.Singleton.Config.OnReadFinished.Unregister(_reload);
         }
 
         private static void MemberSaver(Dictionary<string, string> members)
@@ -231,7 +226,7 @@ namespace Compendium.Staff
                         dict.Clear();
                         dict.AddRange(MemberList);
 
-                        CallHelper.CallWithDelay(() => RefreshRoles(), 1f);
+                        Calls.Delay(1f, () => RefreshRoles());
 
                         return;
                     }
@@ -269,7 +264,7 @@ namespace Compendium.Staff
             {
                 File.Create(Path).Close();
                 FLog.Info($"Generated default members file at {Path}");
-                CallHelper.CallWithDelay(() => RefreshRoles(), 1f);
+                Calls.Delay(1f, () => RefreshRoles());
                 return;
             }
 
@@ -278,7 +273,7 @@ namespace Compendium.Staff
             if (!lines.Any())
             {
                 FLog.Info($"No staff members were loaded - empty file.");
-                CallHelper.CallWithDelay(() => RefreshRoles(), 1f);
+                Calls.Delay(1f, () => RefreshRoles());
                 return;
             }
 
@@ -327,11 +322,11 @@ namespace Compendium.Staff
             if (errorEncountered)
             {
                 File.WriteAllLines(Path, lines);
-                CallHelper.CallWithDelay(() => RefreshRoles(), 1f);
+                Calls.Delay(1f, () => RefreshRoles());
                 return;
             }
 
-            CallHelper.CallWithDelay(() => RefreshRoles(), 1f);
+            Calls.Delay(1f, () => RefreshRoles());
         }
 
         [Event]

@@ -1,7 +1,5 @@
 ﻿using Compendium.PlayerData;
 
-using HarmonyLib;
-
 using helpers.Patching;
 
 using Mirror;
