@@ -42,7 +42,9 @@ namespace Compendium.Features
                 if (type == typeof(FeatureBase) || type == typeof(ConfigFeatureBase))
                     continue;
 
-                if (Reflection.HasInterface<IFeature>(type))
+                if (Reflection.HasInterface<IFeature>(type)
+                     && !_knownFeatures.Any(t => t.FullName == type.FullName)
+                      && !_features.Any(t => t.GetType().FullName == type.FullName))
                 {
                     _knownFeatures.Add(type);
 
@@ -69,7 +71,9 @@ namespace Compendium.Features
 
                     foreach (var type in assembly.GetTypes())
                     {
-                        if (Reflection.HasInterface<IFeature>(type))
+                        if (Reflection.HasInterface<IFeature>(type)
+                             && !_knownFeatures.Any(t => t.FullName == type.FullName)
+                              && !_features.Any(t => t.GetType().FullName == type.FullName))
                         {
                             _knownFeatures.Add(type);
 
@@ -313,10 +317,7 @@ namespace Compendium.Features
         private static void OnWaiting()
         {
             if (Plugin.Config.ApiSetttings.ReloadOnRestart)
-            {
                 ConfigFile.ReloadGameConfigs();
-                Reload();
-            }
 
             _features.ForEach(feature =>
             {

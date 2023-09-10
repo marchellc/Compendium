@@ -193,23 +193,23 @@ namespace Compendium.Sounds
         [Description("Clears the manifest.")]
         private static string ClearManifest(ReferenceHub sender, bool deleteFiles)
         {
-            _manifest.Clear();
-            _preloaded.Clear();
-
             if (deleteFiles)
             {
                 foreach (var file in Directory.GetFiles(DirectoryPath))
                 {
                     var fileName = Path.GetFileNameWithoutExtension(file);
 
-                    if (fileName is "manifest" || fileName is "ffmpeg" || fileName is "ffprobe")
+                    if (fileName is "SavedManifest" || fileName is "ffmpeg" || fileName is "ffprobe")
                         continue;
 
-                    File.Delete(fileName);
+                    File.Delete(file);
 
                     sender.Message($"Deleted file: {fileName}", true);
                 }
             }
+
+            _manifest.Clear();
+            _preloaded.Clear();
 
             Save();
             return "Cleared the audio manifest.";
@@ -219,11 +219,8 @@ namespace Compendium.Sounds
         [Description("Removes an audio file from the manifest.")]
         private static string DeleteManifest(ReferenceHub sender, string id, bool deleteFile)
         {
-            if (_manifest.TryGetValue(id, out var filePath))
-            {
-                if (deleteFile)
-                    File.Delete(filePath);
-            }
+            if (_manifest.TryGetValue(id, out var filePath) && deleteFile)
+                File.Delete(filePath);
 
             _manifest.Remove(id);
             _preloaded.Remove(id);

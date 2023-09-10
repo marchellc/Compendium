@@ -1,16 +1,12 @@
-﻿using Compendium.Extensions;
-using Compendium.Features;
-using Compendium;
+﻿using Compendium.Features;
 using Compendium.Colors;
 using Compendium.Events;
 using Compendium.UserId;
 
 using helpers.Configuration;
 using helpers.Extensions;
-using helpers.Json;
 using helpers.Pooling.Pools;
 
-using PluginAPI.Enums;
 using PluginAPI.Events;
 using PluginAPI.Helpers;
 
@@ -18,6 +14,10 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Text;
+
+using BetterCommands;
+using BetterCommands.Permissions;
 
 namespace Compendium.Staff
 {
@@ -339,6 +339,126 @@ namespace Compendium.Staff
                     SetGroup(ev.Player.ReferenceHub.serverRoles, role);
                 }
             }
+        }
+
+        [Command("addgroup", CommandType.RemoteAdmin, CommandType.GameConsole)]
+        [Permission(PermissionLevel.Administrator)]
+        [Description("Adds a group.")]
+        private static string AddGroupCommand(ReferenceHub sender, 
+            
+            string name, 
+            string key,
+            
+            StaffColor color, 
+
+            byte kickPower,
+            byte requiredKickPower,
+            
+            List<StaffPermissions> permissions, 
+            List<StaffBadgeFlags> badgeFlags, 
+            List<StaffFlags> flags)
+        {
+            if (TryGetRole(key, out _))
+                return "A role with that key already exists!";
+
+            var group = new StaffRole
+            {
+                Badge = new StaffBadge
+                {
+                    Color = color,
+                    Flags = badgeFlags,
+                    Name = name
+                },
+
+                KickPower = new StaffKickPower
+                {
+                    Power = kickPower,
+                    Required = requiredKickPower
+                },
+
+                Flags = flags,
+                Key = key,
+                Permissions = permissions
+            };
+
+            Roles.Add(group);
+            StaffFeature.Singleton?.Config?.Save();
+
+            return "Added a new group.";
+        }
+
+        [Command("delgroup", CommandType.RemoteAdmin, CommandType.GameConsole)]
+        [Permission(PermissionLevel.Administrator)]
+        [Description("Removes a group.")]
+        private static string RemoveGroupCommand(ReferenceHub sender, string key)
+        {
+            if (!Roles.TryGetFirst(r => r.Key == key, out _))
+                return "No roles with that key exist.";
+
+            Roles.RemoveAll(r => r.Key == key);
+            StaffFeature.Singleton?.Config?.Save();
+
+            return "Role removed.";
+        }
+
+        [Command("delmember", CommandType.RemoteAdmin, CommandType.GameConsole)]
+        [Permission(PermissionLevel.Administrator)]
+        [Description("Removes a member.")]
+        private static string RemoveMemberCommand(ReferenceHub sender, string memberId)
+        {
+            if (!UserIdHelper.TryParse(memberId, out var uid))
+                return "Failed to parse User ID.";
+
+            var members = Members.Members;
+
+            if (!members.ContainsKey(uid.FullId) && !members.ContainsKey(uid.ClearId))
+                return "That member does not have a role assigned.";
+
+            members.Remove(uid.FullId);
+            members.Remove(uid.ClearId);
+
+            SaveConfig(members);
+
+            return $"Removed role of {uid.FullId}";
+        }
+
+        [Command("setmember", CommandType.RemoteAdmin, CommandType.GameConsole)]
+        [Permission(PermissionLevel.Administrator)]
+        [Description("Sets a member's role.")]
+        public static string SetMemberCommand(ReferenceHub sender, string memberId, string key)
+        {
+            if (!UserIdHelper.TryParse(memberId, out var uid))
+                return "Failed to parse User ID.";
+
+            if (!TryGetRole(key, out var role))
+                return "Failed to find a role with that key.";
+
+            Members.Members[uid.FullId] = role.Key;
+
+            SaveConfig(MemberList);
+            Reload();
+
+            return $"Set role of {uid.FullId} to {role.Key} ({role.Badge.Name})";
+        }
+
+        [Command("listroles", CommandType.RemoteAdmin, CommandType.GameConsole)]
+        [Permission(PermissionLevel.Administrator)]
+        [Description("Lists all known roles.")]
+        public static string ListRolesCommand(ReferenceHub sender)
+        {
+            if (!Roles.Any())
+                return "There aren't any roles.";
+
+            var sb = new StringBuilder();
+
+            sb.AppendLine($"Showing a list of {Roles.Count} role(s):");
+
+            Roles.For((i, role) =>
+            {
+                sb.AppendLine($"[{i}] {role.Key} '{role.Badge.Name}' ({role.Badge.Color}) flags='{string.Join(", ", role.Badge.Flags.Select(f => f.ToString()))}' badgeFlags='{string.Join(", ", role.Badge.Flags.Select(f => f.ToString()))}' permissions='{string.Join(", ", role.Permissions.Select(f => f.ToString()))}'");
+            });
+
+            return sb.ToString();
         }
     }
 }
