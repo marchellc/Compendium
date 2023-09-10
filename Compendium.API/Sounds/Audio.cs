@@ -12,6 +12,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Net;
+using System.Text;
 using System.Threading;
 
 using UnityEngine;
@@ -397,61 +398,18 @@ namespace Compendium.Sounds
             {
                 if (query.Contains("yt") || query.Contains("youtu"))
                 {
-                    AudioSearch.Find(query, str => sender?.Message(str, true), vid =>
-                    {
-                        if (string.IsNullOrWhiteSpace(vid.Value))
-                            return;
-
-                        AudioSearch.Download(vid, str => sender?.Message(str, true), 
-                            newData => AudioConverter.Convert(newData, str => sender?.Message(str, true), 
-                            convertedData =>
-                        {
-                            AudioStore.Save(id, convertedData);
-                            return;
-                        }));
-                    });
-
+                    AudioUtils.Download(query, id, false);
                     return "Searching .. (YouTube - direct)";
                 }
                 else
                 {
-                    new Thread(async () =>
-                    {
-                        var path = Path.GetRandomFileName();
-
-                        using (var web = new WebClient())
-                        {
-                            await web.DownloadFileTaskAsync(query, path);
-                            var data = File.ReadAllBytes(path);
-
-                            File.Delete(path);
-
-                            AudioConverter.Convert(data, str => sender?.Message(str, true), converted =>
-                            {
-                                AudioStore.Save(id, converted);
-                            });
-                        }
-                    }).Start();
-
+                    AudioUtils.Download(query, id, true);
                     return "Downloading .. (other)";
                 }
             }
             else
             {
-                AudioSearch.Find(query, str => sender?.Message(str, true), vid =>
-                {
-                    if (string.IsNullOrWhiteSpace(vid.Value))
-                        return;
-
-                    AudioSearch.Download(vid, str => sender?.Message(str, true), 
-                        newData => AudioConverter.Convert(newData, str => sender?.Message(str, true),
-                        convertedData =>
-                    {
-                        AudioStore.Save(id, convertedData);
-                        return;
-                    }));
-                });
-
+                AudioUtils.Download(query, id, false);
                 return "Searching .. (YouTube - search)";
             }
         }
@@ -482,6 +440,19 @@ namespace Compendium.Sounds
                 _mutes.Save();
                 return $"Muted source '{source}'";
             }
+        }
+
+        [Command("audiosources", CommandType.RemoteAdmin, CommandType.GameConsole, CommandType.PlayerConsole)]
+        private static string ListAudioSourcesCommand(ReferenceHub sender)
+        {
+            var sb = new StringBuilder();
+
+            if (!_activePlayers.Any())
+                sb.AppendLine("There aren't any active sources.");
+            else
+                _activePlayers.For((i, source) => sb.AppendLine($"[{i + 1}] {source.Name} ({source.Status})"));
+
+            return sb.ToString();
         }
     }
 }

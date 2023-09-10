@@ -4,7 +4,7 @@ using BetterCommands.Management;
 using Compendium.Colors;
 using Compendium.Events;
 using Compendium.Round;
-
+using GameCore;
 using helpers;
 using helpers.Attributes;
 using helpers.Extensions;
@@ -24,18 +24,13 @@ namespace Compendium.Features
 {
     public static class FeatureManager
     {
-        private static bool _pauseUpdate;
-
         private static readonly List<Type> _knownFeatures = new List<Type>();
         private static readonly List<IFeature> _features = new List<IFeature>();
 
         public static IReadOnlyList<IFeature> LoadedFeatures => _features;
         public static IReadOnlyList<Type> RegisteredFeatures => _knownFeatures;
 
-        public static bool IsUpdatePaused => _pauseUpdate;
-
         [Load]
-        [Reload]
         public static void Reload()
         {
             Unload();
@@ -317,6 +312,12 @@ namespace Compendium.Features
         [RoundStateChanged(RoundState.WaitingForPlayers)]
         private static void OnWaiting()
         {
+            if (Plugin.Config.ApiSetttings.ReloadOnRestart)
+            {
+                ConfigFile.ReloadGameConfigs();
+                Reload();
+            }
+
             _features.ForEach(feature =>
             {
                 try
@@ -331,14 +332,11 @@ namespace Compendium.Features
                     Plugin.Error($"Failed to invoke the OnWaiting function of feature {feature.Name}:\n{ex}");
                 }
             });
-
-            _pauseUpdate = false;
         }
 
         [RoundStateChanged(RoundState.Restarting)]
         private static void OnRestart()
         {
-            _pauseUpdate = true;
             _features.ForEach(feature =>
             {
                 try
@@ -358,9 +356,6 @@ namespace Compendium.Features
         [UpdateEvent]
         private static void OnUpdate()
         {
-            if (_pauseUpdate)
-                return;
-
             _features.ForEach(feature =>
             {
                 try
@@ -462,7 +457,7 @@ namespace Compendium.Features
             _features.For((i, feature) =>
             {
                 var assembly = feature.GetType().Assembly;
-                sb.AppendLine($"<b>[ {i + 1} ]:</b> <color={ColorValues.LightGreen}>{feature?.Name ?? "UNKNOWN NAME"}</color> v{assembly.GetName().Version} [{(feature.IsEnabled ? $"<color={ColorValues.Green}>ENABLED</color>" : $"<color={ColorValues.Red}>DISABLED</color>")}]{(feature.IsPatch ? " <i>(contains patches)</i>" : "")}");
+                sb.AppendLine($"<b>[{i + 1}] </b> <color={ColorValues.LightGreen}>{feature?.Name ?? "UNKNOWN NAME"}</color> v{assembly.GetName().Version} [{(feature.IsEnabled ? $"<color={ColorValues.Green}>ENABLED</color>" : $"<color={ColorValues.Red}>DISABLED</color>")}]{(feature.IsPatch ? " <i>(contains patches)</i>" : "")}");
             });
 
             return StringBuilderPool.Pool.PushReturn(sb);

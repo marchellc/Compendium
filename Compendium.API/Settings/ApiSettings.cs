@@ -17,6 +17,9 @@ namespace Compendium.Settings
         [Description("Whether or not to patch the connection address getter.")]
         public bool IpCompatibilityModePatch { get; set; }
 
+        [Description("Whetehr or not to reload configs and features on round restart.")]
+        public bool ReloadOnRestart { get; set; } = true;
+
         [Description("A list of features to use global directories.")]
         public List<string> GlobalDirectories { get; set; } = new List<string>()
         {

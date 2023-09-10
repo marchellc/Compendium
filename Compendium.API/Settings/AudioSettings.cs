@@ -9,7 +9,7 @@ namespace Compendium.Settings
     {
         public AudioSettings()
         {
-            PreloadIds = new List<string>();
+            PreloadIds = new List<string>() { "*" };
 
             HeadSamples = 1920;
             SamplingRate = 48000;

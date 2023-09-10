@@ -1,4 +1,5 @@
-﻿using helpers.Events;
+﻿using helpers;
+using helpers.Events;
 
 namespace Compendium.Features
 {
@@ -7,7 +8,7 @@ namespace Compendium.Features
         private bool _isEnabled;
 
         public virtual string Name => "Feature Base";
-        public virtual bool IsPatch => false;
+        public virtual bool IsPatch => true;
 
         public bool IsEnabled => _isEnabled;
 
@@ -42,6 +43,9 @@ namespace Compendium.Features
         public virtual void OnWaiting() 
         {
             OnWaitingForPlayers.Invoke();
+
+            if (Plugin.Config.ApiSetttings.ReloadOnRestart)
+                Reload();
         }
 
         public virtual void Unload()

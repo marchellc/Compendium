@@ -1,4 +1,5 @@
-﻿using helpers.Configuration;
+﻿using helpers;
+using helpers.Configuration;
 using helpers.Events;
 
 using System.IO;
@@ -13,6 +14,7 @@ namespace Compendium.Features
         public virtual bool IsPatch => true;
 
         public bool IsEnabled => _isEnabled;
+
         public string Path => CanBeShared && Plugin.Config.ApiSetttings.GlobalDirectories.Contains(Name) 
             ? $"{Directories.ThisConfigs}/{Name}.ini" 
             : $"{Directories.MainPath}/configs_{ServerStatic.ServerPort}/{Name}.ini";
@@ -56,6 +58,9 @@ namespace Compendium.Features
         {
             Config?.Load();
             OnWaitingForPlayers.Invoke();
+
+            if (Plugin.Config.ApiSetttings.ReloadOnRestart)
+                Reload();
         }
 
         public virtual void Unload()
@@ -85,7 +90,6 @@ namespace Compendium.Features
 
                 Config = new ConfigHandler(Path);
                 Config.BindAll(GetType().Assembly);
-                Config.OnLoaded = () => Reload();
             }
 
             Config.Load();
