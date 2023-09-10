@@ -331,6 +331,7 @@ namespace Compendium.Features
                     Plugin.Error($"Failed to invoke the OnWaiting function of feature {feature.Name}:\n{ex}");
                 }
             });
+
             _pauseUpdate = false;
         }
 

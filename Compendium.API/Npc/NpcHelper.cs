@@ -15,6 +15,15 @@ namespace Compendium.Npc
 {
     public static class NpcHelper
     {
+        public static bool IsNpc(this ReferenceHub hub)
+            => TryGetNpc(hub, out _);
+
+        public static INpc GetNpc(this ReferenceHub hub)
+            => TryGetNpc(hub, out var npc) ? npc : null;
+
+        public static bool TryGetNpc(this ReferenceHub hub, out INpc npc)
+            => NpcManager.All.TryGetFirst(n => n.Hub != null && n.Hub == hub, out npc);
+
         public static Scp079Camera GetClosestCamera(Vector3 target)
         {
             var cameras = Scp079InteractableBase.AllInstances.Where<Scp079Camera>();

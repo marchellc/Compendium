@@ -8,6 +8,7 @@ using System.Collections.Generic;
 
 using helpers.Extensions;
 using helpers.Patching;
+
 using Compendium.Round;
 
 namespace Compendium.Invisibility

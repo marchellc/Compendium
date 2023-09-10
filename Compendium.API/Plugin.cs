@@ -37,7 +37,7 @@ namespace Compendium
 
         [PluginEntryPoint(
             "Compendium API",
-            "3.3.0",
+            "3.3.1",
             "A huge API for each Compendium component.",
             "marchellc_")]
         [PluginPriority(PluginAPI.Enums.LoadPriority.Lowest)]

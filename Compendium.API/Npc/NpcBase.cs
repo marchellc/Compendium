@@ -1,8 +1,10 @@
-﻿using Compendium.Npc.Targeting;
+﻿using Compendium.Invisibility;
+using Compendium.Npc.Targeting;
+
 using helpers;
+using helpers.Pooling;
 using helpers.Random;
 
-using MEC;
 
 using Mirror;
 
@@ -11,8 +13,6 @@ using PlayerRoles.FirstPersonControl;
 using PlayerRoles.PlayableScps.Scp079;
 using PlayerRoles.PlayableScps.Scp079.Cameras;
 
-using PluginAPI.Core;
-
 using System;
 using System.Collections.Generic;
 
@@ -20,7 +20,7 @@ using UnityEngine;
 
 namespace Compendium.Npc
 {
-    public class NpcBase : INpc
+    public class NpcBase : Poolable, INpc
     {
         private ReferenceHub m_Hub;
         private Scp079Camera m_Camera;
@@ -60,15 +60,6 @@ namespace Compendium.Npc
         public Vector3 Position => IsSpawned ? m_Hub.transform.position : Vector3.zero;
         public Vector3 Rotation => IsSpawned ? m_Hub.transform.rotation.eulerAngles : Vector3.zero;
 
-        public Vector3 Scale
-        {
-            get => IsSpawned ? m_Hub.transform.localScale : Vector3.zero;
-            set
-            {
-
-            }
-        }
-
         public RoleTypeId RoleId { get => m_Hub.GetRoleId(); set => m_Hub.roleManager.ServerSetRole(value, RoleChangeReason.RemoteAdmin, RoleSpawnFlags.None); }
 
         public PlayerRoleBase Role { get => m_Hub.roleManager.CurrentRole; set => m_Hub.roleManager.CurrentRole = value; }
@@ -83,8 +74,8 @@ namespace Compendium.Npc
 
         public bool Enable079Logic { get => m_EnableScp079; set => m_EnableScp079 = value; }
 
-        public string Nick { get => m_Hub.nicknameSync.Network_myNickSync; set => m_Hub.nicknameSync.Network_myNickSync = value; }
-        public string UserId { get => m_Hub.characterClassManager.UserId; set => m_Hub.characterClassManager.UserId = value; }
+        public string Nick { get => m_Hub.nicknameSync.MyNick; set => m_Hub.nicknameSync.MyNick = value; }
+        public string UserId { get => m_Hub.characterClassManager._privUserId; set => m_Hub.characterClassManager._privUserId = value; }
         public string CustomId { get => m_CustomId; set => m_CustomId = value; }
 
         public int Id { get => m_Hub._playerId.Value; set => m_Hub.Network_playerId = new RecyclablePlayerId(value); }
@@ -102,16 +93,25 @@ namespace Compendium.Npc
             if (!IsSpawned) 
                 return;
 
-            NetworkServer.UnSpawn(m_Hub.gameObject);
-
             m_IsSpawned = false;
 
+            m_Target = null;
+            m_ForcedMode = null;
+            m_ForcedSpeed = null;
+            m_Camera = null;
+
+            m_Hub.MakeInvisible();
+
             NpcManager.OnNpcDespawned(this);
+
+            Plugin.Info($"NPC despawned '{CustomId}'");
         }
 
         public virtual void Destroy()
         {
             m_Hub.OnDestroy();
+
+            NpcManager.NpcHubs.Remove(m_Hub);
 
             CustomNetworkManager.TypedSingleton?.OnServerDisconnect(m_Hub.connectionToClient);
 
@@ -122,6 +122,8 @@ namespace Compendium.Npc
             m_ForcedSpeed = null;
             m_Hub = null;
             m_PropsSet = false;
+
+            Plugin.Info($"NPC destroyed '{CustomId}'");
 
             CustomId = null;
         }
@@ -135,14 +137,10 @@ namespace Compendium.Npc
         {
             try
             {
-                Plugin.Info($"Spawning NPC");
-
                 if (m_Hub is null)
                 {
                     m_Hub = NpcManager.NewHub;
                     m_PropsSet = false;
-
-                    Plugin.Info($"Retrieved new ReferenceHub");
                 }
 
                 if (m_Hub is null)
@@ -159,52 +157,43 @@ namespace Compendium.Npc
 
                 if (!m_PropsSet)
                 {
-                    Plugin.Info($"Setting properties");
-
                     NetworkServer.AddPlayerForConnection(new NpcConnection(Id), m_Hub.gameObject);
 
-                    Plugin.Info($"Added connection");
-
                     try
                     {
-                        m_Hub.characterClassManager.UserId = "npc@server";
+                        m_Hub.characterClassManager._privUserId = "npc@server";
                     }
                     catch { }
 
-                    Plugin.Info("Set user ID");
-
-                    m_Hub.characterClassManager.InstanceMode = ClientInstanceMode.Host;
-
-                    Plugin.Info($"Set instance mode: {m_Hub.characterClassManager.InstanceMode}");
+                    m_Hub.characterClassManager._targetInstanceMode = ClientInstanceMode.DedicatedServer;
 
                     try
                     {
-                        m_Hub.nicknameSync.Network_myNickSync = $"NPC [{Id}]";
+                        m_Hub.nicknameSync.MyNick = $"NPC [{Id}]";
                     }
                     catch { }
 
-                    Plugin.Info("Set nick");
-
-                    CustomId = RandomGeneration.Default.GetReadableString(5);
-
-                    Plugin.Info("Generated custom ID");
+                    CustomId = RandomGeneration.Default.GetRandom(1, 100).ToString();
 
                     m_PropsSet = true;
                     m_IsSpawned = true;
 
-                    Plugin.Info("Started movement");
+                    NpcManager.OnNpcSpawned(this);
 
                     Calls.Delay(0.2f, () =>
                     {
                         m_Hub.roleManager.ServerSetRole(RoleTypeId.ClassD, RoleChangeReason.RemoteAdmin, RoleSpawnFlags.All);
-                        Plugin.Info("Set role");
                     });
+
+                    Plugin.Info($"NPC created '{CustomId}'");
                 }
 
                 if (!m_IsSpawned)
                 {
-                    NetworkServer.Spawn(m_Hub.gameObject);
+                    m_Hub.MakeVisible();
                     NpcManager.OnNpcSpawned(this);
+
+                    Plugin.Info($"NPC spawned '{CustomId}'");
                 }
             }
             catch (Exception ex)
@@ -272,7 +261,6 @@ namespace Compendium.Npc
                 return;
 
             var rotation = Quaternion.LookRotation(m_Hub.transform.forward, m_Hub.transform.up) * m_Target.Position;
-
             NpcHelper.ForceRotation(m_Hub, rotation.x, rotation.y);
         }
 
@@ -306,6 +294,7 @@ namespace Compendium.Npc
                 return;
 
             var scp = m_Hub.roleManager.CurrentRole as Scp079Role;
+
             if (scp is null)
                 return;
 
@@ -338,6 +327,20 @@ namespace Compendium.Npc
             m_Camera.HorizontalRotation = rotation.x;
             m_Camera.VerticalRotation = rotation.y;
             m_Camera.RollRotation = rotation.z;
+        }
+
+        public override void OnPooled()
+        {
+            base.OnPooled();
+            Despawn();
+            Plugin.Info($"NPC pooled '{CustomId}'");
+        }
+
+        public override void OnUnpooled()
+        {
+            base.OnUnpooled();
+            Spawn();
+            Plugin.Info($"NPC unpooled '{CustomId}'");
         }
     }
 }

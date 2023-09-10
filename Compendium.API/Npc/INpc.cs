@@ -19,12 +19,12 @@ namespace Compendium.Npc
 
         Vector3 Position { get; }
         Vector3 Rotation { get; }
-        Vector3 Scale { get; set; }
 
         NpcMovementMode CurMovementMode { get; }
         NpcMovementMode? ForcedMode { get; }
 
         RoleTypeId RoleId { get; set; }
+
         PlayerRoleBase Role { get; set; }
 
         Dictionary<NpcMovementMode, float> Distancing { get; }

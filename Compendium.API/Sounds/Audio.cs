@@ -10,6 +10,7 @@ using helpers.Pooling;
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Net;
 using System.Threading;
 
@@ -27,9 +28,24 @@ namespace Compendium.Sounds
     {
         internal static readonly HashSet<AudioPlayer> _activePlayers = new HashSet<AudioPlayer>();
         internal static readonly Dictionary<ReferenceHub, AudioPlayer> _ownedPlayers = new Dictionary<ReferenceHub, AudioPlayer>();
-        internal static SingleFileStorage<KeyValuePair<string, HashSet<string>>> _mutes;
 
-        public static IReadOnlyCollection<KeyValuePair<string, HashSet<string>>> Mutes => _mutes.Data;
+        internal static SingleFileStorage<Dictionary<string, HashSet<string>>> _mutes;
+
+        public static Dictionary<string, HashSet<string>> Mutes
+        {
+            get
+            {
+                if (!_mutes.Data.Any())
+                {
+                    _mutes.Append(new Dictionary<string, HashSet<string>>());
+                    _mutes.Save();
+
+                    return _mutes.Data.First();
+                }
+                else
+                    return _mutes.Data.First();
+            }
+        }
 
         [Load]
         [Reload]
@@ -41,8 +57,11 @@ namespace Compendium.Sounds
                 return;
             }
 
-            _mutes = new SingleFileStorage<KeyValuePair<string, HashSet<string>>>($"{Directories.ThisData}/SavedAudioMutes");
+            _mutes = new SingleFileStorage<Dictionary<string, HashSet<string>>>($"{Directories.ThisData}/SavedAudioMutes");
             _mutes.Load();
+
+            if (!_mutes.Data.Any())
+                _mutes.Add(new Dictionary<string, HashSet<string>>());
 
             FFmpeg.SetExecutablesPath(AudioStore.DirectoryPath);
         }
@@ -62,57 +81,45 @@ namespace Compendium.Sounds
             _activePlayers.Clear();
         }
 
-        public static AudioPlayer PlayQuery(string query, ReferenceHub speaker = null)
+        public static AudioPlayer Play(string id, Vector3 position, string name = "default")
         {
-            if (speaker is null)
-                speaker = ReferenceHub.HostHub;
-
-            var pooledPlayer = PoolablePool.Get<AudioPlayer>();
-
-            pooledPlayer._speaker = speaker;
-            pooledPlayer.Queue(query, null);
-
-            return pooledPlayer;
-        }
-
-        public static AudioPlayer Play(string id, Vector3 position, ReferenceHub speaker = null)
-        {
-            if (speaker is null)
-                speaker = ReferenceHub.HostHub;
-
             var pooledPlayer = PoolablePool.Get<AudioPlayer>();
 
             Action onFinished = () =>
             {
+                if (pooledPlayer._speaker != null && pooledPlayer._speaker.TryGetNpc(out var npc) && npc is NpcBase npcBase)
+                    PoolablePool.Push(npcBase);
+
                 PoolablePool.Push(pooledPlayer);
             };
 
-            pooledPlayer._speaker = speaker;
-            pooledPlayer.Position = position;
+            pooledPlayer._speaker = PoolablePool.Get<NpcBase>().Hub;
+            pooledPlayer.Name = name;
+            pooledPlayer.Channel = VoiceChatChannel.Proximity;
+            pooledPlayer.ChannelMode = VoiceChatChannel.None;
+            pooledPlayer.Position.Value = position;
             pooledPlayer.OnFinishedTrack.Register(onFinished);
             pooledPlayer.Queue(id, null);
 
             return pooledPlayer;
         }
 
-        public static AudioPlayer Play(byte[] soundData, Vector3 position, ReferenceHub speaker = null, bool convert = true)
+        [Command("instantplay", CommandType.RemoteAdmin)]
+        [CommandAliases("iplay")]
+        [Description("Uses a pooled player to instantly play your request.")]
+        private static string InstantPlay(ReferenceHub sender, string query)
         {
-            if (speaker is null)
-                speaker = ReferenceHub.HostHub;
+            Play(query, sender.Position());
+            return "Done.";
+        }
 
-            var pooledPlayer = PoolablePool.Get<AudioPlayer>();
-
-            Action onFinished = () =>
-            {
-                PoolablePool.Push(pooledPlayer);
-            };
-
-            pooledPlayer._speaker = speaker;
-            pooledPlayer.Position = position;
-            pooledPlayer.OnFinishedTrack.Register(onFinished);
-            pooledPlayer.Queue(soundData, null, convert);
-
-            return pooledPlayer;
+        [Command("instanttargetplay", CommandType.RemoteAdmin)]
+        [CommandAliases("itplay")]
+        [Description("Uses a pooled player to instantly play your request at a targeted player.")]
+        private static string InstantTargetPlay(ReferenceHub sender, ReferenceHub target, string query)
+        {
+            Play(query, target.Position());
+            return "Done.";
         }
 
         [Command("play", CommandType.RemoteAdmin)]
@@ -446,6 +453,34 @@ namespace Compendium.Sounds
                 });
 
                 return "Searching .. (YouTube - search)";
+            }
+        }
+
+        [Command("audiomute", CommandType.PlayerConsole)]
+        [CommandAliases("amute")]
+        [Description("Mutes audio from the selected source.")]
+        private static string AudioMuteCommand(ReferenceHub hub, string source)
+        {
+            if (Mutes.TryGetValue(hub.UserId(), out var list))
+            {
+                if (list.Contains(source))
+                {
+                    list.Remove(source);
+                    _mutes.Save();
+                    return $"Unmuted source '{source}'";
+                }
+                else
+                {
+                    list.Add(source);
+                    _mutes.Save();
+                    return $"Muted source '{source}'";
+                }
+            }
+            else
+            {
+                Mutes[hub.UserId()] = new HashSet<string>() { source };
+                _mutes.Save();
+                return $"Muted source '{source}'";
             }
         }
     }

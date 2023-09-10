@@ -194,6 +194,7 @@
     <Compile Include="Input\InputManager.cs" />
     <Compile Include="Input\InputBinding.cs" />
     <Compile Include="Invisibility\InvisibilityControl.cs" />
+    <Compile Include="Mirror.cs" />
     <Compile Include="Parsers\PlayerDataRecordParser.cs" />
     <Compile Include="Patches\NextRoundActionPatch.cs" />
     <Compile Include="PlayerData\PlayerDataCache.cs" />
@@ -225,7 +226,6 @@
     <Compile Include="Sounds\AudioStatus.cs" />
     <Compile Include="Sounds\AudioStore.cs" />
     <Compile Include="Sounds\AudioUtils.cs" />
-    <Compile Include="Sounds\AudioVoiceProfile.cs" />
     <Compile Include="Staff\StaffGroup.cs" />
     <Compile Include="Staff\StaffHandler.cs" />
     <Compile Include="Staff\StaffReader.cs" />

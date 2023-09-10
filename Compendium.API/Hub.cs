@@ -4,11 +4,14 @@ using Compendium.Health;
 using Compendium.Hints;
 using Compendium.Units;
 using Compendium.UserId;
+using Compendium.Round;
 using Compendium.Snapshots;
 using Compendium.Snapshots.Data;
 
 using helpers;
 using helpers.Extensions;
+using helpers.Patching;
+using helpers.Pooling.Pools;
 
 using Hints;
 
@@ -16,8 +19,11 @@ using MapGeneration;
 
 using PlayerRoles;
 using PlayerRoles.FirstPersonControl;
+using PlayerRoles.FirstPersonControl.NetworkMessages;
 using PlayerRoles.PlayableScps.Scp079;
 using PlayerRoles.PlayableScps.Scp106;
+using PlayerRoles.PlayableScps.Scp049.Zombies;
+using PlayerRoles.Voice;
 
 using PlayerStatsSystem;
 
@@ -28,12 +34,339 @@ using System.Linq;
 
 using UnityEngine;
 
+using InventorySystem.Items.Firearms;
 using InventorySystem.Items;
 using InventorySystem;
-using System.Runtime.Remoting.Messaging;
+
+using RelativePositioning;
+
+using Mirror;
+
+using Respawning;
+
+using CustomPlayerEffects;
+
+using RoundRestarting;
 
 namespace Compendium
 {
+    public static class HubNetworkExtensions
+    {
+        public enum SoundId
+        {
+            Beep,
+            GunShot,
+            Lever,
+        }
+
+        private static readonly Dictionary<ReferenceHub, Vector3> _fakePositions = new Dictionary<ReferenceHub, Vector3>();
+        private static readonly Dictionary<ReferenceHub, Dictionary<ReferenceHub, Vector3>> _fakePositionsMatrix = new Dictionary<ReferenceHub, Dictionary<ReferenceHub, Vector3>>();
+
+        private static readonly Dictionary<ReferenceHub, Dictionary<Type, byte>> _fakeIntensity = new Dictionary<ReferenceHub, Dictionary<Type, byte>>();
+
+        public static bool TryGetFakePosition(this ReferenceHub hub, ReferenceHub target, out Vector3 position)
+        {
+            if (_fakePositions.TryGetValue(hub, out position))
+                return true;
+
+            if (target != null && _fakePositionsMatrix.TryGetValue(hub, out var matrix))
+                return matrix.TryGetValue(target, out position);
+
+            return false;
+        }
+
+        public static bool TryGetFakeIntensity(this ReferenceHub hub, Type type, out byte intensity)
+        {
+            if (_fakeIntensity.TryGetValue(hub, out var dict))
+                return dict.TryGetValue(type, out intensity);
+
+            intensity = 0;
+            return false;
+        }
+
+        public static void FakeIntensity(this ReferenceHub hub, Type type, byte intensity)
+        {
+            if (!_fakeIntensity.ContainsKey(hub))
+                _fakeIntensity[hub] = new Dictionary<Type, byte>();
+
+            _fakeIntensity[hub][type] = intensity;
+        }
+
+        public static void FakePosition(this ReferenceHub hub, Vector3 position)
+            => _fakePositions[hub] = position;
+
+        public static void FakePositionTo(this ReferenceHub hub, Vector3 position, params ReferenceHub[] targets)
+        {
+            if (!_fakePositionsMatrix.ContainsKey(hub))
+                _fakePositionsMatrix[hub] = new Dictionary<ReferenceHub, Vector3>();
+
+            targets.ForEach(target =>
+            {
+                _fakePositionsMatrix[hub][target] = position;
+            });
+        }
+
+        public static void RemoveFakePosition(this ReferenceHub hub)
+            => _fakePositions.Remove(hub);
+
+        public static void RemoveAllFakePositions(this ReferenceHub hub)
+        {
+            _fakePositions.Remove(hub);
+            _fakePositionsMatrix.Remove(hub);
+        }
+
+        public static void RemoveTargetFakePosition(this ReferenceHub hub, params ReferenceHub[] targets)
+        {
+            if (_fakePositionsMatrix.TryGetValue(hub, out var matrix))
+            {
+                targets.ForEach(target =>
+                {
+                    matrix.Remove(target);
+                });
+            }
+        }
+
+        public static void RemoveFakeIntensity(this ReferenceHub hub, Type type)
+        {
+            if (_fakeIntensity.ContainsKey(hub))
+                return;
+
+            _fakeIntensity[hub].Remove(type);
+        }
+
+        public static void PlaySound(this ReferenceHub hub, SoundId soundId, params object[] args)
+        {
+            switch (soundId)
+            {
+                case SoundId.Beep:
+                    hub.SendFakeTargetRpc(null, typeof(AmbientSoundPlayer), nameof(AmbientSoundPlayer.RpcPlaySound), 7);
+                    break;
+
+                case SoundId.GunShot:
+                    hub.connectionToClient.Send(new GunAudioMessage()
+                    {
+                        Weapon = (ItemType)args[0],
+                        MaxDistance = (byte)args[1],
+                        AudioClipId = (byte)args[2],
+                        ShooterHub = hub,
+                        ShooterPosition = new RelativePosition((Vector3)args[3])
+                    });
+                    break;
+
+                case SoundId.Lever:
+                    hub.SendFakeTargetRpc(hub.networkIdentity, typeof(PlayerInteract), nameof(PlayerInteract.RpcLeverSound));
+                    break;
+            }
+        }
+
+        public static void PlayBeepSound(this ReferenceHub hub)
+            => hub.PlaySound(SoundId.Beep);
+
+        public static void PlayGunSound(this ReferenceHub hub, ItemType weaponType, byte volume, byte id, Vector3 position)
+            => hub.PlaySound(SoundId.GunShot, weaponType, volume, id, position);
+
+        public static void PlayCassie(this ReferenceHub hub, string announcement, bool isHold = false, bool isNoisy = false, bool isSubtitles = false)
+            => RespawnEffectsController.AllControllers.ForEach(ctrl =>
+            {
+                if (ctrl is null)
+                    return;
+
+                hub.SendFakeTargetRpc(ctrl.netIdentity, typeof(RespawnEffectsController), nameof(RespawnEffectsController.RpcCassieAnnouncement), announcement, isHold, isNoisy, isSubtitles);
+            });
+
+        public static void PlayCassie(this ReferenceHub hub, string words, string translation, bool isHold = false, bool isNoisy = true, bool isSubtitles = true)
+        {
+            var announcement = StringBuilderPool.Pool.Get();
+            var cassies = words.Split('\n');
+            var translations = translation.Split('\n');
+            
+            for (int i = 0; i < cassies.Length; i++)
+                announcement.Append($"{translations[i]}<size=0> {cassies[i].Replace(' ', ' ')} </size><split>");
+
+            var message = StringBuilderPool.Pool.PushReturn(announcement);
+
+            RespawnEffectsController.AllControllers.ForEach(ctrl =>
+            {
+                if (ctrl is null)
+                    return;
+
+                hub.SendFakeTargetRpc(ctrl.netIdentity, typeof(RespawnEffectsController), nameof(RespawnEffectsController.RpcCassieAnnouncement), announcement, isHold, isNoisy, isSubtitles);
+            });
+        }
+
+        public static void SetTargetInfo(this ReferenceHub hub, string info, params ReferenceHub[] targets)
+            => targets.ForEach(target => hub.SendFakeSyncVar(target.networkIdentity, typeof(NicknameSync), nameof(NicknameSync.Network_customPlayerInfoString), info));
+
+        public static void SetTargetRoomColor(this RoomLightController light, Color color, params ReferenceHub[] targets)
+            => targets.ForEach(target =>
+            {
+                target.SendFakeSyncVar(light.netIdentity, typeof(RoomLightController), nameof(RoomLightController.NetworkOverrideColor), color);
+                target.SendFakeSyncVar(light.netIdentity, typeof(RoomLightController), nameof(RoomLightController.NetworkLightsEnabled), true);
+            });
+
+        public static void SetTargetNickname(this ReferenceHub hub, string nick, params ReferenceHub[] targets)
+            => targets.ForEach(target => target.SendFakeSyncVar(hub.networkIdentity, typeof(NicknameSync), nameof(NicknameSync.Network_displayName), nick));
+
+        public static void SetTargetRole(this ReferenceHub hub, RoleTypeId role, byte unitId = 0, params ReferenceHub[] targets)
+        {
+            if (!PlayerRoleLoader.TryGetRoleTemplate<PlayerRoleBase>(role, out var roleBase))
+                return;
+
+            bool isRisky = role.GetTeam() is Team.Dead || !hub.IsAlive();
+
+            var writer = NetworkWriterPool.Get();
+
+            writer.WriteUShort(38952);
+            writer.WriteUInt(hub.netId);
+            writer.WriteRoleType(role);
+
+            if (roleBase is HumanRole humanRole && humanRole.UsesUnitNames)
+            {
+                if (!(hub.Role() is HumanRole))
+                    isRisky = true;
+
+                writer.WriteByte(unitId);
+            }
+
+            if (roleBase is FpcStandardRoleBase fpc)
+            {
+                if (!(hub.Role() is FpcStandardRoleBase playerFpc))
+                    isRisky = true;
+                else
+                    fpc = playerFpc;
+
+                fpc.FpcModule.MouseLook.GetSyncValues(0, out ushort value, out ushort _);
+
+                writer.WriteRelativePosition(hub.RelativePosition());
+                writer.WriteUShort(value);
+            }
+
+            if (roleBase is ZombieRole)
+            {
+                if (!(hub.Role() is ZombieRole))
+                    isRisky = true;
+
+                writer.WriteUShort((ushort)Mathf.Clamp(Mathf.CeilToInt(hub.MaxHealth()), ushort.MinValue, ushort.MaxValue));
+            }
+
+            var arraySegment = writer.ToArraySegment();
+
+            targets.ForEach(target =>
+            {
+                if (target != hub || !isRisky)
+                    target.connectionToClient.Send(arraySegment);
+                else
+                    Plugin.Warn($"Blocked a possible self-desync attempt of '{hub.Nick()}' with role '{role}'");
+            });
+
+            NetworkWriterPool.Return(writer);
+            hub.Position(hub.Position() + (Vector3.up * 0.25f));
+        }
+
+        public static void SetTargetWarheadLevel(this ReferenceHub hub, bool isEnabled = true)
+            => hub.SendFakeSyncVar(AlphaWarheadOutsitePanel.nukeside.netIdentity, typeof(AlphaWarheadNukesitePanel), nameof(AlphaWarheadNukesitePanel.Networkenabled), isEnabled);
+
+        public static void SetTargetWarheadKeycard(this ReferenceHub hub, bool isEntered = true)
+            => hub.SendFakeSyncVar(GameObject.Find("OutsitePanelScript").GetComponentInParent<AlphaWarheadOutsitePanel>().netIdentity, typeof(AlphaWarheadOutsitePanel), nameof(AlphaWarheadOutsitePanel.NetworkkeycardEntered), isEntered);
+
+        public static void SetAspectRatio(this ReferenceHub hub, float ratio = 1f)
+            => hub.aspectRatioSync.CmdSetAspectRatio(ratio);
+
+        public static void SetTargetWindowStatus(this BreakableWindow window, BreakableWindow.BreakableWindowStatus status, params ReferenceHub[] targets)
+            => targets.ForEach(target => target.SendFakeSyncVar(window.netIdentity, typeof(BreakableWindow), nameof(BreakableWindow.NetworksyncStatus), status));
+
+        public static void SetTargetWarheadStatus(this ReferenceHub hub, AlphaWarheadSyncInfo status)
+            => hub.SendFakeSyncVar(AlphaWarheadController.Singleton.netIdentity, typeof(AlphaWarheadController), nameof(AlphaWarheadController.NetworkInfo), status);
+
+        public static void SetTargetServerName(this ReferenceHub hub, string name)
+            => hub.SendFakeSyncVar(null, typeof(ServerConfigSynchronizer), nameof(ServerConfigSynchronizer.NetworkServerName), name);
+
+        public static void SetTargetGlobalBadge(this ReferenceHub hub, string text, params ReferenceHub[] targets)
+            => targets.ForEach(target => target.SendFakeSyncVar(hub.networkIdentity, typeof(ServerRoles), nameof(ServerRoles.NetworkGlobalBadge), text));
+
+        public static void SetTargetRankColor(this ReferenceHub hub, string color, params ReferenceHub[] targets)
+            => targets.ForEach(target => target.SendFakeSyncVar(hub.networkIdentity, typeof(ServerRoles), nameof(ServerRoles.Network_myColor), color));
+
+        public static void SetTargetRankText(this ReferenceHub hub, string text, params ReferenceHub[] targets)
+            => targets.ForEach(target => target.SendFakeSyncVar(hub.networkIdentity, typeof(ServerRoles), nameof(ServerRoles.Network_myText), text));
+
+        public static void SetTargetRank(this ReferenceHub hub, string color, string text, params ReferenceHub[] targets)
+        {
+            hub.SetTargetRankColor(color, targets);
+            hub.SetTargetRankText(text, targets);
+        }
+
+        public static void SetTargetMapSeed(this ReferenceHub hub, int seed)
+            => hub.SendFakeSyncVar(SeedSynchronizer._singleton.netIdentity, typeof(SeedSynchronizer), nameof(SeedSynchronizer.Network_syncSeed), seed);
+
+        public static void SetTargetMouseSpawn(this ReferenceHub hub, byte spawn)
+            => hub.SendFakeSyncVar(UnityEngine.Object.FindObjectOfType<SqueakSpawner>().netIdentity, typeof(SqueakSpawner), nameof(SqueakSpawner.NetworksyncSpawn), spawn);
+
+        public static void SetTargetChaosCount(this ReferenceHub hub, int count)
+            => hub.SendFakeSyncVar(RoundSummary.singleton.netIdentity, typeof(RoundSummary), nameof(RoundSummary.Network_chaosTargetCount), count);
+
+        public static void SetTargetIntercomText(this ReferenceHub hub, string text)
+            => hub.SendFakeSyncVar(IntercomDisplay._singleton.netIdentity, typeof(IntercomDisplay), nameof(IntercomDisplay.Network_overrideText), text);
+
+        public static void SetTargetIntercomState(this ReferenceHub hub, IntercomState state)
+            => hub.SendFakeSyncVar(Intercom._singleton.netIdentity, typeof(Intercom), nameof(Intercom.Network_state), (byte)state);
+
+        public static void SendWarheadShake(this ReferenceHub hub, bool achieve = true)
+            => hub.SendFakeTargetRpc(AlphaWarheadController.Singleton.netIdentity, typeof(AlphaWarheadController), nameof(AlphaWarheadController.RpcShake), achieve);
+
+        public static void SendHitmarker(this ReferenceHub hub, float size = 1f)
+            => Hitmarker.SendHitmarker(hub, size);
+
+        public static void SendDimScreen(this ReferenceHub hub)
+            => hub.SendFakeTargetRpc(RoundSummary.singleton.netIdentity, typeof(RoundSummary), nameof(RoundSummary.RpcDimScreen));
+
+        public static void SendShowRoundSummary(this ReferenceHub hub, 
+            RoundSummary.SumInfo_ClassList startClassList, 
+            RoundSummary.SumInfo_ClassList endClassList, 
+            
+            RoundSummary.LeadingTeam leadingTeam, 
+            
+            int escapedClassD, 
+            int escapedScientists, 
+            int scpKills, 
+            int roundCd, 
+            int durationSeconds)
+            => hub.SendFakeTargetRpc(RoundSummary.singleton.netIdentity, typeof(RoundSummary), nameof(RoundSummary.RpcShowRoundSummary), 
+                startClassList,
+                endClassList,
+                leadingTeam,
+                escapedClassD,
+                escapedScientists,
+                scpKills,
+                roundCd,
+                durationSeconds);
+
+        public static void SendCloseRemoteAdmin(this ReferenceHub hub)
+            => hub.serverRoles.TargetCloseRemoteAdmin();
+
+        public static void SendOpenRemoteAdmin(this ReferenceHub hub, bool isPassword = false)
+            => hub.serverRoles.TargetOpenRemoteAdmin(isPassword);
+
+        public static void SendHiddenRole(this ReferenceHub hub, string text)
+            => hub.serverRoles.TargetSetHiddenRole(hub.connectionToClient, text);
+
+        public static void SendTeslaTrigger(this TeslaGate gate, params ReferenceHub[] targets)
+            => targets.ForEach(target => target.SendFakeTargetRpc(gate.netIdentity, typeof(TeslaGate), nameof(TeslaGate.RpcInstantBurst)));
+
+        public static void SendRoundRestart(this ReferenceHub hub, bool shouldReconnect = true, bool extendedTime = false, bool isFast = false, float offset = 0f, ushort? redirect = null)
+            => hub.connectionToClient.Send(new RoundRestartMessage(
+                redirect.HasValue ? RoundRestartType.RedirectRestart : (isFast ? RoundRestartType.RedirectRestart : RoundRestartType.FullRestart),
+                offset, redirect.HasValue ? redirect.Value : ushort.MinValue, shouldReconnect, extendedTime));
+
+        [RoundStateChanged(RoundState.WaitingForPlayers)]
+        private static void OnWaiting()
+        {
+            _fakePositions.Clear();
+            _fakePositionsMatrix.Clear();
+            _fakeIntensity.Clear();
+        }
+    }
+
     public static class HubDataExtensions
     {
         public static string Nick(this ReferenceHub hub, string newNick = null)
@@ -42,7 +375,6 @@ namespace Compendium
                 return hub.nicknameSync.Network_myNickSync;
 
             hub.nicknameSync.SetNick(newNick);
-
             return newNick;
         }
 
@@ -52,7 +384,6 @@ namespace Compendium
                 return hub.nicknameSync._cleanDisplayName;
 
             hub.nicknameSync.Network_displayName = newDisplayNick;
-
             return newDisplayNick;
         }
 
@@ -189,7 +520,7 @@ namespace Compendium
             => hub.GetInstanceID();
 
         public static string GetLogName(this ReferenceHub hub, bool includeIp = false, bool includeRole = true)
-            => $"[ {hub.PlayerId} ]{(includeRole ? $" {hub.GetRoleId().ToString().SpaceByPascalCase()} " : "  ")}{hub.Nick()} {hub.UserId()}{(includeIp ? $" {hub.Ip()}" : "")}";
+            => $"[{hub.PlayerId}]{(includeRole ? $" {hub.GetRoleId().ToString().SpaceByPascalCase()} " : "  ")}{hub.Nick()} {hub.UserId()}{(includeIp ? $" {hub.Ip()}" : "")}";
     }
 
     public static class HubModerationExtensions
@@ -451,7 +782,7 @@ namespace Compendium
             if (!isRemoteAdmin)
                 hub.characterClassManager.ConsolePrint(content.ToString(), "red");
             else
-                hub.queryProcessor.TargetReply(hub.connectionToClient, $"API#{content}", true, false, string.Empty);
+                hub.queryProcessor.TargetReply(hub.connectionToClient, content.ToString(), true, false, string.Empty);
         }
 
         public static Vector3 Position(this ReferenceHub hub, Vector3? newPos = null, Quaternion? newRot = null)
@@ -480,6 +811,9 @@ namespace Compendium
 
             return hub.PlayerCameraReference.position;
         }
+
+        public static RelativePosition RelativePosition(this ReferenceHub hub)
+            => new RelativePosition(hub.transform.position);
 
         public static Quaternion Rotation(this ReferenceHub hub, Quaternion? newRot = null)
         {
@@ -714,5 +1048,46 @@ namespace Compendium
 
                 return roomFilter.Contains(room);
             });
+    }
+
+    public static class HubExtensionPatches
+    {
+        [Patch(typeof(FpcServerPositionDistributor), nameof(FpcServerPositionDistributor.GetNewSyncData), PatchType.Prefix)]
+        public static bool GenerateNewSyncData(ReferenceHub receiver, ReferenceHub target, FirstPersonMovementModule fpmm, bool isInvisible, ref FpcSyncData __result)
+        {
+            var position = Vector3.zero;
+
+            if (!target.TryGetFakePosition(target, out position))
+                position = target.transform.position;
+
+            var prevSyncData = FpcServerPositionDistributor.GetPrevSyncData(receiver, target);
+            var fpcSyncData = isInvisible ? default : new FpcSyncData(prevSyncData, fpmm.SyncMovementState, fpmm.IsGrounded, new RelativePosition(position), fpmm.MouseLook);
+            
+            FpcServerPositionDistributor.PreviouslySent[receiver.netId][target.netId] = fpcSyncData;
+
+            __result = fpcSyncData;
+            return false;
+        }
+
+        [Patch(typeof(PlayerEffectsController), nameof(PlayerEffectsController.ServerSyncEffect), PatchType.Prefix)]
+        public static bool SyncEffectIntensity(PlayerEffectsController __instance, StatusEffectBase effect)
+        {
+            for (int i = 0; i < __instance.EffectsLength; i++)
+            {
+                var statusEffectBase = __instance.AllEffects[i];
+
+                if (statusEffectBase == effect)
+                {
+                    if (__instance._hub.TryGetFakeIntensity(statusEffectBase.GetType(), out var intensity))
+                        __instance._syncEffectsIntensity[i] = intensity;
+                    else
+                        __instance._syncEffectsIntensity[i] = statusEffectBase.Intensity;
+
+                    return false;
+                }
+            }
+
+            return false;
+        }
     }
 }

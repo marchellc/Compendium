@@ -16,12 +16,11 @@ using NVorbis;
 
 using helpers.Events;
 using helpers.Extensions;
-using helpers;
+using helpers.Values;
 using helpers.Pooling;
+using helpers;
 
 using Compendium.Npc;
-using CustomPlayerEffects;
-using Compendium.Voice;
 
 namespace Compendium.Sounds
 {
@@ -55,13 +54,14 @@ namespace Compendium.Sounds
         private float _maxSamples;
 
         private bool _updateReg;
+        private bool _sMoved;
 
         public AudioStatus Status { get; private set; } = AudioStatus.Idle;
 
-        public VoiceChatChannel Channel { get; set; } = VoiceChatChannel.RoundSummary;
-        public VoiceChatChannel ChannelMode { get; set; } = VoiceChatChannel.Proximity;
+        public VoiceChatChannel Channel { get; set; } = VoiceChatChannel.Proximity;
+        public VoiceChatChannel ChannelMode { get; set; } = VoiceChatChannel.None;
 
-        public Vector3? Position { get; set; }
+        public HistoryValue<Vector3?> Position { get; } = new HistoryValue<Vector3?>();
 
         public string Name { get; set; } = "default";
 
@@ -120,6 +120,8 @@ namespace Compendium.Sounds
 
         public void Stop(bool clear = true)
         {
+            _speaker.RemoveAllFakePositions();
+
             if (clear)
             {
                 _dataQueue.Clear();
@@ -284,7 +286,7 @@ namespace Compendium.Sounds
             _encodedBuffer = null;
 
             Status = AudioStatus.Idle;
-            Position = null;
+            Position.Reset();
 
             OnFinishedTrack.UnregisterAll();
             OnLoadedTrack.UnregisterAll();
@@ -293,6 +295,8 @@ namespace Compendium.Sounds
             OnSelectingTrack.UnregisterAll();
             OnStartedPlayback.UnregisterAll();
             OnStoppedPlayback.UnregisterAll();
+
+            Plugin.Info($"Pooled player '{Name}'");
         }
 
         public override void OnUnpooled()
@@ -314,6 +318,8 @@ namespace Compendium.Sounds
               _updateReg = Reflection.TryAddHandler<Action>(typeof(StaticUnityMethods), "OnUpdate", UpdateHandler);
 
             Audio._activePlayers.Add(this);
+
+            Plugin.Info($"Unpooled player '{Name}'");
         }
 
         private IEnumerator<float> PlaybackHandler()
@@ -328,12 +334,6 @@ namespace Compendium.Sounds
 
             _stream = new MemoryStream(_current.Data);
             _reader = new VorbisReader(_stream);
-
-            if (Position.HasValue && (_speaker.IsServer() || NpcManager.All.Any(n => n.Hub != null && n.Hub == _speaker)))
-                _speaker.Position(Position.Value);
-
-            if ((_speaker.IsServer() || NpcManager.All.Any(n => n.Hub != null && n.Hub == _speaker)))
-                Voice.VoiceChat.SetProfile(_speaker, new AudioVoiceProfile(_speaker, this));
 
             OnLoadingTrack.Invoke(_current);
 
@@ -406,6 +406,11 @@ namespace Compendium.Sounds
 
             OnFinishedTrack.Invoke(_current);
 
+            Position.Value = null;
+
+            _sMoved = false;
+            _speaker.RemoveAllFakePositions();
+
             Status = AudioStatus.Idle;
 
             yield return Timing.WaitForSeconds(1f);
@@ -418,11 +423,6 @@ namespace Compendium.Sounds
 
             _reader = null;
             _stream = null;
-
-            var profile = Voice.VoiceChat.GetProfile(_speaker);
-
-            if (profile != null && profile is AudioVoiceProfile voiceProfile)
-                Voice.VoiceChat.SetProfile(_speaker, default(IVoiceProfile));
         }
 
         private void UpdateHandler()
@@ -447,6 +447,44 @@ namespace Compendium.Sounds
                 _playbackBuffer.ReadTo(_sendBuffer, 480L);
 
                 var size = _encoder.Encode(_sendBuffer, _encodedBuffer); 
+
+                if (Channel is VoiceChatChannel.Proximity || ChannelMode is VoiceChatChannel.Proximity)
+                {
+                    if (Position.HasChanged || (Position.Value.HasValue && !_sMoved))
+                    {
+                        if (_sMoved)
+                        {
+                            if (!Position.Value.HasValue)
+                            {
+                                _speaker.RemoveAllFakePositions();
+                                _sMoved = false;
+                            }
+                            else
+                            {
+                                var pos = Position.Value.Value;
+
+                                pos.y -= 2f;
+
+                                _speaker.FakePosition(pos);
+                                _sMoved = true;
+                            }
+                        }
+                        else
+                        {
+                            if (Position.Value.HasValue)
+                            {
+                                var pos = Position.Value.Value;
+
+                                pos.y -= 2f;
+
+                                _speaker.FakePosition(pos);
+                                _sMoved = true;
+                            }
+                        }
+
+                        Position.Reset();
+                    }
+                }
 
                 Hub.Hubs.ForEach(hub =>
                 {

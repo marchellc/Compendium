@@ -6,14 +6,24 @@ using Compendium.Npc.Targeting;
 using Compendium.Prefabs;
 using Compendium.Round;
 
+using HarmonyLib;
+
 using helpers.Extensions;
 using helpers.Patching;
 
-using PlayerRoles;
+using NorthwoodLib.Pools;
 
+using PlayerRoles;
+using PlayerRoles.FirstPersonControl;
+using PluginAPI.Events;
+using RemoteAdmin;
+using RemoteAdmin.Communication;
+using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection.Emit;
 using System.Text;
+using VoiceChat;
 
 namespace Compendium.Npc
 {
@@ -27,6 +37,8 @@ namespace Compendium.Npc
         public static IReadOnlyCollection<INpc> Despawned => m_Despawned;
         public static IReadOnlyCollection<INpc> All => m_All;
 
+        public static HashSet<ReferenceHub> NpcHubs = new HashSet<ReferenceHub>();
+
         public static ReferenceHub NewHub
         {
             get
@@ -34,7 +46,10 @@ namespace Compendium.Npc
                 if (!PrefabHelper.TryInstantiatePrefab(PrefabName.Player, out var hubObj))
                     return null;
 
-                return hubObj.GetComponent<ReferenceHub>();
+                var hub = hubObj.GetComponent<ReferenceHub>();
+
+                NpcHubs.Add(hub);
+                return hub;
             }
         }
 
@@ -251,25 +266,137 @@ namespace Compendium.Npc
             }
         }
 
-        [Patch(typeof(CharacterClassManager), nameof(CharacterClassManager.InstanceMode), PatchType.Prefix, PatchMethodType.PropertyGetter)]
-        private static bool NpcInstanceModeGetPatch(CharacterClassManager __instance, ref ClientInstanceMode __result)
+        [Patch(typeof(CharacterClassManager), nameof(CharacterClassManager.InstanceMode), PatchType.Transpiler, PatchMethodType.PropertySetter)]
+        private static IEnumerable<CodeInstruction> InstanceModeSetterPatch(IEnumerable<CodeInstruction> instructions, ILGenerator generator)
         {
-            if (All.Any(n => n.Hub != null && n.Hub == __instance.Hub))
-            {
-                __result = ClientInstanceMode.Host;
-                return false;
-            }
+            var newInstructions = ListPool<CodeInstruction>.Shared.Rent(instructions);
+            var skip = generator.DefineLabel();
 
-            return true;
+            newInstructions[0].labels.Add(skip);
+            newInstructions.InsertRange(0, new List<CodeInstruction>()
+            {
+                new CodeInstruction(OpCodes.Ldsfld, AccessTools.Field(typeof(NpcManager), nameof(NpcManager.NpcHubs))),
+                new CodeInstruction(OpCodes.Ldarg_0),
+                new CodeInstruction(OpCodes.Ldfld, AccessTools.Field(typeof(CharacterClassManager), nameof(CharacterClassManager._hub))),
+                new CodeInstruction(OpCodes.Callvirt, AccessTools.Method(typeof(HashSet<ReferenceHub>), nameof(HashSet<ReferenceHub>.Contains))),
+                new CodeInstruction(OpCodes.Brfalse_S, skip),
+                new CodeInstruction(OpCodes.Ldc_I4_2),
+                new CodeInstruction(OpCodes.Starg_S, 1),
+            });
+
+            foreach (CodeInstruction instruction in newInstructions)
+                yield return instruction;
+
+            ListPool<CodeInstruction>.Shared.Return(newInstructions);
         }
 
-        [Patch(typeof(CharacterClassManager), nameof(CharacterClassManager.InstanceMode), PatchType.Prefix, PatchMethodType.PropertySetter)]
-        private static bool NpcInstanceModeSetPatch(CharacterClassManager __instance, ref ClientInstanceMode value)
+        [Patch(typeof(FpcMouseLook), nameof(FpcMouseLook.UpdateRotation), PatchType.Transpiler)]
+        private static IEnumerable<CodeInstruction> RotationPatch(IEnumerable<CodeInstruction> instructions, ILGenerator generator)
         {
-            if (All.Any(n => n.Hub != null && n.Hub == __instance.Hub))
-                value = ClientInstanceMode.Host;
+            var newInstructions = ListPool<CodeInstruction>.Shared.Rent(instructions);
+            var skip = generator.DefineLabel();
 
-            return true;
+            newInstructions[newInstructions.Count - 1].labels.Add(skip);
+            newInstructions.InsertRange(0, new List<CodeInstruction>()
+            {
+                new CodeInstruction(OpCodes.Ldarg_0),
+                new CodeInstruction(OpCodes.Ldfld, AccessTools.Field(typeof(FpcMouseLook), nameof(FpcMouseLook._hub))),
+                new CodeInstruction(OpCodes.Call, AccessTools.Method(typeof(NpcHelper), nameof(NpcHelper.IsNpc))),
+                new CodeInstruction(OpCodes.Brtrue_S, skip)
+            });
+
+            foreach (CodeInstruction instruction in newInstructions)
+                yield return instruction;
+
+            ListPool<CodeInstruction>.Shared.Return(newInstructions);
+        }
+
+        [Patch(typeof(RaPlayerList), nameof(RaPlayerList.ReceiveData), PatchType.Prefix, typeof(CommandSender), typeof(string))]
+        private static bool RaPlayerListPatch(RaPlayerList __instance, CommandSender sender, string data)
+        {
+            var array = data.Split(' ');
+
+            if (array.Length != 3)
+                return false;
+
+            if (!int.TryParse(array[0], out var num) || !int.TryParse(array[1], out var num2))
+                return false;
+
+            if (!Enum.IsDefined(typeof(RaPlayerList.PlayerSorting), num2))
+                return false;
+
+            var flag = num == 1;
+            var flag2 = array[2].Equals("1");
+            var sortingType = (RaPlayerList.PlayerSorting)num2;
+            var viewHiddenBadges = CommandProcessor.CheckPermissions(sender, PlayerPermissions.ViewHiddenBadges);
+            var viewHiddenGlobalBadges = CommandProcessor.CheckPermissions(sender, PlayerPermissions.ViewHiddenGlobalBadges);
+            var playerCommandSender = sender as PlayerCommandSender;
+
+            if (playerCommandSender != null && playerCommandSender.ServerRoles.Staff)
+            {
+                viewHiddenBadges = true;
+                viewHiddenGlobalBadges = true;
+            }
+
+            var stringBuilder = StringBuilderPool.Shared.Rent("\n");
+
+            foreach (var referenceHub in (flag2 ? __instance.SortPlayersDescending(sortingType) : __instance.SortPlayers(sortingType)))
+            {
+                if (referenceHub.Mode != ClientInstanceMode.DedicatedServer 
+                    && referenceHub.Mode != ClientInstanceMode.Unverified
+                    && referenceHub.characterClassManager._targetInstanceMode != ClientInstanceMode.DedicatedServer
+                    && !referenceHub.IsNpc())
+                {
+                    var isInOverwatch = referenceHub.serverRoles.IsInOverwatch;
+                    var flag3 = VoiceChatMutes.IsMuted(referenceHub, false);
+
+                    stringBuilder.Append(__instance.GetPrefix(referenceHub, viewHiddenBadges, viewHiddenGlobalBadges));
+
+                    if (isInOverwatch)
+                    {
+                        stringBuilder.Append("<link=RA_OverwatchEnabled><color=white>[</color><color=#03f8fc></color><color=white>]</color></link> ");
+                    }
+                    if (flag3)
+                    {
+                        stringBuilder.Append("<link=RA_Muted><color=white>[</color>\ud83d\udd07<color=white>]</color></link> ");
+                    }
+
+                    stringBuilder.Append("<color={RA_ClassColor}>(").Append(referenceHub.PlayerId).Append(") ");
+                    stringBuilder.Append(referenceHub.nicknameSync.CombinedName.Replace("\n", string.Empty).Replace("RA_", string.Empty)).Append("</color>");
+                    stringBuilder.AppendLine();
+                }
+            }
+
+            sender.RaReply(string.Format("${0} {1}", __instance.DataId, StringBuilderPool.Shared.ToStringReturn(stringBuilder)), true, !flag, string.Empty);
+            return false;
+        }
+
+        [Patch(typeof(ReferenceHub), nameof(ReferenceHub.OnDestroy), PatchType.Prefix)]
+        private static bool OnDestroyPatch(ReferenceHub __instance)
+        {
+            if (!__instance.isLocalPlayer && !__instance.IsNpc())
+                EventManager.ExecuteEvent(new PlayerLeftEvent(__instance));
+
+            ReferenceHub.AllHubs.Remove(__instance);
+            ReferenceHub.HubsByGameObjects.Remove(__instance.gameObject);
+            ReferenceHub.HubByPlayerIds.Remove(__instance.PlayerId);
+
+            __instance._playerId.Destroy();
+
+            if (ReferenceHub._hostHub == __instance)
+            {
+                ReferenceHub._hostHub = null;
+                ReferenceHub._hostHubSet = false;
+            }
+
+            if (ReferenceHub._localHub == __instance)
+            {
+                ReferenceHub._localHub = null;
+                ReferenceHub._localHubSet = false;
+            }
+
+            ReferenceHub.OnPlayerRemoved?.Invoke(__instance);
+            return false;
         }
     }
 }
