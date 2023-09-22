@@ -2,7 +2,7 @@
 using Compendium.Events;
 using Compendium.Round;
 
-using helpers.Extensions;
+using helpers;
 
 using Mirror;
 

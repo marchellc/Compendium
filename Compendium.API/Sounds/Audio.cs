@@ -3,17 +3,14 @@ using Compendium.Npc;
 using Compendium.Round;
 
 using helpers.Attributes;
-using helpers.Extensions;
+using helpers;
 using helpers.IO.Storage;
 using helpers.Pooling;
 
 using System;
 using System.Collections.Generic;
-using System.IO;
 using System.Linq;
-using System.Net;
 using System.Text;
-using System.Threading;
 
 using UnityEngine;
 
@@ -88,19 +85,22 @@ namespace Compendium.Sounds
 
             Action onFinished = () =>
             {
-                if (pooledPlayer._speaker != null && pooledPlayer._speaker.TryGetNpc(out var npc) && npc is NpcBase npcBase)
+                if (pooledPlayer._speaker != null 
+                    && pooledPlayer._speaker.TryGetNpc(out var npc) 
+                    && npc is NpcPlayer npcBase)
                     PoolablePool.Push(npcBase);
 
                 PoolablePool.Push(pooledPlayer);
             };
 
-            pooledPlayer._speaker = PoolablePool.Get<NpcBase>().Hub;
+            pooledPlayer._speaker = PoolablePool.Get<NpcPlayer>().Hub;
             pooledPlayer.Name = name;
             pooledPlayer.Channel = VoiceChatChannel.Proximity;
             pooledPlayer.ChannelMode = VoiceChatChannel.None;
             pooledPlayer.Position.Value = position;
             pooledPlayer.OnFinishedTrack.Register(onFinished);
-            pooledPlayer.Queue(id, null);
+
+            Calls.Delay(0.2f, () => pooledPlayer.Queue(id, null));
 
             return pooledPlayer;
         }

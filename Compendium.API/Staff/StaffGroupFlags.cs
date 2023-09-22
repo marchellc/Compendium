@@ -1,6 +1,6 @@
 ﻿namespace Compendium.Staff
 {
-    public enum StaffFlags
+    public enum StaffGroupFlags
     {
         IsAdminChat,
         IsNoClip,

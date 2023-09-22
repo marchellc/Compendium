@@ -1,18 +1,21 @@
 ﻿using BetterCommands;
+
 using Compendium.Colors;
 using Compendium.Events;
 using Compendium.Extensions;
-using Compendium.Features;
 using Compendium.Input;
+
 using helpers.Attributes;
 using helpers.Extensions;
 using helpers.IO.Storage;
 using helpers.Pooling.Pools;
+using helpers;
 
 using PlayerRoles;
 using PlayerRoles.Spectating;
 
 using System;
+using System.Linq;
 
 using VoiceChat;
 
@@ -77,7 +80,7 @@ namespace Compendium.Voice.Profiles.Scp
                     if (destinations[p.Key] is VoiceChatChannel.Mimicry)
                         continue;
 
-                    if (p.Key.RoleId() is RoleTypeId.Overwatch 
+                    if (p.Key.RoleId() is RoleTypeId.Overwatch
                         && Owner.IsSpectatedBy(p.Key)
                         && !_mutes.Contains(p.Key.UserId()))
                     {
@@ -109,7 +112,7 @@ namespace Compendium.Voice.Profiles.Scp
                             {
                                 if (Plugin.Config.VoiceSettings.AllowedScpChat.Contains(Owner.RoleId()))
                                 {
-                                    if (p.Key.Position().IsWithinDistance(Owner.Position(), Plugin.Config.VoiceSettings.ScpChatDistance))
+                                    if (p.Key.Position().IsWithinDistance(Owner.Position(), 25f))
                                     {
                                         destinations[p.Key] = VoiceChatChannel.RoundSummary;
                                         continue;
@@ -132,31 +135,23 @@ namespace Compendium.Voice.Profiles.Scp
                     {
                         if (!_mutes.Contains(p.Key.UserId()))
                         {
-                            if (p.Key.IsSCP())
+                            if (Plugin.Config.VoiceSettings.AllowedScpChat.Contains(Owner.RoleId()))
                             {
-                                destinations[p.Key] = VoiceChatChannel.None;
-                                continue;
-                            }
-                            else
-                            {
-                                if (Plugin.Config.VoiceSettings.AllowedScpChat.Contains(Owner.RoleId()))
+                                if (p.Key.Position().IsWithinDistance(Owner.Position(), 25f))
                                 {
-                                    if (p.Key.Position().IsWithinDistance(Owner.Position(), Plugin.Config.VoiceSettings.ScpChatDistance))
-                                    {
-                                        destinations[p.Key] = VoiceChatChannel.RoundSummary;
-                                        continue;
-                                    }
-                                    else
-                                    {
-                                        destinations[p.Key] = VoiceChatChannel.None;
-                                        continue;
-                                    }
+                                    destinations[p.Key] = VoiceChatChannel.RoundSummary;
+                                    continue;
                                 }
                                 else
                                 {
                                     destinations[p.Key] = VoiceChatChannel.None;
                                     continue;
                                 }
+                            }
+                            else
+                            {
+                                destinations[p.Key] = VoiceChatChannel.None;
+                                continue;
                             }
                         }
                     }
@@ -192,8 +187,8 @@ namespace Compendium.Voice.Profiles.Scp
         {
             foreach (var profile in VoiceChat.Profiles)
             {
-                if (profile is ScpVoiceProfile scpVoice 
-                    && scpVoice.IsEnabled 
+                if (profile is ScpVoiceProfile scpVoice
+                    && scpVoice.IsEnabled
                     && scpVoice.Owner != null)
                 {
                     if (scpVoice._lastHint.HasValue

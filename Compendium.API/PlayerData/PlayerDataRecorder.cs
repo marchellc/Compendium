@@ -4,8 +4,8 @@ using helpers.Time;
 using helpers.Events;
 using helpers.IO.Storage;
 using helpers.Extensions;
+using helpers;
 
-using PluginAPI.Helpers;
 using PluginAPI.Events;
 
 using Compendium.Events;
@@ -16,6 +16,8 @@ using Compendium.Activity;
 
 using System.Collections.Generic;
 using System.Linq;
+using BetterCommands;
+using System.Text;
 
 namespace Compendium.PlayerData
 {
@@ -30,6 +32,13 @@ namespace Compendium.PlayerData
 
         public static bool TryQuery(string query, bool queryNick, out PlayerDataRecord record)
         {
+            if (int.TryParse(query, out var pId) 
+                && Hub.Hubs.TryGetFirst(h => h.PlayerId == pId, out var target))
+            {
+                record = GetData(target);
+                return true;
+            }
+
             return _records.Data.TryGetFirst(r =>
                     r != null
                  &&
@@ -134,17 +143,41 @@ namespace Compendium.PlayerData
 
         [Event]
         private static void OnPlayerJoined(PlayerJoinedEvent ev)
-            => Calls.Delay(2f, () => 
-            {
-                UpdateData(ev.Player.ReferenceHub);
-                ActivityRecorder.OnPlayerJoined(ev.Player.ReferenceHub, GetData(ev.Player.ReferenceHub));
-            });
+        {
+            UpdateData(ev.Player.ReferenceHub);
+            ActivityRecorder.OnPlayerJoined(ev.Player.ReferenceHub, GetData(ev.Player.ReferenceHub));
+        }
 
         [RoundStateChanged(RoundState.WaitingForPlayers)]
         private static void OnRestart()
         {
             _tokenRecords.Clear();
             _activeRecords.Clear();
+        }
+
+        [Command("query", CommandType.RemoteAdmin, CommandType.GameConsole)]
+        [Description("Displays all available information about a record.")]
+        private static string QueryCommand(ReferenceHub sender, PlayerDataRecord record)
+        {
+            var sb = new StringBuilder();
+
+            sb.AppendLine($"== Record ID: {record.Id} ==");
+            sb.AppendLine($" > Tracked Names ({record.NameTracking.AllValues.Count}):");
+
+            record.NameTracking.AllValues.For((i, pair) => sb.AppendLine($"   -> [{i + 1}] {pair.Value} ({pair.Key.ToString("F")})"));
+
+            sb.AppendLine($" > Tracked Accounts ({record.IdTracking.AllValues.Count}):");
+
+            record.IdTracking.AllValues.For((i, pair) => sb.AppendLine($"   -> [{i + 1}] {pair.Value} ({pair.Key.ToString("F")})"));
+
+            sb.AppendLine($" > Tracked IPs");
+
+            record.IpTracking.AllValues.For((i, pair) => sb.AppendLine($"   -> [{i + 1}] {pair.Value} ({pair.Key.ToString("F")})"));
+
+            sb.AppendLine($" > Last Seen: {record.LastActivity.ToString("F")}");
+            sb.AppendLine($" > Tracked Since: {record.CreationTime.ToString("F")}");
+
+            return sb.ToString();
         }
     }
 }

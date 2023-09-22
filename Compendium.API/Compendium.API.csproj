@@ -57,7 +57,7 @@
       <HintPath>..\..\helpers\helpers\bin\Release\helpers.dll</HintPath>
     </Reference>
     <Reference Include="Microsoft.Bcl.AsyncInterfaces, Version=8.0.0.0, Culture=neutral, PublicKeyToken=cc7b13ffcd2ddd51, processorArchitecture=MSIL">
-      <HintPath>..\packages\Microsoft.Bcl.AsyncInterfaces.8.0.0-preview.7.23375.6\lib\net462\Microsoft.Bcl.AsyncInterfaces.dll</HintPath>
+      <HintPath>..\packages\Microsoft.Bcl.AsyncInterfaces.8.0.0-rc.1.23419.4\lib\net462\Microsoft.Bcl.AsyncInterfaces.dll</HintPath>
     </Reference>
     <Reference Include="Mirror_publicized">
       <HintPath>..\..\..\..\..\..\Program Files (x86)\Steam\steamapps\common\SCP Secret Laboratory Dedicated Server\SCPSL_Data\Managed\Mirror_publicized.dll</HintPath>
@@ -94,19 +94,19 @@
     <Reference Include="System.Runtime.CompilerServices.Unsafe, Version=7.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL">
       <HintPath>..\packages\System.Runtime.CompilerServices.Unsafe.7.0.0-preview.2.22152.2\lib\net462\System.Runtime.CompilerServices.Unsafe.dll</HintPath>
     </Reference>
-    <Reference Include="System.Runtime.InteropServices.RuntimeInformation, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL">
-      <HintPath>..\packages\System.Runtime.InteropServices.RuntimeInformation.4.0.0\lib\net45\System.Runtime.InteropServices.RuntimeInformation.dll</HintPath>
+    <Reference Include="System.Runtime.InteropServices.RuntimeInformation, Version=4.0.1.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL">
+      <HintPath>..\packages\System.Runtime.InteropServices.RuntimeInformation.4.3.0\lib\net45\System.Runtime.InteropServices.RuntimeInformation.dll</HintPath>
       <Private>True</Private>
       <Private>True</Private>
     </Reference>
     <Reference Include="System.Text.Encoding.CodePages, Version=8.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL">
-      <HintPath>..\packages\System.Text.Encoding.CodePages.8.0.0-preview.7.23375.6\lib\net462\System.Text.Encoding.CodePages.dll</HintPath>
+      <HintPath>..\packages\System.Text.Encoding.CodePages.8.0.0-rc.1.23419.4\lib\net462\System.Text.Encoding.CodePages.dll</HintPath>
     </Reference>
     <Reference Include="System.Text.Encodings.Web, Version=8.0.0.0, Culture=neutral, PublicKeyToken=cc7b13ffcd2ddd51, processorArchitecture=MSIL">
-      <HintPath>..\packages\System.Text.Encodings.Web.8.0.0-preview.7.23375.6\lib\net462\System.Text.Encodings.Web.dll</HintPath>
+      <HintPath>..\packages\System.Text.Encodings.Web.8.0.0-rc.1.23419.4\lib\net462\System.Text.Encodings.Web.dll</HintPath>
     </Reference>
     <Reference Include="System.Text.Json, Version=8.0.0.0, Culture=neutral, PublicKeyToken=cc7b13ffcd2ddd51, processorArchitecture=MSIL">
-      <HintPath>..\packages\System.Text.Json.8.0.0-preview.7.23375.6\lib\net462\System.Text.Json.dll</HintPath>
+      <HintPath>..\packages\System.Text.Json.8.0.0-rc.1.23419.4\lib\net462\System.Text.Json.dll</HintPath>
     </Reference>
     <Reference Include="System.Threading.Tasks.Extensions, Version=4.2.0.1, Culture=neutral, PublicKeyToken=cc7b13ffcd2ddd51, processorArchitecture=MSIL">
       <HintPath>..\packages\System.Threading.Tasks.Extensions.4.5.4\lib\net461\System.Threading.Tasks.Extensions.dll</HintPath>
@@ -155,6 +155,12 @@
     <Compile Include="Activity\ActivitySession.cs" />
     <Compile Include="Compatibility\IpCompatibilityPatch.cs" />
     <Compile Include="Config.cs" />
+    <Compile Include="Custom\Commands\ModerationCommands.cs" />
+    <Compile Include="Custom\Items\CustomItem.cs" />
+    <Compile Include="Custom\Items\CustomItemBase.cs" />
+    <Compile Include="Custom\Items\CustomItemHandler.cs" />
+    <Compile Include="Custom\Items\CustomItemHandlerBase.cs" />
+    <Compile Include="Custom\Items\CustomItemOverrides.cs" />
     <Compile Include="Directories.cs" />
     <Compile Include="EasyComponents\EasyComponent.cs" />
     <Compile Include="EasyComponents\EasyComponentFlags.cs" />
@@ -169,7 +175,9 @@
     <Compile Include="Events\LateUpdateEventAttribute.cs" />
     <Compile Include="Events\UpdateEventAttribute.cs" />
     <Compile Include="Events\UpdateType.cs" />
+    <Compile Include="Extensions\ItemExtensions.cs" />
     <Compile Include="Health\CustomHealthFlags.cs" />
+    <Compile Include="Hints\HintInfo.cs" />
     <Compile Include="Http\HttpDispatch.cs" />
     <Compile Include="Http\HttpDispatchData.cs" />
     <Compile Include="Hub.cs" />
@@ -199,6 +207,7 @@
     <Compile Include="PlayerData\PlayerDataRecorder.cs" />
     <Compile Include="Prefabs\PrefabHelper.cs" />
     <Compile Include="Prefabs\PrefabName.cs" />
+    <Compile Include="RemoteAdmin\RemoteAdminIconType.cs" />
     <Compile Include="Round\RoundHelper.cs" />
     <Compile Include="Round\RoundState.cs" />
     <Compile Include="Round\RoundStateChangedAttribute.cs" />
@@ -206,6 +215,7 @@
     <Compile Include="Rules\RuleSystem.cs" />
     <Compile Include="Settings\AudioSettings.cs" />
     <Compile Include="Settings\HttpSettings.cs" />
+    <Compile Include="Settings\UptimeSettings.cs" />
     <Compile Include="Settings\VoiceSettings.cs" />
     <Compile Include="Settings\WarnSettings.cs" />
     <Compile Include="Snapshots\Capture\RoleDataCapture.cs" />
@@ -223,26 +233,31 @@
     <Compile Include="Sounds\AudioStatus.cs" />
     <Compile Include="Sounds\AudioStore.cs" />
     <Compile Include="Sounds\AudioUtils.cs" />
+    <Compile Include="Staff\StaffBadgeFlags.cs" />
+    <Compile Include="Staff\StaffColor.cs" />
     <Compile Include="Staff\StaffGroup.cs" />
+    <Compile Include="Staff\StaffGroupFlags.cs" />
     <Compile Include="Staff\StaffHandler.cs" />
+    <Compile Include="Staff\StaffPermissions.cs" />
     <Compile Include="Staff\StaffReader.cs" />
+    <Compile Include="Staff\StaffUtils.cs" />
     <Compile Include="Staff\StaffWriter.cs" />
     <Compile Include="Tokens\TokenData.cs" />
     <Compile Include="Tokens\TokenParser.cs" />
     <Compile Include="Units\UnitHelper.cs" />
+    <Compile Include="Uptime\BetterUptimeClient.cs" />
     <Compile Include="UserId\UserIdValue.cs" />
     <Compile Include="UserId\UserIdHelper.cs" />
     <Compile Include="UserId\UserIdType.cs" />
     <Compile Include="IdCache\IdGenerator.cs" />
     <Compile Include="Logging\LogParameter.cs" />
     <Compile Include="Logging\LoggingProxy.cs" />
-    <Compile Include="Npc\INpc.cs" />
-    <Compile Include="Npc\NpcBase.cs" />
+    <Compile Include="Npc\NpcPlayer.cs" />
     <Compile Include="Npc\NpcConnection.cs" />
     <Compile Include="Npc\NpcHelper.cs" />
     <Compile Include="Npc\NpcManager.cs" />
     <Compile Include="Npc\NpcMovementMode.cs" />
-    <Compile Include="Npc\ITarget.cs" />
+    <Compile Include="Npc\NpcTarget.cs" />
     <Compile Include="Npc\Targeting\PlayerTarget.cs" />
     <Compile Include="Npc\Targeting\PositionTarget.cs" />
     <Compile Include="Plugin.cs" />

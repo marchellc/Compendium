@@ -37,7 +37,7 @@ namespace Compendium.Webhooks.Discord
         {
             if (_lastCheck.HasValue)
             {
-                if ((DateTime.Now - _lastCheck.Value).Milliseconds > WebhookConfig.SendTime)
+                if ((DateTime.Now - _lastCheck.Value).Milliseconds > WebhookHandler.SendTime)
                     _lastCheck = DateTime.Now;
                 else
                     return;
@@ -47,7 +47,7 @@ namespace Compendium.Webhooks.Discord
                 _lastCheck = DateTime.Now;
             }
 
-            foreach (var webhook in WebhookConfig.Webhooks)
+            foreach (var webhook in WebhookHandler.Webhooks)
             {
                 if (webhook.Next.HasValue)
                 {

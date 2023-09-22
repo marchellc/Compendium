@@ -16,5 +16,6 @@ namespace Compendium.Voice
         public VoiceChatChannel SenderChannel { get; set; }
 
         public Dictionary<ReferenceHub, VoiceChatChannel> Destinations { get; set; }
+        public Dictionary<ReferenceHub, ReferenceHub> AlternativeSenders { get; set; }
     }
 }

@@ -14,18 +14,18 @@ namespace Compendium.Voice.Pools
         private static void PrepareGet(VoicePacket packet)
         {
             packet.Destinations = DictionaryPool<ReferenceHub, VoiceChatChannel>.Pool.Get();
-            packet.SenderChannel = default;
-            packet.Role = null;
-            packet.Module = null;
-            packet.Speaker = null;
+            packet.AlternativeSenders = DictionaryPool<ReferenceHub, ReferenceHub>.Pool.Get();
         }
 
         private static void PrepareStore(VoicePacket packet)
         {
             DictionaryPool<ReferenceHub, VoiceChatChannel>.Pool.Push(packet.Destinations);
+            DictionaryPool<ReferenceHub, ReferenceHub>.Pool.Push(packet.AlternativeSenders);
+
             packet.SenderChannel = default;
             packet.Role = null;
             packet.Destinations = null;
+            packet.AlternativeSenders = null;
             packet.Module = null;
             packet.Speaker = null;
         }

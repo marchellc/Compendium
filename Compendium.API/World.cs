@@ -1,6 +1,9 @@
 ﻿using Compendium.Extensions;
 using Compendium.Hints;
 
+using GameCore;
+
+using helpers;
 using helpers.Extensions;
 
 using Interactables.Interobjects;
@@ -36,6 +39,18 @@ namespace Compendium
         public static IEnumerable<ElevatorChamber> Elevators => Object.FindObjectsOfType<ElevatorChamber>();
         public static IEnumerable<Scp079Camera> Cameras => Scp079InteractableBase.AllInstances.Where<Scp079Camera>();
         public static IEnumerable<Scp079Generator> Generators => Object.FindObjectsOfType<Scp079Generator>();
+
+        public static string ServerName => ServerConsole._serverName;
+        public static string ClearServerName => ServerConsole._serverName.RemoveHtmlTags().FilterWhiteSpaces();
+
+        public static string AlternativeServerName => Plugin.Config.ApiSetttings.AlternativeServerName;
+
+        public static string CurrentOrAlternativeServerName => (string.IsNullOrWhiteSpace(AlternativeServerName) || AlternativeServerName == "none") ? ServerName : AlternativeServerName;
+        public static string CurrentClearOrAlternativeServerName => (string.IsNullOrWhiteSpace(AlternativeServerName) || AlternativeServerName == "none") ? ClearServerName : AlternativeServerName;
+
+        public static string ServerIp => ConfigFile.ServerConfig.GetString("server_ip", "auto");
+
+        public static int ServerPort => ServerStatic.ServerPort;
 
         public static bool CanEscape(ReferenceHub hub, bool useGameLogic = true)
             => hub.Position().IsWithinDistance(EscapePosition, Escape.RadiusSqr) && (useGameLogic ? Escape.ServerGetScenario(hub) != Escape.EscapeScenarioType.None : true);

@@ -1,7 +1,7 @@
 ﻿using Compendium.Extensions;
 using Compendium;
 
-using helpers.Extensions;
+using helpers;
 using helpers.Random;
 
 using Interactables.Interobjects.DoorUtils;

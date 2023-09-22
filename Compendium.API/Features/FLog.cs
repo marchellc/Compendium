@@ -1,4 +1,4 @@
-﻿using helpers.Extensions;
+﻿using helpers;
 using helpers.Json;
 
 using System.Diagnostics;
@@ -6,9 +6,9 @@ using System.Linq;
 using System.Reflection;
 using System;
 
-using PluginAPI.Core;
-
 using Compendium.Logging;
+
+using Log = PluginAPI.Core.Log;
 
 namespace Compendium.Features
 {

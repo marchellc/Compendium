@@ -9,7 +9,7 @@ namespace Compendium.Webhooks
         [Patch(typeof(ServerConsole), nameof(ServerConsole.AddLog), PatchType.Prefix)]
         public static bool ConsolePrefix(string q, ConsoleColor color = ConsoleColor.Gray)
         {
-            foreach (var webhook in WebhookConfig.Webhooks)
+            foreach (var webhook in WebhookHandler.Webhooks)
             {
                 if (webhook.Type is WebhookLog.Console)
                 {
@@ -28,7 +28,7 @@ namespace Compendium.Webhooks
         {
             var time = TimeBehaviour.Rfc3339Time();
 
-            foreach (var webhook in WebhookConfig.Webhooks)
+            foreach (var webhook in WebhookHandler.Webhooks)
             {
                 if (webhook.Type is WebhookLog.Server)
                 {

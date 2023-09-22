@@ -1,9 +1,11 @@
 ﻿using Compendium.Features;
 using Compendium.Round;
-using Compendium.Events;
+using Compendium.Warns;
+using Compendium.PlayerData;
 
 using helpers.Attributes;
 using helpers.Configuration;
+using helpers;
 using helpers.Extensions;
 using helpers.Time;
 using helpers.Pooling.Pools;
@@ -13,11 +15,9 @@ using System.Linq;
 using System.Timers;
 using System;
 
-using PluginAPI.Events;
 using PluginAPI.Loader;
 
 using PlayerRoles;
-using PlayerRoles.PlayableScps.Scp079;
 
 using MapGeneration.Distributors;
 
@@ -26,11 +26,15 @@ using Respawning;
 using GameCore;
 
 using UnityEngine;
-using Compendium.Warns;
+
+using PlayerStatsSystem;
+
+using Mirror;
+using PlayerRoles.PlayableScps.Scp939;
 
 namespace Compendium.Webhooks
 {
-    public static class WebhookConfig
+    public static class WebhookHandler
     {
         private static readonly List<WebhookData> _webhooks = new List<WebhookData>();
 
@@ -40,6 +44,7 @@ namespace Compendium.Webhooks
         private static string _ip;
 
         private static AlphaWarheadOutsitePanel _outsite;
+        private static Scp079Generator[] _gens;
 
         public static IReadOnlyList<WebhookData> Webhooks => _webhooks;
 
@@ -76,6 +81,30 @@ namespace Compendium.Webhooks
             WebhookInfoData.ServerAddress
         };
 
+        [Config(Name = "Event Log", Description = "A list of webhooks with their respective in-game events.")]
+        public static Dictionary<string, List<WebhookEventLog>> EventLog { get; set; } = new Dictionary<string, List<WebhookEventLog>>()
+        {
+            ["empty"] = new List<WebhookEventLog>()
+            {
+                WebhookEventLog.GrenadeExploded,
+                WebhookEventLog.GrenadeThrown,
+                WebhookEventLog.PlayerCuff,
+                WebhookEventLog.PlayerDamage,
+                WebhookEventLog.PlayerSelfDamage,
+                WebhookEventLog.PlayerSuicide,
+                WebhookEventLog.PlayerAuth,
+                WebhookEventLog.PlayerFriendlyDamage,
+                WebhookEventLog.PlayerFriendlyKill,
+                WebhookEventLog.PlayerJoined,
+                WebhookEventLog.PlayerKill,
+                WebhookEventLog.PlayerLeft,
+                WebhookEventLog.PlayerUncuff,
+                WebhookEventLog.RoundEnded,
+                WebhookEventLog.RoundStarted,
+                WebhookEventLog.RoundWaiting
+            }
+        };
+
         [Config(Name = "Private Bans Include IP", Description = "Whether or not to show user's IP address in a private ban log.")]
         public static bool PrivateBansIncludeIp { get; set; } = true;
 
@@ -91,13 +120,16 @@ namespace Compendium.Webhooks
         [Config(Name = "Info Time", Description = "The amount of milliseconds between each info pull.")]
         public static int InfoTime { get; set; } = 1000;
 
+        [Config(Name = "Announce Reports", Description = "Whether or not to announce reports in-game.")]
+        public static bool AnnounceReportsInGame { get; set; } = true;
+
         [Load]
         [Reload]
         public static void Reload()
         {
             if (!_warnReg)
             {
-                WarnSystem.OnWarnIssued.Register(new Action<WarnData, ReferenceHub, ReferenceHub>(OnWarned));
+                WarnSystem.OnWarnIssued.Register(new Action<WarnData, PlayerDataRecord, PlayerDataRecord>(OnWarned));
                 _warnReg = true;
             }
 
@@ -112,6 +144,14 @@ namespace Compendium.Webhooks
                     else
                         FLog.Warn($"Invalid webhook URL: {hook.Url} ({pair.Key})");
                 }
+            }
+
+            foreach (var pair in EventLog)
+            {
+                if (!string.IsNullOrWhiteSpace(pair.Key) && pair.Key != "empty")
+                    _webhooks.Add(new WebhookEvent(pair.Key, pair.Value));
+                else
+                    FLog.Warn($"Invalid event webhook URL: {pair.Key}");
             }
 
             if (_webhooks.Any(w => w.Type is WebhookLog.Info))
@@ -143,29 +183,138 @@ namespace Compendium.Webhooks
             FLog.Info($"Loaded {_webhooks.Count} webhooks.");
         }
 
-        [Event]
-        private static void OnRoundStarted(RoundStartEvent ev)
+        public static string GetDamageName(DamageHandlerBase damageHandler)
         {
+            if (damageHandler is WarheadDamageHandler)
+                return "Alpha Warhead";
+
+            if (damageHandler is Scp018DamageHandler)
+                return "SCP-018";
+
+            if (damageHandler is Scp049DamageHandler)
+                return "SCP-049";
+
+            if (damageHandler is Scp096DamageHandler)
+                return "SCP-096";
+
+            if (damageHandler is Scp939DamageHandler)
+                return "SCP-939";
+
+            if (damageHandler is DisruptorDamageHandler)
+                return "3-X Particle Disruptor";
+
+            if (damageHandler is JailbirdDamageHandler)
+                return "Jailbird";
+
+            if (damageHandler is MicroHidDamageHandler)
+                return "Micro-HID";
+
+            if (damageHandler is RecontainmentDamageHandler)
+                return "Recontainment";
+
+            if (damageHandler is ExplosionDamageHandler)
+                return "Grenade";
+
+            if (damageHandler is FirearmDamageHandler firearm)
+                return firearm.WeaponType.ToString().SpaceByPascalCase();
+
+            if (damageHandler is UniversalDamageHandler universal 
+                && DeathTranslations.TranslationsById.TryGetValue(universal.TranslationId, out var translation))
+                return translation.LogLabel;
+
+            if (damageHandler is AttackerDamageHandler attacker)
+            {
+                if (attacker.Attacker.Hub != null)
+                {
+                    if (attacker.Attacker.Hub.IsSCP(true))
+                        return attacker.Attacker.Role.ToString().SpaceByPascalCase();
+
+                    if (attacker.Attacker.Hub.inventory.CurInstance != null)
+                        return attacker.Attacker.Hub.inventory.CurInstance.ItemTypeId.ToString().SpaceByPascalCase();
+                }
+
+                return attacker.Attacker.Role.ToString().SpaceByPascalCase();
+            }
+
+            if (DamageHandlers.ConstructorsById.TryGetFirst(p => p.Value.Method.ReturnType == damageHandler.GetType(), out var constructor))
+            {
+                var hash = constructor.Value.GetType().FullName.GetStableHashCode();
+
+                if (DamageHandlers.IdsByTypeHash.TryGetValue(hash, out var id) && DeathTranslations.TranslationsById.TryGetValue(id, out translation))
+                    return translation.LogLabel;
+            }
+
+            return damageHandler.GetType().Name;
+        }
+
+        [RoundStateChanged(RoundState.InProgress)]
+        private static void OnRoundStarted()
+        {
+            foreach (var w in _webhooks)
+            {
+                if (w is WebhookEvent ev)
+                {
+                    if (ev.AllowedEvents != null && ev.AllowedEvents.Contains(WebhookEventLog.RoundStarted))
+                    {
+                        ev.Event($"⚡ The round has started!");
+                    }
+                }
+            }
+
             var script = GameObject.Find("OutsitePanelScript");
 
             if (script is null)
                 return;
 
             _outsite = script.GetComponentInParent<AlphaWarheadOutsitePanel>();
+            _gens = UnityEngine.Object.FindObjectsOfType<Scp079Generator>();
         }
 
-        private static void OnWarned(WarnData warn, ReferenceHub issuer, ReferenceHub target)
+        [RoundStateChanged(RoundState.WaitingForPlayers)]
+        private static void OnWaiting()
+        {
+            foreach (var w in _webhooks)
+            {
+                if (w is WebhookEvent ev)
+                {
+                    if (ev.AllowedEvents != null && ev.AllowedEvents.Contains(WebhookEventLog.RoundWaiting))
+                    {
+                        ev.Event($"⏳ Waiting for players ..");
+                    }
+                }
+            }
+        }
+
+        [RoundStateChanged(RoundState.Ending)]
+        private static void OnRoundEnded()
+        {
+            _gens = null;
+
+            foreach (var w in _webhooks)
+            {
+                if (w is WebhookEvent ev)
+                {
+                    if (ev.AllowedEvents != null && ev.AllowedEvents.Contains(WebhookEventLog.RoundEnded))
+                    {
+                        ev.Event($"🛑 The round has ended!");
+                    }
+                }
+            }
+        }
+
+        private static void OnWarned(WarnData warn, PlayerDataRecord issuer, PlayerDataRecord target)
         {
             if (!_webhooks.Any(w => w.Type == WebhookLog.Warn))
                 return;
 
             var embed = new Discord.DiscordEmbed();
 
-            embed.WithTitle($"⚠️ {ServerConsole._serverName.RemoveHtmlTags()}");
-            embed.WithField("Udělil", $"{issuer.Nick()} ({issuer.UserId()})", false);
-            embed.WithField("Hráč", $"{target.Nick()} ({target.UserId()}", false);
-            embed.WithField("Důvod", warn.Reason, false);
-            embed.WithFooter($"{warn.Id} | {warn.IssuedAt.ToString("F")}");
+            embed.WithColor(System.Drawing.Color.Red);
+            embed.WithTitle($"⚠️ {World.CurrentClearOrAlternativeServerName}");
+            embed.WithField("🔗 Udělil", $"**{issuer.NameTracking.LastValue}** *({issuer.IdTracking.LastValue.Split('@')[0]})*", false);
+            embed.WithField("🔗 Hráč", $"**{target.NameTracking.LastValue}** *({target.IdTracking.LastValue.Split('@')[0]} | {target.IpTracking.LastValue})*", false);
+            embed.WithField("❓ Důvod", warn.Reason, false);
+            embed.WithFooter($"📝 {warn.Id} | 🕒 {warn.IssuedAt.ToString("F")}");
 
             foreach (var webhook in _webhooks)
             {
@@ -183,7 +332,7 @@ namespace Compendium.Webhooks
 
             var embed = new Discord.DiscordEmbed();
 
-            embed.WithTitle($"ℹ️ {ServerConsole._serverName.RemoveHtmlTags()}");
+            embed.WithTitle($"ℹ️ {World.CurrentClearOrAlternativeServerName}");
             embed.WithFooter($"🕒 Poslední aktualizace: {helpers.Time.TimeUtils.LocalStringFull} (interval: {TimeSpan.FromMilliseconds(InfoTime).UserFriendlySpan()})");
 
             if (InfoData.Contains(WebhookInfoData.ServerAddress))
@@ -220,6 +369,9 @@ namespace Compendium.Webhooks
 
                     FeatureManager.LoadedFeatures.ForEach(f =>
                     {
+                        if (!f.IsEnabled)
+                            return;
+
                         _plugins.Add($"*[CUSTOM]* **{f.Name}**");
                     });
 
@@ -292,9 +444,11 @@ namespace Compendium.Webhooks
 
         private static string GetGeneratorStatus()
         {
-            var generators = Scp079InteractableBase.AllInstances.Where<Scp079Generator>();
-            var activatedCount = generators.Count(g => g.HasFlag(g.Network_flags, Scp079Generator.GeneratorFlags.Engaged));
-            var totalCount = generators.Count;
+            if (_gens is null)
+                return "Neznámý počet.";
+
+            var activatedCount = _gens.Count(g => g.HasFlag(g.Network_flags, Scp079Generator.GeneratorFlags.Engaged));
+            var totalCount = _gens.Length;
 
             return $"**{activatedCount} / {totalCount}**";
         }

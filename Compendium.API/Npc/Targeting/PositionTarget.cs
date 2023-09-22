@@ -2,10 +2,10 @@
 
 namespace Compendium.Npc.Targeting
 {
-    public class PositionTarget : ITarget
+    public class PositionTarget : NpcTarget
     {
-        public Vector3 Position { get; }
-        public bool IsValid { get; } = true;
+        public override Vector3 Position { get; }
+        public override bool IsValid { get; } = true;
 
         public PositionTarget(Vector3 position) => Position = position;
     }

@@ -6,7 +6,7 @@ using PlayerRoles.Visibility;
 
 using System.Collections.Generic;
 
-using helpers.Extensions;
+using helpers;
 using helpers.Patching;
 
 using Compendium.Round;

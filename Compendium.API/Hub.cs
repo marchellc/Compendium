@@ -5,6 +5,8 @@ using Compendium.Hints;
 using Compendium.Units;
 using Compendium.UserId;
 using Compendium.Round;
+using Compendium.Npc;
+using Compendium.RemoteAdmin;
 using Compendium.Snapshots;
 using Compendium.Snapshots.Data;
 
@@ -48,6 +50,12 @@ using CustomPlayerEffects;
 
 using RoundRestarting;
 
+using RemoteAdmin.Communication;
+using RemoteAdmin;
+
+using VoiceChat;
+using Compendium.Staff;
+
 namespace Compendium
 {
     public static class HubNetworkExtensions
@@ -63,6 +71,7 @@ namespace Compendium
         private static readonly Dictionary<ReferenceHub, Dictionary<ReferenceHub, Vector3>> _fakePositionsMatrix = new Dictionary<ReferenceHub, Dictionary<ReferenceHub, Vector3>>();
 
         private static readonly Dictionary<ReferenceHub, Dictionary<Type, byte>> _fakeIntensity = new Dictionary<ReferenceHub, Dictionary<Type, byte>>();
+        private static readonly Dictionary<ReferenceHub, RemoteAdminIconType> _raIcons = new Dictionary<ReferenceHub, RemoteAdminIconType>();
 
         public static bool TryGetFakePosition(this ReferenceHub hub, ReferenceHub target, out Vector3 position)
         {
@@ -84,6 +93,9 @@ namespace Compendium
             return false;
         }
 
+        public static bool TryGetRaIcon(this ReferenceHub hub, out RemoteAdminIconType icon)
+            => _raIcons.TryGetValue(hub, out icon);
+
         public static void FakeIntensity(this ReferenceHub hub, Type type, byte intensity)
         {
             if (!_fakeIntensity.ContainsKey(hub))
@@ -95,6 +107,9 @@ namespace Compendium
         public static void FakePosition(this ReferenceHub hub, Vector3 position)
             => _fakePositions[hub] = position;
 
+        public static void SetRaIcon(this ReferenceHub hub, RemoteAdminIconType icon)
+            => _raIcons[hub] = icon;
+
         public static void FakePositionTo(this ReferenceHub hub, Vector3 position, params ReferenceHub[] targets)
         {
             if (!_fakePositionsMatrix.ContainsKey(hub))
@@ -105,6 +120,9 @@ namespace Compendium
                 _fakePositionsMatrix[hub][target] = position;
             });
         }
+
+        public static void RemoveRaIcon(this ReferenceHub hub)
+            => _raIcons.Remove(hub);
 
         public static void RemoveFakePosition(this ReferenceHub hub)
             => _fakePositions.Remove(hub);
@@ -364,6 +382,7 @@ namespace Compendium
             _fakePositions.Clear();
             _fakePositionsMatrix.Clear();
             _fakeIntensity.Clear();
+            _raIcons.Clear();
         }
     }
 
@@ -399,6 +418,26 @@ namespace Compendium
         public static bool IsVerified(this ReferenceHub hub)
             => hub.Mode != ClientInstanceMode.Unverified;
 
+        public static bool IsNorthwoodStaff(this ReferenceHub hub)
+            => hub.serverRoles.Staff || hub.serverRoles.RaEverywhere;
+
+        public static bool IsNorthwoodModerator(this ReferenceHub hub)
+            => hub.serverRoles.RaEverywhere;
+
+        public static bool IsStaff(this ReferenceHub hub, bool countNwStaff = true)
+        {
+            if (hub.IsNorthwoodStaff())
+                return countNwStaff;
+
+            if (Plugin.Config.ApiSetttings.ConsiderRemoteAdminAccessAsStaff && hub.serverRoles.RemoteAdmin)
+                return true;
+
+            if (StaffHandler.Members.TryGetValue(hub.UserId(), out var groups))
+                return groups.Any(g => StaffHandler.Groups.TryGetValue(g, out var group) && group.GroupFlags.Contains(StaffGroupFlags.IsStaff));
+
+            return false;
+        }
+
         public static string UserId(this ReferenceHub hub)
             => hub.characterClassManager.UserId;
 
@@ -426,33 +465,6 @@ namespace Compendium
 
             return hub.connectionToClient.address;
         }
-
-        public static string GroupKey(this ReferenceHub hub, string roleKey = null)
-        {
-            if (ServerStatic.PermissionsHandler is null)
-                return "";
-
-            if (!string.IsNullOrWhiteSpace(roleKey))
-            {
-                if (!ServerStatic.PermissionsHandler._groups.TryGetValue(roleKey, out _))
-                {
-                    Plugin.Warn($"Tried setting role of {hub.GetLogName()} to a missing group!");
-                    return "";
-                }
-
-                ServerStatic.PermissionsHandler._members[hub.characterClassManager.UserId] = roleKey;
-                hub.serverRoles.RefreshPermissions();
-                return roleKey;
-            }
-
-            if (ServerStatic.PermissionsHandler._members.ContainsKey(hub.characterClassManager.UserId))
-                return ServerStatic.PermissionsHandler._members[hub.characterClassManager.UserId];
-
-            return "";
-        }
-
-        public static bool HasGroupKey(this ReferenceHub hub)
-            => !string.IsNullOrWhiteSpace(hub.GroupKey());
 
         public static bool HasReservedSlot(this ReferenceHub hub, bool countBypass = false)
             => ReservedSlot.HasReservedSlot(hub.UserId(), out var bypass) || (countBypass && bypass);
@@ -657,6 +669,14 @@ namespace Compendium
 
             return hp.MaxValue;
         }
+
+        public static bool IsGrounded(this ReferenceHub hub)
+        {
+            if (!(hub.Role() is IFpcRole fpcRole))
+                return false;
+
+            return fpcRole.FpcModule.IsGrounded;
+        }
     }
 
     public static class HubRoleExtensions
@@ -779,6 +799,14 @@ namespace Compendium
 
         public static void Message(this ReferenceHub hub, object content, bool isRemoteAdmin = false)
         {
+            if (Plugin.Config.ApiSetttings.ShowHubMessageDebug)
+            {
+                var caller = Reflection.GetExecutingMethod(1);
+                var callerName = $"{caller.DeclaringType.FullName}::{caller.Name}";
+
+                Plugin.Info($"[{(isRemoteAdmin ? "RA" : "PC")} OUTPUT DEBUG] {callerName} >> {hub.Nick()} ({hub.UserId()}): '{content}'");
+            }
+
             if (!isRemoteAdmin)
                 hub.characterClassManager.ConsolePrint(content.ToString(), "red");
             else
@@ -1052,6 +1080,64 @@ namespace Compendium
 
     public static class HubExtensionPatches
     {
+        [Patch(typeof(RaPlayerList), nameof(RaPlayerList.ReceiveData), PatchType.Prefix, typeof(CommandSender), typeof(string))]
+        private static bool RaPlayerListPatch(RaPlayerList __instance, CommandSender sender, string data)
+        {
+            var array = data.Split(' ');
+
+            if (array.Length != 3)
+                return false;
+
+            if (!int.TryParse(array[0], out var num) || !int.TryParse(array[1], out var num2))
+                return false;
+
+            if (!Enum.IsDefined(typeof(RaPlayerList.PlayerSorting), num2))
+                return false;
+
+            var flag = num == 1;
+            var flag2 = array[2].Equals("1");
+            var sortingType = (RaPlayerList.PlayerSorting)num2;
+            var viewHiddenBadges = CommandProcessor.CheckPermissions(sender, PlayerPermissions.ViewHiddenBadges);
+            var viewHiddenGlobalBadges = CommandProcessor.CheckPermissions(sender, PlayerPermissions.ViewHiddenGlobalBadges);
+            var playerCommandSender = sender as PlayerCommandSender;
+
+            if (playerCommandSender != null && playerCommandSender.ServerRoles.Staff)
+            {
+                viewHiddenBadges = true;
+                viewHiddenGlobalBadges = true;
+            }
+
+            var stringBuilder = StringBuilderPool.Pool.Get();
+
+            stringBuilder.Append("\n");
+
+            foreach (var referenceHub in (flag2 ? __instance.SortPlayersDescending(sortingType) : __instance.SortPlayers(sortingType)))
+            {
+                if (referenceHub.Mode != ClientInstanceMode.ReadyClient
+                    && (!referenceHub.TryGetNpc(out var npc) || !npc.ShowInPlayerList))
+                    continue;
+
+                var isInOverwatch = referenceHub.serverRoles.IsInOverwatch;
+                var flag3 = VoiceChatMutes.IsMuted(referenceHub, false);
+                var hasIcon = referenceHub.TryGetRaIcon(out var icon);
+
+                stringBuilder.Append(__instance.GetPrefix(referenceHub, viewHiddenBadges, viewHiddenGlobalBadges));
+
+                if (isInOverwatch || (hasIcon && icon == RemoteAdminIconType.Overwatch))
+                    stringBuilder.Append("<link=RA_OverwatchEnabled><color=white>[</color><color=#03f8fc></color><color=white>]</color></link> ");
+
+                if (flag3 || (hasIcon && icon == RemoteAdminIconType.Muted))
+                    stringBuilder.Append("<link=RA_Muted><color=white>[</color>\ud83d\udd07<color=white>]</color></link> ");
+
+                stringBuilder.Append("<color={RA_ClassColor}>(").Append(referenceHub.PlayerId).Append(") ");
+                stringBuilder.Append(referenceHub.nicknameSync.CombinedName.Replace("\n", string.Empty).Replace("RA_", string.Empty)).Append("</color>");
+                stringBuilder.AppendLine();
+            }
+
+            sender.RaReply(string.Format("${0} {1}", __instance.DataId, StringBuilderPool.Pool.PushReturn(stringBuilder)), true, !flag, string.Empty);
+            return false;
+        }
+
         [Patch(typeof(FpcServerPositionDistributor), nameof(FpcServerPositionDistributor.GetNewSyncData), PatchType.Prefix)]
         public static bool GenerateNewSyncData(ReferenceHub receiver, ReferenceHub target, FirstPersonMovementModule fpmm, bool isInvisible, ref FpcSyncData __result)
         {

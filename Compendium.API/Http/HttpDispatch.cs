@@ -36,9 +36,7 @@ namespace Compendium.Http
             }
 
             if (content != null)
-            {
                 request.Content = content;
-            }
 
             _dispatchQueue.Enqueue(new HttpDispatchData(address, request, callback));
 

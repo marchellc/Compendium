@@ -1,15 +1,14 @@
-﻿using Compendium.Colors;
+﻿using BetterCommands;
+
+using Compendium.Colors;
 using Compendium.Events;
-using Compendium.Features;
 using Compendium.Round;
 using Compendium.Voice.Pools;
 using Compendium.Voice.Prefabs.Scp;
 
 using helpers.Attributes;
 using helpers.Extensions;
-using helpers.IO.Storage;
 using helpers.Patching;
-using helpers.Values;
 
 using Mirror;
 
@@ -20,7 +19,6 @@ using PluginAPI.Events;
 
 using System;
 using System.Collections.Generic;
-using System.Linq;
 
 using Utils.NonAllocLINQ;
 
@@ -31,17 +29,19 @@ namespace Compendium.Voice
 {
     public static class VoiceChat
     {
-        private static SingleFileStorage<string> _broadcastStorage;
-
         private static readonly Dictionary<uint, IVoiceProfile> _activeProfiles = new Dictionary<uint, IVoiceProfile>();
-        private static readonly Dictionary<uint, VoiceModifier> _activeModifiers = new Dictionary<uint, VoiceModifier>();
+        private static readonly Dictionary<uint, List<VoiceModifier>> _activeModifiers = new Dictionary<uint, List<VoiceModifier>>();
 
+        private static readonly HashSet<uint> _speakCache = new HashSet<uint>();
         private static readonly HashSet<IVoicePrefab> _activePrefabs = new HashSet<IVoicePrefab>();
 
         public static IReadOnlyCollection<IVoicePrefab> Prefabs => _activePrefabs;
         public static IReadOnlyCollection<IVoiceProfile> Profiles => _activeProfiles.Values;
 
         public static IVoiceChatState State { get; set; }
+
+        public static event Action<ReferenceHub> OnStartedSpeaking;
+        public static event Action<ReferenceHub> OnStoppedSpeaking;
 
         public static void RegisterPrefab<TPrefab>() where TPrefab : IVoicePrefab, new()
         {
@@ -55,13 +55,23 @@ namespace Compendium.Voice
         }
 
         public static void SetState(ReferenceHub hub, VoiceModifier voiceModifier)
-            => _activeModifiers[hub.netId] = voiceModifier;
+        {
+            if (!_activeModifiers.ContainsKey(hub.netId))
+                _activeModifiers[hub.netId] = new List<VoiceModifier>() { voiceModifier };
+            else
+                _activeModifiers[hub.netId].Add(voiceModifier);
+        }
 
-        public static void RemoveState(ReferenceHub hub)
-            => _activeModifiers.Remove(hub.netId);
+        public static void RemoveState(ReferenceHub hub, VoiceModifier voiceModifier)
+        {
+            if (!_activeModifiers.ContainsKey(hub.netId))
+                return;
 
-        public static Optional<VoiceModifier> GetModifiers(ReferenceHub hub)
-            => _activeModifiers.TryGetValue(hub.netId, out var modifiers) ? Optional<VoiceModifier>.FromValue(modifiers) : Optional<VoiceModifier>.Null;
+            _activeModifiers[hub.netId].Remove(voiceModifier);
+        }
+
+        public static List<VoiceModifier> GetModifiers(ReferenceHub hub)
+            => _activeModifiers.TryGetValue(hub.netId, out var modifiers) ? modifiers : null;
 
         public static void SetProfile(ReferenceHub hub, IVoiceProfile profile)
         {
@@ -76,8 +86,6 @@ namespace Compendium.Voice
 
             _activeProfiles[hub.netId] = profile;
             profile.Enable();
-
-            Plugin.Debug($"Set voice profile of {hub.GetLogName(false)} to {profile}");
         }
 
         public static void SetProfile(ReferenceHub hub, IVoicePrefab prefab)
@@ -104,21 +112,22 @@ namespace Compendium.Voice
             return false;
         }
 
+        private static bool IsSpeaking(ReferenceHub hub)
+            => _speakCache.Contains(hub.netId);
+
+        private static void SetSpeaking(ReferenceHub hub, bool state)
+        {
+            if (!state)
+                _speakCache.Remove(hub.netId);
+            else
+                _speakCache.Add(hub.netId);
+        }
+
         [Load]
         [Reload]
         private static void Load()
         {
-            if (_broadcastStorage != null)
-            {
-                _broadcastStorage.Reload();
-                return;
-            }
-
             RegisterPrefab<ScpVoicePrefab>();
-
-            _broadcastStorage = new SingleFileStorage<string>($"{Directories.ThisData}/SavedVoiceBroadcasts");
-            _broadcastStorage.Load();
-
             Plugin.Info($"Voice Chat system loaded.");
         }
 
@@ -130,9 +139,7 @@ namespace Compendium.Voice
             _activeModifiers.Clear();
             _activePrefabs.Clear();
             _activeProfiles.Clear();
-
-            _broadcastStorage.Save();
-            _broadcastStorage = null;
+            _speakCache.Clear();
 
             State = null;
 
@@ -144,6 +151,7 @@ namespace Compendium.Voice
         {
             _activeProfiles.Clear();
             _activeModifiers.Clear();
+            _speakCache.Clear();
 
             State = null;
         }
@@ -157,15 +165,10 @@ namespace Compendium.Voice
                     SetProfile(ev.Player.ReferenceHub, prefab);
                 else
                 {
-                    var found = false;
-
-                    if (found = (_activeProfiles.TryGetValue(ev.Player.NetworkId, out var curProf)))
+                    if (_activeProfiles.TryGetValue(ev.Player.NetworkId, out var curProf))
                         curProf.Disable();
 
                     _activeProfiles.Remove(ev.Player.NetworkId);
-
-                    if (found)
-                        Plugin.Debug($"Removed voice profile from {ev.Player.ReferenceHub.GetLogName()}: {curProf}");
                 }
             });
         }
@@ -173,25 +176,71 @@ namespace Compendium.Voice
         [Event]
         private static void OnPlayerJoined(PlayerJoinedEvent ev)
         {
-            if (_broadcastStorage.Data.Contains(ev.Player.UserId))
-                return;
+            Calls.Delay(1.5f, () =>
+            {
+                ev.Player.ReferenceHub.Message(
+                    $"\nVítej na serveru Peanut Club!\n" +
+                    $"Využíváme zde pár funkcí, které vyžadují záznam kláves od hráčů.\n" +
+                    $"Tyto funkce aktuálně zahrnují pouze možnost přepínaní SCP voice chatu na Proximity a zpět, ale později jich bude mnohem více.\n\n" +
+                    $"Pro povolení záznamu kláves musíš spustit hru s launch argumentem -allow-syncbind (ten můžeš nastavit když ve Steam knihovně klikneš na hru pravým tlačítkem myši, vybereš Vlastnosti a otevřeš záložku Obecné, kde se nachází textové pole úplně dole, do kterého to napíšeš).\n" +
+                    $"Poté vyžaduje hra ještě potvrzení, které můžeš provést tím, že do této konzole napíšeš dvakrát synccmd (můžeš provést i teď, nebo potom).\n" +
+                    $"Toť vše, užij si hru!");
 
-            ev.Player.ReferenceHub.Message(
-                $"\nVítej na serveru Peanut Club!\n" +
-                $"Využíváme zde pár funkcí, které vyžadují záznam kláves od hráčů.\n" +
-                $"Tyto funkce aktuálně zahrnují pouze možnost přepínaní SCP voice chatu na Proximity a zpět, ale později jich bude mnohem více.\n\n" +
-                $"Pro povolení záznamu kláves musíš spustit hru s launch argumentem -allow-syncbind (ten můžeš nastavit když ve Steam knihovně klikneš na hru pravým tlačítkem myši, vybereš Vlastnosti a otevřeš záložku Obecné, kde se nachází textové pole úplně dole, do kterého to napíšeš).\n" +
-                $"Poté vyžaduje hra ještě potvrzení, které můžeš provést tím, že do této konzole napíšeš dvakrát synccmd (můžeš provést i teď, nebo potom).\n" +
-                $"Toť vše, užij si hru!");
+                ev.Player.ReferenceHub.Hint(
+                    $"\n\n\n" +
+                    $"<b><color={ColorValues.LightGreen}>Vítej!\n" +
+                    $"Na tomto serveru máme pár funkcí, které závisí na bindování. Pro více informací si otevři <color={ColorValues.Red}>herní konzoli</color>\n" +
+                    $"<i>(<color={ColorValues.Green}>klávesa nad tabulátorem a pod Escapem: ~)</color></i>" +
+                    $"\n</color></b>", 15f, true);
+            });
+        }
 
-            ev.Player.ReferenceHub.Hint(
-                $"\n\n\n" +
-                $"<b><color={ColorValues.LightGreen}>Vítej! Tuto zprávu uvidíš jen jednou.\n" +
-                $"Na tomto serveru máme pár funkcí, které závisí na bindování. Pro více informací si otevři <color={ColorValues.Red}>herní konzoli</color>\n" +
-                $"<i>(<color={ColorValues.Green}>klávesa nad tabulátorem a pod Escapem: ~</color></i>" +
-                $"\n</color></b>", 7f, true);
+        [UpdateEvent]
+        private static void OnUpdate()
+        {
+            foreach (var hub in Hub.Hubs)
+            {
+                if (!(hub.Role() is IVoiceRole vcRole))
+                    continue;
 
-            _broadcastStorage.Add(ev.Player.UserId);
+                if (vcRole.VoiceModule is null)
+                    continue;
+
+                if (vcRole.VoiceModule.ServerIsSending)
+                {
+                    if (!IsSpeaking(hub))
+                    {
+                        SetSpeaking(hub, true);
+                        OnStartedSpeaking?.Invoke(hub);
+                    }
+                }
+                else
+                {
+                    if (IsSpeaking(hub))
+                    {
+                        SetSpeaking(hub, false);
+                        OnStoppedSpeaking?.Invoke(hub);
+                    }
+                }
+            }
+        }
+
+        [BetterCommands.Command("playback", CommandType.PlayerConsole)]
+        [Description("Enables or disables microphone playback.")]
+        private static string PlaybackCommand(ReferenceHub sender)
+        {
+            var cur = GetModifiers(sender);
+
+            if (cur != null && cur.Contains(VoiceModifier.PlaybackEnabled))
+            {
+                RemoveState(sender, VoiceModifier.PlaybackEnabled);
+                return "Disabled playback.";
+            }
+            else
+            {
+                SetState(sender, VoiceModifier.PlaybackEnabled);
+                return "Enabled playback.";
+            }
         }
 
         [Patch(typeof(VoiceTransceiver), nameof(VoiceTransceiver.ServerReceiveMessage))]
@@ -227,6 +276,11 @@ namespace Compendium.Voice
                     speakerRole.VoiceModule.CurrentChannel = packet.SenderChannel;
                     packet.Destinations.ForEach(p =>
                     {
+                        if (packet.AlternativeSenders.TryGetValue(p.Key, out var sender))
+                            msg.Speaker = sender;
+                        else if (msg.Speaker.netId != packet.Speaker.netId)
+                            msg.Speaker = packet.Speaker;
+
                         if (p.Value != VoiceChatChannel.None)
                         {
                             msg.Channel = p.Value;

@@ -1,16 +1,34 @@
-﻿namespace Compendium.Staff
+﻿using System.Collections.Generic;
+
+namespace Compendium.Staff
 {
     public class StaffGroup
     {
-        public string Id { get; set; }
+        public string Key { get; set; }
+        public string Text { get; set; }
 
-        public string Name { get; set; }
-        public string Color { get; set; }
+        public byte KickPower { get; set; }
+        public byte RequiredKickPower { get; set; }
+
+        public StaffColor Color { get; set; }
+
+        public List<StaffPermissions> Permissions { get; }
         
-        public PlayerPermissions[] Permissions { get; set; }
+        public IReadOnlyList<StaffBadgeFlags> BadgeFlags { get; set; }
+        public IReadOnlyList<StaffGroupFlags> GroupFlags { get; set; }
 
-        public bool IsCover { get; set; }
-        public bool IsHidden { get; set; }
-        public bool IsStaff { get; set; }
+        public StaffGroup(string key, string text, byte kickPower, byte requiredKickPower, StaffColor color, List<StaffBadgeFlags> badgeFlags, List<StaffGroupFlags> groupFlags)
+        {
+            Key = key;
+            Text = text;
+            Color = color;
+            KickPower = kickPower;
+            RequiredKickPower = requiredKickPower;
+
+            Permissions = new List<StaffPermissions>();
+
+            BadgeFlags = badgeFlags.AsReadOnly();
+            GroupFlags = groupFlags.AsReadOnly();
+        }
     }
 }

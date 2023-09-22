@@ -24,14 +24,10 @@ namespace Compendium.Webhooks
             Content = content;
 
             if (string.IsNullOrWhiteSpace(Content) || Content is "empty")
-            {
                 Content = null;
-            }
             
             if (Uri.TryCreate(url, UriKind.Absolute, out var result))
-            {
                 Url = result;
-            }
             else
             {
                 Url = null;
@@ -48,9 +44,7 @@ namespace Compendium.Webhooks
             }
 
             if (content is null && Content != null)
-            {
                 content = Content;
-            }
 
             if (content is null && !embed.HasValue)
             {
@@ -61,14 +55,10 @@ namespace Compendium.Webhooks
             var message = new DiscordMessage();
 
             if (!string.IsNullOrWhiteSpace(content))
-            {
                 message.WithContent(content);
-            }
 
             if (embed.HasValue)
-            {
                 message.WithEmbeds(embed.Value);
-            }
 
             Queue.Enqueue(message);
         }

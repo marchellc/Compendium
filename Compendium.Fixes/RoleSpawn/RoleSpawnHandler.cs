@@ -97,6 +97,15 @@ namespace Compendium.Fixes.RoleSpawn
             {
                 hub.Health(hub.MaxHealth());
 
+                if (newRole is null)
+                    return;
+
+                if (!newRole.Is<IFpcRole>())
+                    return;
+
+                if (!newRole.ServerSpawnFlags.HasFlag(RoleSpawnFlags.UseSpawnpoint))
+                    return;
+
                 var role = hub.GetRoleId();
 
                 if (RoleSpawnValidator.IsEnabled(role, RoleSpawnValidationType.YAxis, out var axisValue))

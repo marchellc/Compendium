@@ -463,7 +463,7 @@ namespace Compendium.Sounds
                             {
                                 var pos = Position.Value.Value;
 
-                                pos.y -= 2f;
+                                pos.y -= 5f;
 
                                 _speaker.FakePosition(pos);
                                 _sMoved = true;

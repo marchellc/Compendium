@@ -20,6 +20,15 @@ namespace Compendium.Settings
         [Description("Whetehr or not to reload configs and features on round restart.")]
         public bool ReloadOnRestart { get; set; } = true;
 
+        [Description("Whether or not to consider everyone with access to the Remote Admin as a staff member. This may be crucial for some features.")]
+        public bool ConsiderRemoteAdminAccessAsStaff { get; set; } = false;
+
+        [Description("Whether or not to debug the Hub.Message() extension.")]
+        public bool ShowHubMessageDebug { get; set; } = true;
+
+        [Description("An alternative server name to be used by some features.")]
+        public string AlternativeServerName { get; set; } = "none";
+
         [Description("A list of features to use global directories.")]
         public List<string> GlobalDirectories { get; set; } = new List<string>()
         {

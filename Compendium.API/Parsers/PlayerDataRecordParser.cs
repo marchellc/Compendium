@@ -2,10 +2,10 @@
 
 using Compendium.PlayerData;
 
-using helpers.Attributes;
 using helpers.Results;
 
 using System;
+using System.Collections.Generic;
 
 namespace Compendium.Parsers
 {
@@ -14,7 +14,11 @@ namespace Compendium.Parsers
         internal static void Load()
         {
             CommandArgumentParser.AddParser<PlayerDataRecordParser>(typeof(PlayerDataRecord));
-            Plugin.Debug($"PlayerDataRecordParser registered");
+
+            if (!(ArgumentUtils.UserFriendlyNames is Dictionary<Type, string> dict))
+                return;
+
+            dict[typeof(PlayerDataRecord)] = "a player's name, IP, user ID (for offline players) or player ID (for online players only).";
         }
 
         public IResult Parse(string value, Type type)

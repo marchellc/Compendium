@@ -7,103 +7,86 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Reflection.Emit;
 using System.Reflection;
+using System.Threading;
 
 using helpers.Attributes;
-using helpers.Extensions;
+using helpers;
 
 namespace Compendium
 {
     public static class Mirror
     {
-        private static readonly Dictionary<Type, MethodInfo> _writers = new Dictionary<Type, MethodInfo>();
+        private static volatile Dictionary<Type, MethodInfo> _writers = new Dictionary<Type, MethodInfo>();
 
-        private static readonly Dictionary<string, ulong> _syncVars = new Dictionary<string, ulong>();
-        private static readonly Dictionary<string, string> _rpcMatrix = new Dictionary<string, string>();
+        private static volatile Dictionary<string, ulong> _syncVars = new Dictionary<string, ulong>();
+        private static volatile Dictionary<string, string> _rpcMatrix = new Dictionary<string, string>();
 
         [Load]
         private static void Load()
         {
-            Plugin.Info("Loading Mirror ..");
-
             try
             {
                 var assembly = typeof(RoleTypeId).Assembly;
                 var generatedClass = assembly.GetType("Mirror.GeneratedNetworkCode");
 
-                Plugin.Debug("== Loading Writer Extensions ==");
-
-                foreach (var method in typeof(NetworkWriterExtensions).GetMethods().Where(x => !x.IsGenericMethod && (x.GetParameters()?.Length == 2)))
+                new Thread(() =>
                 {
-                    var paramType = method.GetParameters().First(x => x.ParameterType != typeof(NetworkWriter)).ParameterType;
-                    _writers[paramType] = method;
-                    Plugin.Debug($"Registered writer: {method.DeclaringType.FullName} :: {method.Name} ({paramType.FullName})");
-                }
-
-                Plugin.Debug("== Loading Generated Writer Extensions ==");
-
-                foreach (var method in generatedClass.GetMethods().Where(x => !x.IsGenericMethod && (x.GetParameters()?.Length == 2) && (x.ReturnType == typeof(void))))
-                {
-                    var paramType = method.GetParameters().First(x => x.ParameterType != typeof(NetworkWriter)).ParameterType;
-                    _writers[paramType] = method;
-                    Plugin.Debug($"Registered generated writer: {method.DeclaringType.FullName} :: {method.Name} ({paramType.FullName})");
-                }
-
-                Plugin.Debug("== Loading Serializers ==");
-
-                foreach (var serializerClass in assembly.GetTypes().Where(x => x.Name.EndsWith("Serializer")))
-                {
-                    foreach (var method in serializerClass.GetMethods().Where(x => (x.ReturnType == typeof(void)) && x.Name.StartsWith("Write")))
+                    foreach (var method in typeof(NetworkWriterExtensions).GetMethods().Where(x => !x.IsGenericMethod && (x.GetParameters()?.Length == 2)))
                     {
                         var paramType = method.GetParameters().First(x => x.ParameterType != typeof(NetworkWriter)).ParameterType;
                         _writers[paramType] = method;
-                        Plugin.Debug($"Registered serializer: {method.DeclaringType.FullName} :: {method.Name} ({paramType.FullName})");
                     }
-                }
 
-                Plugin.Debug("== Loading Sync Vars ==");
-
-                foreach (var property in assembly.GetTypes().SelectMany(x => x.GetProperties()).Where(m => m.Name.StartsWith("Network")))
-                {
-                    var setMethod = property.GetSetMethod();
-
-                    if (setMethod is null)
-                        continue;
-
-                    var methodBody = setMethod.GetMethodBody();
-
-                    if (methodBody is null)
-                        continue;
-
-                    var bytecodes = methodBody.GetILAsByteArray();
-
-                    if (!_syncVars.ContainsKey($"{property.ReflectedType.Name}.{property.Name}"))
+                    foreach (var method in generatedClass.GetMethods().Where(x => !x.IsGenericMethod && (x.GetParameters()?.Length == 2) && (x.ReturnType == typeof(void))))
                     {
-                        _syncVars.Add($"{property.ReflectedType.Name}.{property.Name}", bytecodes[bytecodes.LastIndexOf((byte)OpCodes.Ldc_I8.Value) + 1]);
-                        Plugin.Debug($"Registered SyncVar '{property.ReflectedType.FullName}.{property.Name}'");
+                        var paramType = method.GetParameters().First(x => x.ParameterType != typeof(NetworkWriter)).ParameterType;
+                        _writers[paramType] = method;
                     }
-                }
 
-                Plugin.Debug("== Loading RPCs ==");
-
-                foreach (var method in assembly.GetTypes()
-                    .SelectMany(x => x.GetMethods(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance))
-                    .Where(m => m.GetCustomAttributes(typeof(ClientRpcAttribute), false).Length > 0 || m.GetCustomAttributes(typeof(TargetRpcAttribute), false).Length > 0))
-                {
-                    var methodBody = method.GetMethodBody();
-
-                    if (methodBody is null)
-                        continue;
-
-                    var bytecodes = methodBody.GetILAsByteArray();
-
-                    if (!_rpcMatrix.ContainsKey($"{method.ReflectedType.Name}.{method.Name}"))
+                    foreach (var serializerClass in assembly.GetTypes().Where(x => x.Name.EndsWith("Serializer")))
                     {
-                        _rpcMatrix.Add($"{method.ReflectedType.Name}.{method.Name}", method.Module.ResolveString(BitConverter.ToInt32(bytecodes, bytecodes.IndexOf((byte)OpCodes.Ldstr.Value) + 1)));
-                        Plugin.Debug($"Registered RPC '{method.ReflectedType.FullName}.{method.Name}'");
+                        foreach (var method in serializerClass.GetMethods().Where(x => (x.ReturnType == typeof(void)) && x.Name.StartsWith("Write")))
+                        {
+                            var paramType = method.GetParameters().First(x => x.ParameterType != typeof(NetworkWriter)).ParameterType;
+                            _writers[paramType] = method;
+                        }
                     }
-                }
 
-                Plugin.Info($"Mirror Networking loaded! writers={_writers.Count} syncVars={_syncVars.Count} rpc={_rpcMatrix.Count}");
+                    foreach (var property in assembly.GetTypes().SelectMany(x => x.GetProperties()).Where(m => m.Name.StartsWith("Network")))
+                    {
+                        var setMethod = property.GetSetMethod();
+
+                        if (setMethod is null)
+                            continue;
+
+                        var methodBody = setMethod.GetMethodBody();
+
+                        if (methodBody is null)
+                            continue;
+
+                        var bytecodes = methodBody.GetILAsByteArray();
+
+                        if (!_syncVars.ContainsKey($"{property.ReflectedType.Name}.{property.Name}"))
+                            _syncVars.Add($"{property.ReflectedType.Name}.{property.Name}", bytecodes[bytecodes.LastIndexOf((byte)OpCodes.Ldc_I8.Value) + 1]);
+                    }
+
+                    foreach (var method in assembly.GetTypes()
+                        .SelectMany(x => x.GetMethods(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance))
+                        .Where(m => m.GetCustomAttributes(typeof(ClientRpcAttribute), false).Length > 0 || m.GetCustomAttributes(typeof(TargetRpcAttribute), false).Length > 0))
+                    {
+                        var methodBody = method.GetMethodBody();
+
+                        if (methodBody is null)
+                            continue;
+
+                        var bytecodes = methodBody.GetILAsByteArray();
+
+                        if (!_rpcMatrix.ContainsKey($"{method.ReflectedType.Name}.{method.Name}"))
+                            _rpcMatrix.Add($"{method.ReflectedType.Name}.{method.Name}", method.Module.ResolveString(BitConverter.ToInt32(bytecodes, bytecodes.IndexOf((byte)OpCodes.Ldstr.Value) + 1)));
+                    }
+
+                    Plugin.Info($"Mirror Networking loaded! writers={_writers.Count} syncVars={_syncVars.Count} rpc={_rpcMatrix.Count}");
+                }).Start();
             }
             catch (Exception ex)
             {

@@ -13,6 +13,8 @@
 
         Info,
 
-        Warn
+        Warn,
+
+        Event
     }
 }

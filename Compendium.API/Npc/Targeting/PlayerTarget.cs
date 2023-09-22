@@ -6,7 +6,7 @@ using UnityEngine;
 
 namespace Compendium.Npc.Targeting
 {
-    public class PlayerTarget : ITarget
+    public class PlayerTarget : NpcTarget
     {
         private Player m_Target;
 
@@ -25,8 +25,7 @@ namespace Compendium.Npc.Targeting
             m_Target = Player.Get(hub);
         }
 
-        public Vector3 Position => m_Target.Position;
-
-        public bool IsValid => m_Target != null && m_Target.ReferenceHub != null && !m_Target.IsServer && m_Target.IsAlive;
+        public override Vector3 Position => m_Target.Position;
+        public override bool IsValid => m_Target != null && m_Target.ReferenceHub != null && !m_Target.IsServer && m_Target.IsAlive;
     }
 }

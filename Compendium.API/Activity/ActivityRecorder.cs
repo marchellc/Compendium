@@ -1,17 +1,19 @@
-﻿using Compendium.Events;
+﻿using BetterCommands;
+
+using Compendium.Events;
 using Compendium.PlayerData;
 using Compendium.Round;
 
 using helpers.Attributes;
-using helpers.Extensions;
+using helpers;
 using helpers.IO.Storage;
 using helpers.Time;
 
 using PluginAPI.Events;
-using PluginAPI.Helpers;
 
 using System;
 using System.Collections.Generic;
+using System.Text;
 
 namespace Compendium.Activity
 {
@@ -117,11 +119,14 @@ namespace Compendium.Activity
         [Event]
         private static void OnPlayerLeft(PlayerLeftEvent ev)
         {
-            var dataRecord = PlayerDataRecorder.GetData(ev.Player.ReferenceHub);
-            var acRecord = GetRecord(dataRecord);
+            Calls.Delay(0.1f, () =>
+            {
+                var dataRecord = PlayerDataRecorder.GetData(ev.Player.ReferenceHub);
+                var acRecord = GetRecord(dataRecord);
 
-            acRecord.EndSession();
-            _records.Save();
+                acRecord.EndSession();
+                _records.Save();
+            });
         }
 
         [UpdateEvent]
@@ -144,6 +149,28 @@ namespace Compendium.Activity
         {
             _activeRecords.Clear();
             _lastSave = null;
+        }
+
+        [Command("activity", CommandType.RemoteAdmin, CommandType.GameConsole)]
+        [Description("Views all known activity records.")]
+        private static string ActivityCommand(ReferenceHub sender, PlayerDataRecord record)
+        {
+            var activity = GetRecord(record);
+
+            if (activity is null)
+                return "Failed to find an activity record for this data record.";
+
+            var sb = new StringBuilder();
+
+            sb.AppendLine($"== Activity Record ID: {activity.Id} ==");
+            sb.AppendLine($" > Two Weeks Play Time: {(TryGetTwoWeeksPlaytime(activity.Id, out var time) ? time.UserFriendlySpan() : "Unknown")}");
+            sb.AppendLine($" > Total Play Time: {(TryGetTotalPlaytime(activity.Id, out time) ? time.UserFriendlySpan() : "Unknown")}");
+
+            sb.AppendLine($"> Listing sessions .. ({activity.Sessions.Count}):");
+
+            activity.Sessions.For((i, s) => sb.AppendLine($"    -> [{i + 1}] {s.StartedAt.ToString("F")} - {(s.HasEnded ? s.EndedAt.ToString("F") : "not ended yet")} ({s.Duration.UserFriendlySpan()})"));
+
+            return sb.ToString();
         }
     }
 }

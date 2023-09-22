@@ -1,6 +1,7 @@
 ﻿using Compendium.Events;
 using Compendium.Logging;
 using Compendium.Parsers;
+using Compendium.Round;
 
 using helpers;
 using helpers.Patching;
@@ -11,13 +12,15 @@ using PluginAPI.Core;
 using PluginAPI.Core.Attributes;
 using PluginAPI.Loader;
 
+using BetterCommands;
+using BetterCommands.Permissions;
+
 using System;
 using System.Reflection;
 
 using Utils.NonAllocLINQ;
 
 using Log = PluginAPI.Core.Log;
-using Compendium.Round;
 
 namespace Compendium
 {
@@ -38,7 +41,7 @@ namespace Compendium
 
         [PluginEntryPoint(
             "Compendium API",
-            "3.3.1",
+            "3.3.2",
             "A huge API for each Compendium component.",
             "marchellc_")]
         [PluginPriority(PluginAPI.Enums.LoadPriority.Lowest)]
@@ -170,6 +173,30 @@ namespace Compendium
                 helpers.Log.Info(message);
 
             Log.Info(message?.ToString() ?? "Null Message!", helpers.Log.ResolveCaller(1));
+        }
+
+        [Command("announcerestart", CommandType.GameConsole, CommandType.RemoteAdmin, CommandType.PlayerConsole)]
+        [Permission(PermissionLevel.Administrator)]
+        [CommandAliases("ar")]
+        [Description("Announces a server restart and then restarts in 10 seconds.")]
+        private static string AnnounceRestartCommand(ReferenceHub sender)
+        {
+            World.Broadcast($"<color=red><b>Server se restartuje za 10 sekund!</b></color>", 10, true);
+            Calls.Delay(10f, () => Server.Restart());
+
+            return "Restarting in 10 seconds ..";
+        }
+
+        [Command("creload", CommandType.GameConsole, CommandType.RemoteAdmin)]
+        [Description("Reloads Compendium's core API.")]
+        [Permission(PermissionLevel.Administrator)]
+        private static string ReloadCommand(ReferenceHub sender)
+        {
+            if (Instance is null)
+                return "Instance is inactive.";
+
+            Instance.Reload();
+            return "Reloaded!";
         }
     }
 }

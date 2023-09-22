@@ -2,8 +2,6 @@
 using Compendium.Voice.States;
 using Compendium.Voice.States.StaffVoice;
 
-using helpers.Enums;
-
 using PlayerRoles.Voice;
 
 using System.Collections.Generic;
@@ -30,7 +28,7 @@ namespace Compendium.Voice
         {
             var modifiers = VoiceChat.GetModifiers(hub);
 
-            if (modifiers.HasValue && modifiers.Value.HasFlagFast(VoiceModifier.PlaybackEnabled))
+            if (modifiers != null && modifiers.Contains(VoiceModifier.PlaybackEnabled))
                 return true;
 
             return false;
@@ -71,7 +69,6 @@ namespace Compendium.Voice
             packet.Speaker = message.Speaker;
 
             GenerateDestinations(message, origChannel, packet.Destinations);
-
             return packet;
         }
 
@@ -79,8 +76,14 @@ namespace Compendium.Voice
         {
             Hub.ForEach(hub =>
             {
-                if (hub.netId == message.Speaker.netId && !CanHearSelf(hub))
+                if (hub.netId == message.Speaker.netId)
                 {
+                    if (CanHearSelf(hub))
+                    {
+                        dict[hub] = VoiceChatChannel.RoundSummary;
+                        return;
+                    }
+
                     dict[hub] = VoiceChatChannel.None;
                     return;
                 }

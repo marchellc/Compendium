@@ -1,4 +1,5 @@
-﻿using helpers.Extensions;
+﻿using helpers;
+using helpers.Extensions;
 
 using MEC;
 
@@ -83,7 +84,7 @@ namespace Compendium
         {
             try
             {
-                del.Method.Invoke(del.Target, args);
+                del.Method.FastInvoke(del.Target, args);
             }
             catch (Exception ex)
             {
@@ -96,7 +97,7 @@ namespace Compendium
         {
             try
             {
-                var res = del.Method.Invoke(del.Target, args);
+                var res = del.Method.FastInvoke(del.Target, args);
 
                 if (res is null)
                     return default;

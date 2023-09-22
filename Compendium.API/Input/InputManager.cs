@@ -6,6 +6,7 @@ using GameCore;
 
 using helpers.Attributes;
 using helpers.Events;
+using helpers;
 using helpers.Extensions;
 using helpers.IO.Storage;
 
@@ -42,16 +43,12 @@ namespace Compendium.Input
             }
 
             _handlers.Add(new THandler());
-            Plugin.Debug($"Input registered: {typeof(THandler)}");
         }
 
         public static void Unregister<THandler>() where THandler : IInputHandler, new()
         {
             if (_handlers.RemoveWhere(h => h is THandler) > 0)
-            {
                 OnKeyUnregistered.Invoke(typeof(THandler));
-                Plugin.Debug($"Input unregistered: {typeof(THandler)}");
-            }
         }
 
         public static bool TryGetHandler(string actionId, out IInputHandler handler)
@@ -105,14 +102,10 @@ namespace Compendium.Input
             }
             else
                 _binds.Reload();
-
-            Plugin.Debug($"Inputs reloaded.");
         }
 
         private static void SyncPlayer(ReferenceHub hub)
         {
-            hub.Message($"[INPUT] Synchronizing key binds ..");
-
             _handlers.ForEach(handler =>
             {
                 var key = KeyFor(hub, handler);
@@ -126,15 +119,12 @@ namespace Compendium.Input
 
         private static void ReceiveKey(ReferenceHub player, string actionId)
         {
-            Plugin.Debug($"Received input action from player {player.GetLogName(true)}: {actionId}");
-
             OnKeyPressed.Invoke(player, actionId);
 
             if (_handlers.TryGetFirst(h => h.Id == actionId, out var handler))
             {
                 try
                 {
-                    Plugin.Debug($"Executing handler: {handler}");
                     handler.OnPressed(player);
                 }
                 catch (Exception ex)

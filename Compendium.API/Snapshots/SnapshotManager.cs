@@ -1,6 +1,6 @@
 ﻿using Compendium.Snapshots.Capture;
 
-using helpers.Extensions;
+using helpers;
 
 using System.Collections.Generic;
 
