@@ -1,39 +1,22 @@
-﻿using System.Collections.Generic;
+﻿using helpers;
 
 namespace Compendium.Custom.Items
 {
-    public class CustomItem<THandler> : CustomItemBase where THandler : CustomItemHandlerBase, new()
+    public class CustomItem<TItemHandler, TPickupHandler> : CustomItemBase
+        where TItemHandler : CustomItemHandlerBase, new()
+        where TPickupHandler : CustomPickupHandlerBase, new()
     {
-        private readonly HashSet<THandler> _handlers = new HashSet<THandler>();
-
-        public new IReadOnlyCollection<THandler> Handlers => _handlers;
-
-        internal override void OnHandlerCreated(CustomItemHandlerBase customItem)
+        internal override CustomItemHandlerBase CreateItemHandler(ushort serial)
         {
-            if (customItem is THandler handler)
-                _handlers.Add(handler);
-
-            base.OnHandlerCreated(customItem);
+            var handler = Reflection.Instantiate<TItemHandler>();
+            handler.Serial = serial;
+            return handler;
         }
 
-        internal override void OnHandlerDestroyed(CustomItemHandlerBase customItem)
+        internal override CustomPickupHandlerBase CreatePickupHandler(ushort serial)
         {
-            if (customItem is THandler handler)
-                _handlers.Remove(handler);
-
-            base.OnHandlerDestroyed(customItem);
-        }
-
-        internal override void ClearHandlers()
-        {
-            base.ClearHandlers();
-            _handlers.Clear();
-        }
-
-        internal override CustomItemHandlerBase CreateHandler()
-        {
-            var handler = new THandler();
-            SetupHandler(handler);
+            var handler = Reflection.Instantiate<TPickupHandler>();
+            handler.Serial = serial;
             return handler;
         }
     }

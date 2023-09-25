@@ -1,4 +1,8 @@
-﻿using Compendium.Round;
+﻿using BetterCommands;
+
+using Compendium.Comparison;
+using Compendium.Reflect.Dynamic;
+using Compendium.Round;
 
 using helpers;
 using helpers.Attributes;
@@ -16,30 +20,32 @@ namespace Compendium.Events
 {
     public static class EventRegistry
     {
-        private static readonly Dictionary<ServerEventType, HashSet<EventRegistryData>> _registry = new Dictionary<ServerEventType, HashSet<EventRegistryData>>();
-        private static readonly Dictionary<UpdateType, HashSet<Action>> _updateRegistry = new Dictionary<UpdateType, HashSet<Action>>();
+        private static bool _everExecuted;
+        private static List<EventRegistryData> _registry = new List<EventRegistryData>();
+
+        public static List<ServerEventType> RecordEvents => Plugin.Config.EventSettings.RecordEvents;
+
+        public static bool RoundSummary => Plugin.Config.EventSettings.ShowRoundSummary || DebugOverride;
+        public static bool LogExecutionTime => Plugin.Config.EventSettings.ShowTotalExecution || DebugOverride;
+        public static bool LogHandlers => Plugin.Config.EventSettings.ShowEventDuration || DebugOverride;
+
+        public static bool DebugOverride;
+
+        public static double HighestEventDuration => _registry.Where(x => x.Stats.LongestTime != -1).OrderByDescending(x => x.Stats.LongestTime).FirstOrDefault()?.Stats?.LongestTime ?? 0;
+        public static double ShortestEventDuration => _registry.Where(x => x.Stats.ShortestTime != -1).OrderByDescending(x => x.Stats.ShortestTime).LastOrDefault()?.Stats?.ShortestTime ?? 0;
+        public static double HighestTicksPerSecond => _registry.Where(x => x.Stats.TicksWhenLongest != 0).OrderByDescending(x => x.Stats.TicksWhenLongest).FirstOrDefault()?.Stats?.TicksWhenLongest ?? 0;
 
         [Load]
         private static void Initialize()
         {
             EventBridge.OnExecuting = OnExecutingEvent;
-
-            Reflection.TryAddHandler<Action>(typeof(StaticUnityMethods), "OnUpdate", OnUpdate);
-            Reflection.TryAddHandler<Action>(typeof(StaticUnityMethods), "OnFixedUpdate", OnFixedUpdate);
-            Reflection.TryAddHandler<Action>(typeof(StaticUnityMethods), "OnLateUpdate", OnLateUpdate);
         }
 
         [Unload]
         private static void Unload()
         {
             EventBridge.OnExecuting = null;
-
-            Reflection.TryRemoveHandler<Action>(typeof(StaticUnityMethods), "OnUpdate", OnUpdate);
-            Reflection.TryRemoveHandler<Action>(typeof(StaticUnityMethods), "OnFixedUpdate", OnFixedUpdate);
-            Reflection.TryRemoveHandler<Action>(typeof(StaticUnityMethods), "OnLateUpdate", OnLateUpdate);
-
             _registry.Clear();
-            _updateRegistry.Clear();
         }
 
         public static void RegisterEvents(object instance)
@@ -58,215 +64,31 @@ namespace Compendium.Events
 
         public static void RegisterEvents(MethodInfo method, object instance = null)
         {
-            if (method.DeclaringType.Namespace.StartsWith("System"))
-                return;
-
-            if (method.TryGetAttribute<EventAttribute>(out var eventAttribute))
+            try
             {
-                if (IsRegistered(method, instance))
-                {
-                    Plugin.Warn($"Attempted to register a duplicate event handler (method: {method.ToLogName(false)} | instance: {instance?.ToString() ?? "not provided"})");
-                    return;
-                }
-
-                if (!TryValidateInstance(method, ref instance))
+                if (method.DeclaringType.Namespace.StartsWith("System"))
                     return;
 
-                var parameters = method.GetParameters();
+                if (!EventUtils.TryCreateEventData(method, instance, out var data))
+                    return;
 
-                if (!eventAttribute.Type.HasValue)
-                {
-                    if (!TryRecognizeEventType(parameters, out var evType))
-                    {
-                        Plugin.Warn($"Failed to automatically recognize event type of method: {method.ToLogName(false)}");
-                        return;
-                    }
-
-                    eventAttribute.Type = evType;
-                }
-
-                var data = new EventRegistryData();
-
-                data.Instance = instance;
-                data.Method = method;
-                data.Params = parameters;
-                data.EvBuffer = parameters != null && parameters.Any() ? new object[parameters.Length] : null;
-
-                data.Executor = (args, isAllowed, shouldContinue) =>
-                {
-                    object[] objArray = data.EvBuffer;
-
-                    if (objArray != null)
-                    {
-                        for (int i = 0; i < data.Params.Length; i++)
-                        {
-                            if (Reflection.HasInterface<IEventArguments>(data.Params[i].ParameterType))
-                            {
-                                objArray[i] = args;
-                                continue;
-                            }
-
-                            if (data.Params[i].ParameterType == typeof(ValueReference))
-                            {
-                                if (data.Params[i].Name == "isAllowed")
-                                {
-                                    objArray[i] = isAllowed;
-                                    continue;
-                                }
-
-                                if (data.Params[i].Name == "shouldContinue")
-                                {
-                                    objArray[i] = shouldContinue;
-                                    continue;
-                                }
-
-                                Plugin.Warn($"Unrecognized ValueReference argument ({data.Params[i].Name}) at index {i} in method {data.Method.ToLogName(false)}!");
-                                continue;
-                            }
-
-                            objArray[i] = default;
-                            Plugin.Warn($"Unknown argument in method {data.Method.ToLogName(false)} at index {i} (name: {data.Params[i].Name}), supplying default value.");
-                        }
-                    }
-
-                    try
-                    {
-                        var result = data.Method.Invoke(data.Instance, objArray);
-
-                        if (result != null)
-                        {
-                            if (result is bool isAllowedB)
-                            {
-                                isAllowed.Value = isAllowedB;
-                                return;
-                            }
-                            else if (result is Tuple<bool, bool> tuple)
-                            {
-                                isAllowed.Value = tuple.Item1;
-                                shouldContinue.Value = tuple.Item2;
-
-                                return;
-                            }
-                            else if (result is IEventCancellation cancellation)
-                            {
-                                isAllowed.Value = cancellation;
-                                return;
-                            }
-                            else if (result is Tuple<IEventCancellation, bool> tup)
-                            {
-                                isAllowed.Value = tup.Item1;
-                                shouldContinue.Value = tup.Item2;
-
-                                return;
-                            }
-
-                            Plugin.Warn($"Unknown return type ({result.GetType().FullName}) in method {data.Method.ToLogName(false)}!");
-                        }
-
-                        if (data.EvBuffer != null)
-                            Array.Clear(data.EvBuffer, 0, data.EvBuffer.Length);
-                    }
-                    catch (Exception ex)
-                    {
-                        Plugin.Error($"Failed to execute event {args.BaseType} ({data.Method.ToLogName(false)}):");
-                        Plugin.Error(ex);
-                    }
-                };
-
-                if (_registry.TryGetValue(eventAttribute.Type.Value, out var list))
-                    list.Add(data);
-                else
-                    _registry.Add(eventAttribute.Type.Value, new HashSet<EventRegistryData>() { data });
+                _registry.Add(data);
+                Plugin.Info($"Registered event '{data.Type}' ({DynamicMethodDelegateFactory.GetMethodName(data.Target.Method)})");
             }
-            else
+            catch (Exception ex)
             {
-                if (!TryValidateInstance(method, ref instance))
-                    return;
-
-                if (IsRegistered(method, instance, false))
-                    return;
-
-                if (method.TryGetAttribute<FixedUpdateEventAttribute>(out _))
-                {
-                    var del = (Action)(method.IsStatic ? method.CreateDelegate(typeof(Action)) : method.CreateDelegate(typeof(Action), instance));
-
-                    if (del != null)
-                    {
-                        if (_updateRegistry.ContainsKey(UpdateType.Fixed))
-                            _updateRegistry[UpdateType.Fixed].Add(del);
-                        else
-                            _updateRegistry[UpdateType.Fixed] = new HashSet<Action>() { del };
-                    }
-                }
-                else if (method.TryGetAttribute<LateUpdateEventAttribute>(out _))
-                {
-                    var del = (Action)(method.IsStatic ? method.CreateDelegate(typeof(Action)) : method.CreateDelegate(typeof(Action), instance));
-
-                    if (del != null)
-                    {
-                        if (_updateRegistry.ContainsKey(UpdateType.Late))
-                            _updateRegistry[UpdateType.Late].Add(del);
-                        else
-                            _updateRegistry[UpdateType.Late] = new HashSet<Action>() { del };
-                    }
-                }
-                else if (method.TryGetAttribute<UpdateEventAttribute>(out _))
-                {
-                    var del = (Action)(method.IsStatic ? method.CreateDelegate(typeof(Action)) : method.CreateDelegate(typeof(Action), instance));
-
-                    if (del != null)
-                    {
-                        if (_updateRegistry.ContainsKey(UpdateType.Normal))
-                            _updateRegistry[UpdateType.Normal].Add(del);
-                        else
-                            _updateRegistry[UpdateType.Normal] = new HashSet<Action>() { del };
-                    }
-                }
+                Plugin.Error($"An error occured while registering event '{method.ToLogName()}'");
+                Plugin.Error(ex);
             }
         }
 
-        public static bool IsRegistered(MethodInfo method, object instance = null, bool eventMode = true)
+        public static bool IsRegistered(MethodInfo method, object instance = null)
         {
-            if (!TryValidateInstance(method, ref instance))
+            if (!EventUtils.TryValidateInstance(method, ref instance))
                 return false;
 
-            return eventMode ? _registry.TryGetFirst(list =>
-            {
-                return list.Value.TryGetFirst(ev =>
-                {
-                    if (instance != null && ev.Instance is null)
-                        return false;
-
-                    if (instance is null && ev.Instance != null)
-                        return false;
-
-                    if (instance != ev.Instance)
-                        return false;
-
-                    if (method != ev.Method)
-                        return false;
-
-                    return true;
-                }, out _);
-            }, out _) : _updateRegistry.Values.Any(val =>
-            {
-                return val.Any(v =>
-                {
-                    if (instance != null && v.Target is null)
-                        return false;
-
-                    if (instance is null && v.Target != null)
-                        return false;
-
-                    if (instance != v.Target)
-                        return false;
-
-                    if (method != v.Method)
-                        return false;
-
-                    return true;
-                });
-            });
+            DynamicMethodDelegateFactory.MethodCache.TryGetValue(method, out method);
+            return _registry.TryGetFirst(ev => ev.Target.Method == method && NullableObjectComparison.Compare(ev.Target.Target, instance), out _);
         }
 
         public static void UnregisterEvents(object instance)
@@ -283,148 +105,182 @@ namespace Compendium.Events
         public static void UnregisterEvents(Type type, object instance = null)
             => type.ForEachMethod(m => UnregisterEvents(m, instance));
 
-        public static void UnregisterEvents(MethodInfo method, object instance = null)
+        public static bool UnregisterEvents(MethodInfo method, object instance = null)
         {
-            if (!TryValidateInstance(method, ref instance))
-                return;
+            if (!EventUtils.TryValidateInstance(method, ref instance))
+                return false;
 
-            var count = 0;
-            var uCount = 0;
+            DynamicMethodDelegateFactory.MethodCache.TryGetValue(method, out method);
+            return _registry.RemoveAll(ev => ev.Target.Method == method && NullableObjectComparison.Compare(ev.Target.Target, instance)) > 0;
+        }
 
-            _registry.Values.ForEach(list =>
+        private static bool OnExecutingEvent(IEventArguments args, Event evInfo, ValueReference isAllowed)
+        {
+            if (!_registry.Any(ev => ev.Type == args.BaseType))
+                return true;
+
+            _everExecuted = true;
+
+            var startTime = DateTime.Now;
+            var list = _registry.Where(x => x.Type == args.BaseType);
+            var result = true;
+
+            foreach (var ev in list)
             {
-                count += list.RemoveWhere(ev =>
+                var startEv = DateTime.Now;
+
+                EventUtils.TryInvoke(ev, args, isAllowed, out result);
+
+                var endEv = DateTime.Now;
+                var durationEv = TimeSpan.FromTicks((endEv - startEv).Ticks);
+
+                ev.Stats.Record(durationEv.TotalMilliseconds);
+
+                if (LogHandlers)
+                    Plugin.Debug($"Finished executing '{ev.Type}' handler '{DynamicMethodDelegateFactory.GetMethodName(ev.Target.Method)}' in {durationEv.TotalMilliseconds} ms");
+            }
+
+            if (isAllowed.Value is null)
+                isAllowed.Value = result;
+
+            if (!LogExecutionTime)
+                return result;
+
+            var endTime = DateTime.Now;
+            var duration = TimeSpan.FromTicks((endTime - startTime).Ticks);
+
+            Plugin.Debug($"Total Event Execution of {args.BaseType} took {duration.TotalMilliseconds} ms; longest: {HighestEventDuration} ms; shortest: {ShortestEventDuration} ms");
+            return result;
+        }
+
+        [RoundStateChanged(RoundState.WaitingForPlayers)]
+        private static void OnWaiting()
+        {
+            if (_everExecuted)
+            {
+                var sb = Pools.PoolStringBuilder();
+                var dict = Pools.PoolDictionary<ServerEventType, List<Tuple<string, double, double, double, double, double, int>>>();
+
+                _registry.ForEach(ev =>
                 {
-                    if (instance != null && ev.Instance is null)
-                        return false;
+                    if (!dict.ContainsKey(ev.Type))
+                        dict[ev.Type] = Pools.PoolList<Tuple<string, double, double, double, double, double, int>>();
 
-                    if (instance is null && ev.Instance != null)
-                        return false;
+                    if (ev.Stats is null
+                    || ev.Stats.LongestTime == -1
+                    || ev.Stats.ShortestTime == -1
+                    || ev.Stats.AverageTime == -1
+                    || ev.Stats.LastTime == -1
+                    || ev.Stats.TicksWhenLongest <= 0
+                    || ev.Stats.Executions <= 0)
+                        return;
 
-                    if (instance != ev.Instance)
-                        return false;
-
-                    if (method != ev.Method)
-                        return false;
-
-                    return true;
+                    dict[ev.Type].Add(new Tuple<string, double, double, double, double, double, int>(
+                        DynamicMethodDelegateFactory.GetMethodName(ev.Target.Method),
+                        ev.Stats.LongestTime,
+                        ev.Stats.ShortestTime,
+                        ev.Stats.AverageTime,
+                        ev.Stats.LastTime,
+                        ev.Stats.TicksWhenLongest,
+                        ev.Stats.Executions));
                 });
-            });
 
-            _updateRegistry.Values.ForEach(list =>
-            {
-                uCount += list.RemoveWhere(v =>
+                sb.AppendLine();
+
+                dict.ForEach(p =>
                 {
-                    if (instance != null && v.Target is null)
-                        return false;
+                    sb.AppendLine($"== EVENT: {p.Key} ({p.Value.Count} handler(s)) ==");
 
-                    if (instance is null && v.Target != null)
-                        return false;
+                    p.Value.ForEach(stats =>
+                    {
+                        sb.AppendLine($"    > {stats.Item1} = L: {stats.Item2} ms;S: {stats.Item2} ms;A: {stats.Item3} ms;LS: {stats.Item4} ms;TPS: {stats.Item5};NUM: {stats.Item6};{stats.Item7}");
+                    });
 
-                    if (instance != v.Target)
-                        return false;
-
-                    if (method != v.Method)
-                        return false;
-
-                    return true;
+                    p.Value.ReturnList();
                 });
-            });
+
+                dict.ReturnDictionary();
+
+                Plugin.Info(sb.ReturnStringBuilderValue());
+
+                _registry.For((_, ev) => ev.Stats?.Reset());
+            }
         }
 
-        private static bool TryValidateInstance(MethodInfo method, ref object instance)
+        [Command("event", BetterCommands.CommandType.RemoteAdmin, BetterCommands.CommandType.GameConsole)]
+        private static string EventCommand(ReferenceHub sender, string id)
         {
-            if (instance is null && !method.IsStatic)
+            if (id is "handlers")
             {
-                if (Singleton.HasInstance(method.DeclaringType))
+                var ordered = _registry.OrderByDescending(x => x.Type);
+                var sb = Pools.PoolStringBuilder();
+
+                ordered.ForEach(h => sb.AppendLine($"{h.Type} {DynamicMethodDelegateFactory.GetMethodName(h.Target.Method)} {h.Buffer?.Length ?? -1} {h.Buffer?.Count(x => x != null) ?? -1}"));
+
+                return sb.ReturnStringBuilderValue();
+            }
+
+            if (id is "stats")
+            {
+                var sb = Pools.PoolStringBuilder();
+                var dict = Pools.PoolDictionary<ServerEventType, List<Tuple<string, double, double, double, double, double, int>>>();
+
+                _registry.ForEach(ev =>
                 {
-                    instance = Singleton.Instance(method.DeclaringType);
-                    return true;
-                }
+                    if (!dict.ContainsKey(ev.Type))
+                        dict[ev.Type] = Pools.PoolList<Tuple<string, double, double, double, double, double, int>>();
 
-                return false;
-            }
+                    if (ev.Stats is null
+                    || ev.Stats.LongestTime == -1
+                    || ev.Stats.ShortestTime == -1
+                    || ev.Stats.AverageTime == -1
+                    || ev.Stats.LastTime == -1
+                    || ev.Stats.TicksWhenLongest <= 0
+                    || ev.Stats.Executions <= 0)
+                        return;
 
-            return true;
-        }
+                    dict[ev.Type].Add(new Tuple<string, double, double, double, double, double, int>(
+                        DynamicMethodDelegateFactory.GetMethodName(ev.Target.Method),
+                        ev.Stats.LongestTime,
+                        ev.Stats.ShortestTime,
+                        ev.Stats.AverageTime,
+                        ev.Stats.LastTime,
+                        ev.Stats.TicksWhenLongest,
+                        ev.Stats.Executions));
+                });
 
-        private static bool TryRecognizeEventType(ParameterInfo[] parameters, out ServerEventType serverEventType)
-        {
-            if (!parameters.Any())
-            {
-                serverEventType = default;
-                return false;
-            }
+                sb.AppendLine();
 
-            Type evParameterType = null;
-
-            foreach (var p in parameters)
-            {
-                if (Reflection.HasInterface<IEventArguments>(p.ParameterType))
+                dict.ForEach(p =>
                 {
-                    evParameterType = p.ParameterType;
-                    break;
-                }
+                    sb.AppendLine($"== EVENT: {p.Key} ({p.Value.Count} handler(s)) ==");
+
+                    p.Value.ForEach(stats =>
+                    {
+                        sb.AppendLine($"    > {stats.Item1} = L: {stats.Item2} ms;S: {stats.Item2} ms;A: {stats.Item3} ms;LS: {stats.Item4} ms;TPS: {stats.Item5};NUM: {stats.Item6};{stats.Item7}");
+                    });
+
+                    p.Value.ReturnList();
+                });
+
+                dict.ReturnDictionary();
+
+                return sb.ReturnStringBuilderValue();
             }
 
-            if (evParameterType is null)
+            if (id is "log")
             {
-                serverEventType = default;
-                return false;
+                DebugOverride = !DebugOverride;
+                return DebugOverride ? "Debug enabled" : "Debug disabled";
             }
 
-            if (!EventManager.Events.TryGetFirst(ev => ev.Value.EventArgType == evParameterType, out var infoPair) || infoPair.Value is null)
+            if (id is "reset")
             {
-                serverEventType = default;
-                return false;
+                _registry.ForEach(r => r.Stats.Reset());
+                return "Stats reset.";
             }
 
-            serverEventType = infoPair.Key;
-            return true;
+            return "Unknown ID";
         }
-
-        private static bool OnExecutingEvent(IEventArguments args, Event ev, ValueReference isAllowed)
-        {
-            var continueExec = new ValueReference() { Value = true };
-
-            if (_registry.TryGetValue(args.BaseType, out var list))
-            {
-                foreach (var evData in list)
-                {
-                    if (continueExec.Value != null && continueExec.Value is bool shC && !shC)
-                        break;
-
-                    Calls.Delegate(evData.Executor, args, isAllowed, continueExec);
-                }
-            }
-
-            if (continueExec.Value != null && continueExec.Value is bool shContinue)
-                return shContinue;
-
-            return true;
-        }
-
-        private static void FireUpdate(UpdateType type)
-        {
-            if (!StaticUnityMethods.IsPlaying || !RoundHelper.IsReady)
-                return;
-
-            if (_updateRegistry.TryGetValue(type, out var list))
-            {
-                foreach (var handler in list)
-                {
-                    Calls.Delegate(handler);
-                }
-            }
-        }
-
-        private static void OnUpdate()
-            => FireUpdate(UpdateType.Normal);
-
-        private static void OnLateUpdate()
-            => FireUpdate(UpdateType.Late);
-
-        private static void OnFixedUpdate()
-            => FireUpdate(UpdateType.Fixed);
     }
 }

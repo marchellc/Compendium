@@ -7,7 +7,6 @@ using Compendium.Voice.Pools;
 using Compendium.Voice.Prefabs.Scp;
 
 using helpers.Attributes;
-using helpers.Extensions;
 using helpers.Patching;
 
 using Mirror;
@@ -195,7 +194,7 @@ namespace Compendium.Voice
             });
         }
 
-        [UpdateEvent]
+        [UpdateEvent(IsMainThread = true, IsSynchronized = false, TickRate = 50)]
         private static void OnUpdate()
         {
             foreach (var hub in Hub.Hubs)

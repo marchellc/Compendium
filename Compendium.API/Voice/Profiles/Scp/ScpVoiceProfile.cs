@@ -182,7 +182,7 @@ namespace Compendium.Voice.Profiles.Scp
             }
         }
 
-        [UpdateEvent]
+        [UpdateEvent(IsMainThread = true, TickRate = 300)]
         private static void ChatStateHintHandler()
         {
             foreach (var profile in VoiceChat.Profiles)
@@ -192,11 +192,11 @@ namespace Compendium.Voice.Profiles.Scp
                     && scpVoice.Owner != null)
                 {
                     if (scpVoice._lastHint.HasValue
-                        && !((DateTime.Now - scpVoice._lastHint.Value).TotalMilliseconds >= 500))
+                        && !((DateTime.Now - scpVoice._lastHint.Value).TotalMilliseconds >= 1100))
                         continue;
 
                     scpVoice._lastHint = DateTime.Now;
-                    scpVoice.Owner.Hint($"\n\n\n\n\n\n\n<b><color={ColorValues.LightGreen}>Aktivní voice: {scpVoice.TypeAndColor()}</color></b>", 0.7f, false);
+                    scpVoice.Owner.Hint($"\n\n\n\n\n\n\n<b><color={ColorValues.LightGreen}>Aktivní voice: {scpVoice.TypeAndColor()}</color></b>", 1f, false);
                 }
             }
         }

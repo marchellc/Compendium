@@ -4,8 +4,6 @@ using helpers;
 using helpers.Attributes;
 using helpers.Extensions;
 
-using PlayerRoles;
-
 using PluginAPI.Enums;
 
 using System;
@@ -18,7 +16,7 @@ namespace Compendium.Round
     public static class RoundHelper
     {
         private static RoundState _state;
-        private static readonly Dictionary<MethodInfo, Tuple<bool, RoundState[]>> _onChanged = new Dictionary<MethodInfo, Tuple<bool, RoundState[]>>();
+        private static readonly List<Tuple<Delegate, bool, bool, bool, bool>> _onChanged = new List<Tuple<Delegate, bool, bool, bool, bool>>();
 
         public static RoundState State
         {
@@ -26,19 +24,24 @@ namespace Compendium.Round
             set
             {
                 _state = value;
-                _onChanged.ForEach(pair =>
+                _onChanged.For((_, pair) =>
                 {
-                    try
-                    {
-                        if (pair.Value.Item2.IsEmpty() || pair.Value.Item2.Contains(_state))
-                        {
-                            if (pair.Value.Item1)
-                                pair.Key.Invoke(null, new object[] { _state });
-                            else
-                                pair.Key.Invoke(null, null);
-                        }
-                    }
-                    catch { }
+                    if (_state is RoundState.WaitingForPlayers && !pair.Item2)
+                        return;
+
+                    if (_state is RoundState.InProgress && !pair.Item3)
+                        return;
+
+                    if (_state is RoundState.Restarting && !pair.Item4)
+                        return;
+
+                    if (_state is RoundState.Ending && !pair.Item5)
+                        return;
+
+                    if (pair.Item1 is Action action)
+                        Calls.DirectAction(action);
+                    else if (pair.Item1 is Action<RoundState> act)
+                        Calls.DirectAction(act, _state);
                 });
             }
         }
@@ -77,7 +80,20 @@ namespace Compendium.Round
                             hasState = true;
                         }
 
-                        _onChanged[method] = new Tuple<bool, RoundState[]>(hasState, roundStateChangedAttribute.TargetStates);
+                        Delegate del = null;
+
+                        if (hasState)
+                            del = method.CreateDelegate(typeof(Action<RoundState>));
+                        else
+                            del = method.CreateDelegate(typeof(Action));
+
+                        _onChanged.Add(new Tuple<Delegate, bool, bool, bool, bool>(
+                            del,
+
+                            roundStateChangedAttribute.TargetStates.IsEmpty() || roundStateChangedAttribute.TargetStates.Contains(RoundState.WaitingForPlayers),
+                            roundStateChangedAttribute.TargetStates.IsEmpty() || roundStateChangedAttribute.TargetStates.Contains(RoundState.InProgress),
+                            roundStateChangedAttribute.TargetStates.IsEmpty() || roundStateChangedAttribute.TargetStates.Contains(RoundState.Restarting),
+                            roundStateChangedAttribute.TargetStates.IsEmpty() || roundStateChangedAttribute.TargetStates.Contains(RoundState.Ending)));
                     });
                 });
             }

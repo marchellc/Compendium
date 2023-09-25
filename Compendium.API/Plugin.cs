@@ -2,6 +2,7 @@
 using Compendium.Logging;
 using Compendium.Parsers;
 using Compendium.Round;
+using Compendium.Features;
 
 using helpers;
 using helpers.Patching;
@@ -118,10 +119,8 @@ namespace Compendium
         public void Reload()
         {
             LoadConfig();
-
             AttributeLoader.ExecuteReloadAttributes(Assembly.GetExecutingAssembly());
-            AssemblyLoader.Plugins.ForEachKey(pl => AttributeLoader.ExecuteReloadAttributes(pl));
-
+            FeatureManager.LoadedFeatures.ForEach(f => AttributeLoader.ExecuteReloadAttributes(f.GetType().Assembly));
             OnReloaded.Invoke();
         }
 

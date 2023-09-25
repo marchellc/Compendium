@@ -757,6 +757,8 @@ namespace Compendium
 
     public static class HubWorldExtensions
     {
+        public static Action<ReferenceHub, string, float> HintProxy;
+
         public static void Broadcast(this ReferenceHub hub, object content, int time, bool clear = true)
         {
             if (clear)
@@ -767,8 +769,22 @@ namespace Compendium
 
         public static void Hint(this ReferenceHub hub, object content, float duration, bool clear, params BasicHintEffectType[] effects)
         {
-            if (clear)
-                hub.hints.Show(new TextHint("", new HintParameter[] { new StringHintParameter("") }, null, 0.1f));
+            if (string.IsNullOrWhiteSpace(content?.ToString()))
+                return;
+
+            if (duration <= 0f)
+                return;
+
+            if (hub is null)
+                return;
+
+            if (Plugin.Config.ApiSetttings.DisableHintMethod || HintProxy != null)
+            {
+                if (HintProxy != null)
+                    Calls.Delegate(HintProxy, hub, content.ToString(), duration);
+
+                return;
+            }
 
             if (effects.Any())
             {

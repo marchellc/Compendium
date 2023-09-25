@@ -84,7 +84,7 @@ namespace Compendium
         {
             try
             {
-                del.Method.FastInvoke(del.Target, args);
+                del.Method.Invoke(del.Target, args);
             }
             catch (Exception ex)
             {
@@ -93,11 +93,37 @@ namespace Compendium
             }
         }
 
+        public static void DirectAction(Action del) 
+        {
+            try
+            {
+                del();
+            }
+            catch (Exception ex)
+            {
+                Plugin.Error($"Failed to directly invoke delegate {del.Method.ToLogName()}");
+                Plugin.Error(ex);
+            }
+        }
+
+        public static void DirectAction<TValue>(Action<TValue> del, TValue value)
+        {
+            try
+            {
+                del(value);
+            }
+            catch (Exception ex)
+            {
+                Plugin.Error($"Failed to directly invoke delegate {del.Method.ToLogName()}");
+                Plugin.Error(ex);
+            }
+        }
+
         public static TResult Delegate<TResult>(Delegate del, params object[] args)
         {
             try
             {
-                var res = del.Method.FastInvoke(del.Target, args);
+                var res = del.Method.Invoke(del.Target, args);
 
                 if (res is null)
                     return default;

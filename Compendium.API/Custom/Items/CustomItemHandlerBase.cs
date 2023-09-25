@@ -1,5 +1,7 @@
 ﻿using Compendium.Extensions;
+
 using helpers;
+
 using InventorySystem;
 using InventorySystem.Items;
 using InventorySystem.Items.Pickups;
@@ -10,22 +12,11 @@ namespace Compendium.Custom.Items
 {
     public class CustomItemHandlerBase
     {
-        internal CustomItemBase _cItem;
+        private CustomItemBase _customItem;
 
         public ushort Serial { get; set; }
 
         public ItemBase Item { get; }
-        public ItemPickupBase Pickup { get; }
-
-        public CustomItemHandlerBase()
-        {
-            Serial = ItemSerialGenerator.GenerateNext();
-        }
-
-        public CustomItemBase CustomItem
-        {
-            get => _cItem;
-        }
 
         public ReferenceHub Owner
         {
@@ -45,14 +36,14 @@ namespace Compendium.Custom.Items
             }
         }
 
+        public CustomItemBase CustomItem
+        {
+            get => _customItem;
+        }
+
         public bool IsOwned
         {
             get => Item != null && Item.Owner != null;
-        }
-
-        public bool IsSpawned
-        {
-            get => Pickup != null;
         }
 
         public bool IsWorn
@@ -63,6 +54,11 @@ namespace Compendium.Custom.Items
         public bool IsSelected
         {
             get => Item != null && Item.Owner != null && Item.OwnerInventory.CurInstance != null && Item.OwnerInventory.CurInstance == Item;
+        }
+
+        public bool IsEquipped
+        {
+            get => Item?.IsEquipped ?? false;
         }
 
         public float Weight
@@ -87,69 +83,63 @@ namespace Compendium.Custom.Items
             }
         }
 
-        public void Drop(ItemType? pickupTypeOverride = null)
+        public ItemType Type
         {
-            if (Item is null
-                || Item.Owner is null
-                || Item.PickupDropModel is null)
-                return;
+            get => Item?.ItemTypeId ?? ItemType.None;
+            set
+            {
+                var owner = Owner;
 
-            var pickupInfo = new PickupSyncInfo(pickupTypeOverride.HasValue ? pickupTypeOverride.Value : Item.ItemTypeId, Item.Weight, Item.ItemSerial);
-            var pickup = Item.Owner.inventory.ServerCreatePickup(Item, pickupInfo, true);
+                DestroyItem(false);
 
-            pickup.PreviousOwner = new Footprinting.Footprint(Item.Owner);
+                var item = ReferenceHub.HostHub.inventory.CreateItemInstance(new ItemIdentifier(value, Serial), false);
 
-            SetPickup(pickup);
+                if (item is null)
+                    return;
+
+                if (owner != null)
+                {
+                    owner.inventory.UserInventory.Items[Serial] = item;
+                    item.OnAdded(null);
+                    owner.inventory.SendItemsNextFrame = true;
+                }
+
+                SetItem(item);
+            }
         }
 
         public bool IsOwnedBy(ReferenceHub hub)
             => Owner != null && Owner == hub;
 
-        public void Spawn(ItemType itemId, Vector3 position, Quaternion rotation)
-        {
-            if (!InventoryItemLoader.TryGetItem<ItemBase>(itemId, out var item))
-                return;
-
-            var pickupInfo = new PickupSyncInfo(itemId, item.Weight, Serial);
-            var pickup = InventorySystem.InventoryExtensions.ServerCreatePickup(item, pickupInfo, position, rotation, true);
-
-            if (Item != null)
-                DestroyItem();
-
-            SetPickup(pickup);
-        }
-
-        public void Give(ReferenceHub target, bool dropIfFull)
+        public void Give(ReferenceHub target, bool dropIfFull, bool removeInventory = true)
         {
             if (CustomItem is null)
                 return;
 
             if (Item != null)
-                DestroyItem();
+                DestroyItem(removeInventory);
 
             if (target.inventory.UserInventory.Items.Count >= 8 
                 && !CustomItem.InventoryType.IsAmmo())
             {
                 if (dropIfFull)
-                    Spawn(CustomItem.InventoryType, target.Position(), target.Rotation());
+                {
+                    CustomItem?.Spawn(target.Position(), target.Rotation());
+                    Destroy();
+                }
             }
             else
             {
-                var item = target.inventory.CreateItemInstance(new ItemIdentifier(CustomItem.InventoryType, Serial), target.isLocalPlayer);
+                var item = CustomItem?.CreateItem(Serial);
 
                 if (item is null)
                     return;
 
                 target.inventory.UserInventory.Items[Serial] = item;
-
                 item.OnAdded(null);
-
                 target.inventory.SendItemsNextFrame = true;
 
                 SetItem(item);
-
-                if (Pickup != null)
-                    DestroyPickup();
             }
         }
 
@@ -171,13 +161,28 @@ namespace Compendium.Custom.Items
                 DestroyItem();
             }
 
-            if (Pickup != null)
-                DestroyPickup();
+            if (CustomItem != null)
+                DestroyCustomItem();
 
             OnDestroy();
+        }
 
-            _cItem?.OnHandlerDestroyed(this);
-            _cItem = null;
+        public CustomPickupHandlerBase Drop(Vector3? pos = null, Quaternion? rot = null)
+        {
+            CustomPickupHandlerBase handler = null;
+
+            if (CustomItem != null && CustomItem.PickupType != ItemType.None)
+            {
+                if (Owner is null)
+                    return null;
+
+                handler = CustomItem?.Spawn(
+                    pos.HasValue ? pos.Value : Owner.Position(),
+                    rot.HasValue ? rot.Value : Owner.Rotation());
+            }
+
+            Destroy();
+            return handler;
         }
 
         internal virtual void SetItem(ItemBase item)
@@ -185,52 +190,40 @@ namespace Compendium.Custom.Items
             OnItemSet(item);
         }
 
-        internal virtual void SetPickup(ItemPickupBase item)
-        {
-            OnPickupSet(item);
-        }
-
-        internal virtual void DestroyItem()
+        internal virtual void DestroyItem(bool removeInventory = true)
         {
             OnItemDestroyed();
 
             if (Item != null)
             {
-                if (Owner != null)
+                if (removeInventory)
                 {
-                    Owner.inventory.ServerRemoveItem(Serial, Item.PickupDropModel);
-                    return;
+                    if (Owner != null)
+                    {
+                        Owner.inventory.ServerRemoveItem(Serial, Item.PickupDropModel);
+                        return;
+                    }
                 }
 
                 Item.OnRemoved(Item.PickupDropModel);
-                Object.Destroy(Item.gameObject);             
+                Object.Destroy(Item.gameObject);
+
+                if (Item != null)
+                    SetItem(null);
             }
         }
 
-        internal virtual void DestroyPickup()
+        internal virtual void DestroyCustomItem()
         {
-            OnPickupDestroyed();
-
-            if (Pickup != null)
-                Pickup.DestroySelf();
+            OnCustomItemDestroyed();
+            _customItem = null;
         }
 
-        internal virtual void OnCreated(CustomItemBase item)
-        {
-            _cItem = item;
-        }
+        public virtual void OnCreated(CustomItemBase item) { }
+        public virtual void OnItemSet(ItemBase item) { }
 
-        internal virtual void OnItemSet(ItemBase item) { }
-        internal virtual void OnPickupSet(ItemPickupBase item) { }
-
-        internal virtual void OnItemDestroyed() { }
-        internal virtual void OnPickupDestroyed() { }
-
-        public virtual bool OnSpawning(ref Vector3 position, ref PickupSyncInfo info) => true;
-        public virtual void OnSpawned(Vector3 position, PickupSyncInfo info) { }
-
-        public virtual void OnDespawning() { }
-        public virtual void OnDespawned() { }
+        public virtual void OnItemDestroyed() { }
+        public virtual void OnCustomItemDestroyed() { }
 
         public virtual bool OnAdding(ReferenceHub target) => true;
         public virtual void OnAdded() { }

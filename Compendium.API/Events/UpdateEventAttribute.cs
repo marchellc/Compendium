@@ -1,7 +1,16 @@
-﻿using System;
+﻿using Compendium.Update;
+using System;
 
 namespace Compendium.Events
 {
     [AttributeUsage(AttributeTargets.Method, AllowMultiple = false, Inherited = false)]
-    public class UpdateEventAttribute : Attribute { }
+    public class UpdateEventAttribute : Attribute
+    {
+        public bool IsMainThread { get; set; } 
+        public bool IsSynchronized { get; set; }
+
+        public int TickRate { get; set; } = 10;
+
+        public UpdateHandlerType Type { get; set; } = UpdateHandlerType.Thread;
+    }
 }

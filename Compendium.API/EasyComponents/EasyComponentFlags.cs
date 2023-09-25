@@ -1,6 +1,6 @@
 ﻿namespace Compendium.EasyComponents
 {
-    public enum EasyComponentFlags
+    public enum EasyComponentFlags : byte
     {
         DisableTicks,
 

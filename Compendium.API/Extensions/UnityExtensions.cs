@@ -66,7 +66,6 @@ namespace Compendium.Extensions
                 return false;
 
             Object.Destroy(c);
-
             return true;
         }
 

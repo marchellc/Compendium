@@ -12,6 +12,7 @@
     <TargetFrameworkVersion>v4.8</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
     <Deterministic>true</Deterministic>
+    <LangVersion>preview</LangVersion>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <DebugSymbols>true</DebugSymbols>
@@ -53,7 +54,8 @@
     <Reference Include="CommandSystem.Core">
       <HintPath>..\..\..\..\..\..\Program Files (x86)\Steam\steamapps\common\SCP Secret Laboratory Dedicated Server\SCPSL_Data\Managed\CommandSystem.Core.dll</HintPath>
     </Reference>
-    <Reference Include="helpers">
+    <Reference Include="helpers, Version=3.7.1.1, Culture=neutral, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
       <HintPath>..\..\helpers\helpers\bin\Release\helpers.dll</HintPath>
     </Reference>
     <Reference Include="Microsoft.Bcl.AsyncInterfaces, Version=8.0.0.0, Culture=neutral, PublicKeyToken=cc7b13ffcd2ddd51, processorArchitecture=MSIL">
@@ -150,31 +152,44 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="Activity\ActivityData.cs" />
-    <Compile Include="Activity\ActivityRecorder.cs" />
-    <Compile Include="Activity\ActivitySession.cs" />
+    <Compile Include="Comparison\NullableObjectComparison.cs" />
     <Compile Include="Compatibility\IpCompatibilityPatch.cs" />
     <Compile Include="Config.cs" />
     <Compile Include="Custom\Commands\ModerationCommands.cs" />
+    <Compile Include="Custom\Items\CustomItemManager.cs" />
     <Compile Include="Custom\Items\CustomItem.cs" />
     <Compile Include="Custom\Items\CustomItemBase.cs" />
     <Compile Include="Custom\Items\CustomItemHandler.cs" />
     <Compile Include="Custom\Items\CustomItemHandlerBase.cs" />
     <Compile Include="Custom\Items\CustomItemOverrides.cs" />
+    <Compile Include="Custom\Items\CustomPickupHandler.cs" />
+    <Compile Include="Custom\Items\CustomPickupHandlerBase.cs" />
+    <Compile Include="Custom\Items\Firearms\CustomFirearm.cs" />
+    <Compile Include="Custom\Items\Firearms\CustomFirearmItemHandler.cs" />
+    <Compile Include="Custom\Items\Firearms\CustomFirearmPickupHandler.cs" />
+    <Compile Include="Custom\Items\Firearms\CustomFirearmProperties.cs" />
+    <Compile Include="Custom\Items\Firearms\FirearmHelper.cs" />
     <Compile Include="Directories.cs" />
     <Compile Include="EasyComponents\EasyComponent.cs" />
     <Compile Include="EasyComponents\EasyComponentFlags.cs" />
     <Compile Include="EasyComponents\EasyComponentManager.cs" />
     <Compile Include="EasyComponents\RangedTickRateEasyComponent.cs" />
+    <Compile Include="Events\EventState.cs" />
+    <Compile Include="Events\EventStatistics.cs" />
+    <Compile Include="Events\EventUtils.cs" />
+    <Compile Include="Reflect\ByteBuffer.cs" />
+    <Compile Include="Reflect\Dynamic\DynamicFactory.cs" />
+    <Compile Include="Reflect\Instruction.cs" />
+    <Compile Include="Reflect\MethodBodyReader.cs" />
+    <Compile Include="Settings\EventSettings.cs" />
+    <Compile Include="Threading\ThreadScheduler.cs" />
+    <Compile Include="Update\UpdateHandler.cs" />
     <Compile Include="Extensions\ColorExtensions.cs" />
     <Compile Include="Door.cs" />
     <Compile Include="Events\EventAttribute.cs" />
     <Compile Include="Events\EventRegistry.cs" />
     <Compile Include="Events\EventRegistryData.cs" />
-    <Compile Include="Events\FixedUpdateEventAttribute.cs" />
-    <Compile Include="Events\LateUpdateEventAttribute.cs" />
     <Compile Include="Events\UpdateEventAttribute.cs" />
-    <Compile Include="Events\UpdateType.cs" />
     <Compile Include="Extensions\ItemExtensions.cs" />
     <Compile Include="Health\CustomHealthFlags.cs" />
     <Compile Include="Hints\HintInfo.cs" />
@@ -245,6 +260,9 @@
     <Compile Include="Tokens\TokenData.cs" />
     <Compile Include="Tokens\TokenParser.cs" />
     <Compile Include="Units\UnitHelper.cs" />
+    <Compile Include="Update\UpdateHandlerData.cs" />
+    <Compile Include="Update\UpdateHandlerType.cs" />
+    <Compile Include="Update\UpdateSynchronizer.cs" />
     <Compile Include="Uptime\BetterUptimeClient.cs" />
     <Compile Include="UserId\UserIdValue.cs" />
     <Compile Include="UserId\UserIdHelper.cs" />

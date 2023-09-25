@@ -41,5 +41,8 @@ namespace Compendium
 
         [Description("Settings for the Better Uptime client.")]
         public UptimeSettings BetterUptimeSettings { get; set; } = new UptimeSettings();
+
+        [Description("Settings for the event system.")]
+        public EventSettings EventSettings { get; set; } = new EventSettings();
     }
 }

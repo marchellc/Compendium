@@ -2,7 +2,6 @@
 using Compendium.Npc.Targeting;
 
 using helpers;
-using helpers.Extensions;
 using helpers.Pooling;
 using helpers.Random;
 

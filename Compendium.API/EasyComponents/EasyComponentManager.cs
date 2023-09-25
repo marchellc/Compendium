@@ -179,7 +179,7 @@ namespace Compendium.EasyComponents
 
             comps.ForEach(c =>
             {
-                if (c.Flags.HasFlagFast(EasyComponentFlags.RemoveOnDeath))
+                if (c.Flags.HasFlagFast(EasyComponentFlags.RemoveOnDamage))
                 {
                     Remove(c);
                 }
@@ -191,7 +191,12 @@ namespace Compendium.EasyComponents
         [Event]
         private static bool OnDeath(PlayerDeathEvent ev)
         {
-            var comps = GetComponents(ev.Player.ReferenceHub);
+            var ply = ev.Player ?? ev.Attacker;
+
+            if (ply is null)
+                return true;
+
+            var comps = GetComponents(ply.ReferenceHub);
             var result = true;
 
             foreach (var comp in comps)

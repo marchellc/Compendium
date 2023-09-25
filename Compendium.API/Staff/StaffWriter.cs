@@ -1,6 +1,5 @@
 ﻿using Compendium.PlayerData;
 
-using helpers.Extensions;
 using helpers;
 
 using System;
@@ -27,7 +26,7 @@ namespace Compendium.Staff
 
             foreach (var memberPair in membersDict)
             {
-                if (PlayerDataRecorder.TryQuery(memberPair.Key, false, out var record))
+                if (PlayerDataRecorder.TryGetById(memberPair.Key, out var record))
                     sb.AppendLine($"# User: {record.NameTracking.LastValue} ({record.IpTracking.LastValue}; {record.Id})");
 
                 sb.AppendLine($"{memberPair.Key}: {string.Join(",", memberPair.Value)}");
@@ -70,8 +69,8 @@ namespace Compendium.Staff
                 sb.AppendLine($"{p.Key}={p.Value.Text};{p.Value.Color};{p.Value.KickPower};{p.Value.RequiredKickPower};{string.Join(",", p.Value.BadgeFlags.Select(f => f.ToString()))};{string.Join(",", p.Value.GroupFlags.Select(f => f.ToString()))}");
             });
 
+            sb.AppendLine();
             sb.AppendLine($"# Permissions");
-
             sb.AppendLine();
 
             if (!permsDict.Any())

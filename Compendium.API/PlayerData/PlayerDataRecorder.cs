@@ -8,15 +8,15 @@ using helpers;
 
 using PluginAPI.Events;
 
+using BetterCommands;
+
 using Compendium.Events;
 using Compendium.TokenCache;
 using Compendium.IdCache;
 using Compendium.Round;
-using Compendium.Activity;
 
 using System.Collections.Generic;
 using System.Linq;
-using BetterCommands;
 using System.Text;
 
 namespace Compendium.PlayerData
@@ -29,6 +29,9 @@ namespace Compendium.PlayerData
         private static Dictionary<ReferenceHub, PlayerDataRecord> _activeRecords = new Dictionary<ReferenceHub, PlayerDataRecord>();
 
         public static readonly EventProvider OnRecordUpdated = new EventProvider();
+
+        public static bool TryGetById(string userId, out PlayerDataRecord dataRecord)
+            => _records.Data.TryGetFirst(d => d.IdTracking.LastValue == userId, out dataRecord);
 
         public static bool TryQuery(string query, bool queryNick, out PlayerDataRecord record)
         {
@@ -112,7 +115,6 @@ namespace Compendium.PlayerData
             data.IpTracking.Compare(hub.Ip());
             data.NameTracking.Compare(hub.Nick().Trim());
             data.IdTracking.Compare(hub.UserId());
-
             data.LastActivity = TimeUtils.LocalTime;
 
             _records.Save();
@@ -145,7 +147,6 @@ namespace Compendium.PlayerData
         private static void OnPlayerJoined(PlayerJoinedEvent ev)
         {
             UpdateData(ev.Player.ReferenceHub);
-            ActivityRecorder.OnPlayerJoined(ev.Player.ReferenceHub, GetData(ev.Player.ReferenceHub));
         }
 
         [RoundStateChanged(RoundState.WaitingForPlayers)]

@@ -1,13 +1,20 @@
-﻿using InventorySystem.Items;
-using InventorySystem.Items.Pickups;
+﻿using helpers;
+
+using InventorySystem.Items;
 
 namespace Compendium.Custom.Items
 {
-    public class CustomItemHandler<TItem, TPickup> : CustomItemHandlerBase
+    public class CustomItemHandler<TItem> : CustomItemHandlerBase
         where TItem : ItemBase
-        where TPickup : ItemPickupBase
     {
-        public new TItem Item { get; }
-        public new TPickup Pickup { get; }
+        private TItem _item;
+
+        public new TItem Item => _item;
+
+        internal override void SetItem(ItemBase item)
+        {
+            base.SetItem(item);
+            item?.Is(out _item);
+        }
     }
 }

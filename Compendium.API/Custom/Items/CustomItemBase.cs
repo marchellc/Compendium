@@ -1,117 +1,95 @@
 ﻿using helpers;
 
+using InventorySystem;
 using InventorySystem.Items;
 using InventorySystem.Items.Pickups;
 
+using Mirror;
+
 using System.Collections.Generic;
 using System.Linq;
+
+using UnityEngine;
 
 namespace Compendium.Custom.Items
 {
     public class CustomItemBase
     {
-        public virtual string Name { get; }
-        public virtual short Id { get; }
+        private readonly HashSet<CustomItemHandlerBase> _itemHandlers = new HashSet<CustomItemHandlerBase>();
+        private readonly HashSet<CustomPickupHandlerBase> _pickupHandlers = new HashSet<CustomPickupHandlerBase>();
 
-        public virtual ItemType InventoryType { get; } 
+        public virtual string Name { get; } = "default";
+        public virtual ushort Id { get; } = 100;
 
-        public virtual IReadOnlyCollection<CustomItemHandlerBase> Handlers { get; }
+        public virtual ItemType InventoryType { get; } = ItemType.None;
+        public virtual ItemType PickupType { get; } = ItemType.None;
 
-        public IReadOnlyCollection<ReferenceHub> Owners
+        public IEnumerable<CustomItemHandlerBase> ItemHandlers => _itemHandlers;
+        public IEnumerable<CustomPickupHandlerBase> PickupHandlers => _pickupHandlers;
+
+        public IEnumerable<ReferenceHub> Owners => ItemHandlers.Select(x => x.Owner).Where(x => x != null);
+        public IEnumerable<ItemBase> Items => ItemHandlers.Select(x => x.Item).Where(x => x != null);
+        public IEnumerable<ItemPickupBase> Pickups => PickupHandlers?.Select(x => x.Item).Where(x => x != null);
+
+        public CustomItemHandlerBase Give(ReferenceHub target, bool dropIfFull = false)
         {
-            get
-            {
-                if (Handlers is null || !Handlers.Any())
-                    return null;
+            var handler = CreateItemHandler(ItemSerialGenerator.GenerateNext());
 
-                var set = new HashSet<ReferenceHub>();
+            if (handler is null)
+                return null;
 
-                Handlers.ForEach(handler =>
-                {
-                    if (handler.Item != null && handler.Item.Owner != null)
-                        set.Add(handler.Item.Owner);
-                });
-
-                return set;
-            }
+            handler.Give(target, dropIfFull);
+            return handler;
         }
 
-        public IReadOnlyCollection<ItemBase> Items
+        public CustomPickupHandlerBase Spawn(Vector3 position, Quaternion rotation)
         {
-            get
-            {
-                if (Handlers is null || !Handlers.Any())
-                    return null;
+            var pickup = CreatePickup(ItemSerialGenerator.GenerateNext());
 
-                var set = new HashSet<ItemBase>();
+            if (pickup is null)
+                return null;
 
-                Handlers.ForEach(handler =>
-                {
-                    if (handler.Item != null)
-                        set.Add(handler.Item);
-                });
+            pickup.Position = position;
+            pickup.Rotation = rotation;
 
-                return set;
-            }
-        }
+            NetworkServer.Spawn(pickup.gameObject);
 
-        public IReadOnlyCollection<ItemPickupBase> Pickups
-        {
-            get
-            {
-                if (Handlers is null || !Handlers.Any())
-                    return null;
+            var pickupHandler = CreatePickupHandler(pickup.Info.Serial);
 
-                var set = new HashSet<ItemPickupBase>();
-
-                Handlers.ForEach(handler =>
-                {
-                    if (handler.Pickup != null)
-                        set.Add(handler.Pickup);
-                });
-
-                return set;
-            }
-        }
-
-        public void Give(bool dropIfFull, params ReferenceHub[] targets)
-        {
-            targets.ForEach(hub =>
-            {
-                var handler = CreateHandler();
-
-                if (handler is null)
-                    return;
-
-                handler.Give(hub, dropIfFull);
-            });
+            pickupHandler.SetPickup(pickup);
+            return pickupHandler;
         }
 
         public void Remove(params ReferenceHub[] targets)
         {
             targets.ForEach(hub =>
             {
-                if (!TryGetHandler(hub, out var handler))
+                if (!TryGetItemHandler(hub, out var handler))
                     return;
 
                 handler.Remove();
             });
         }
 
-        public void Drop(ItemType? pickupItemOverride, params ReferenceHub[] targets)
+        public void Drop(params ReferenceHub[] targets)
         {
             targets.ForEach(hub =>
             {
-                if (!TryGetHandler(hub, out var handler))
+                if (!TryGetItemHandler(hub, out var handler))
                     return;
 
-                handler.Drop(pickupItemOverride);
+                handler.Drop();
             });
         }
 
         public void Destroy() 
         {
-            Handlers.ForEach(handler =>
+            ItemHandlers.ForEach(handler =>
+            {
+                handler.Destroy();
+            });
+
+            PickupHandlers.ForEach(handler =>
             {
                 handler.Destroy();
             });
@@ -119,34 +97,95 @@ namespace Compendium.Custom.Items
 
         public void RemoveAll()
         {
-            Handlers.ForEach(handler =>
+            ItemHandlers.ForEach(handler =>
             {
                 handler.Remove();
             });
         }
 
-        public void DropAll(ItemType? pickupItemOverride = null)
+        public void DropAll()
         {
-            Handlers.ForEach(handler =>
+            ItemHandlers.ForEach(handler =>
             {
-                handler.Drop(pickupItemOverride);
+                handler.Drop();
             });
         }
 
-        public bool TryGetHandler(ReferenceHub hub, out CustomItemHandlerBase handler)
-            => Handlers.TryGetFirst(h => h.Owner != null && h.Owner == hub, out handler);
+        public bool TryGetItemHandler(ReferenceHub hub, out CustomItemHandlerBase handler)
+            => _itemHandlers.TryGetFirst(h => h.Owner != null && h.Owner == hub, out handler);
 
-        internal virtual void OnHandlerCreated(CustomItemHandlerBase customItem) { }
-        internal virtual void OnHandlerDestroyed(CustomItemHandlerBase customItem) { }
+        public bool TryGetItemHandler(ushort serial, out CustomItemHandlerBase handler)
+            => _itemHandlers.TryGetFirst(h => h.Serial == serial, out handler);
+
+        public bool TryGetPickupHandler(ushort serial, out CustomPickupHandlerBase handler)
+            => _pickupHandlers.TryGetFirst(h => h.Serial == serial, out handler);
+
+        internal virtual void OnItemHandlerCreated(CustomItemHandlerBase customItem) { }
+        internal virtual void OnPickupHandlerCreated(CustomPickupHandlerBase customPickup) { }
+
+        internal virtual void OnItemHandlerDestroyed(CustomItemHandlerBase customItem)
+        {
+            _itemHandlers.Remove(customItem);
+        }
+
+        internal virtual void OnPickupHandlerDestroyed(CustomPickupHandlerBase customPickup)
+        {
+            _pickupHandlers.Remove(customPickup);
+        }
 
         internal virtual void ClearHandlers() { }
 
-        internal virtual CustomItemHandlerBase CreateHandler() { return null; }
+        internal virtual CustomItemHandlerBase CreateItemHandler(ushort serial) { return null; }
+        internal virtual CustomPickupHandlerBase CreatePickupHandler(ushort serial) { return null; }
 
-        internal virtual void SetupHandler(CustomItemHandlerBase handler)
+        internal virtual ItemPickupBase CreatePickup(ushort serial)
         {
+            if (!InventoryItemLoader.TryGetItem<ItemBase>(PickupType, out var itemPrefab)
+                || itemPrefab.PickupDropModel is null)
+                return null;
+
+            var pickup = Object.Instantiate(itemPrefab.PickupDropModel);
+
+            pickup.Info = new PickupSyncInfo(PickupType, itemPrefab.Weight, serial);
+
+            SetupPickup(pickup);
+            return pickup;
+        }
+
+        internal virtual ItemBase CreateItem(ushort serial)
+        {
+            var item = ReferenceHub.HostHub.inventory.CreateItemInstance(new ItemIdentifier(InventoryType, serial), true);
+            SetupItem(item);
+            return item;
+        }
+
+        internal virtual void SetupPickup(ItemPickupBase item) { }
+        internal virtual void SetupItem(ItemBase item) { }
+
+        internal virtual void SetupItemHandler(CustomItemHandlerBase handler, ushort? serialOverride)
+        {
+            _itemHandlers.Add(handler);
+
+            if (serialOverride.HasValue)
+                handler.Serial = serialOverride.Value;
+            else if (handler.Serial <= 0)
+                handler.Serial = ItemSerialGenerator.GenerateNext();
+
             handler.OnCreated(this);
-            OnHandlerCreated(handler);
+            OnItemHandlerCreated(handler);
+        }
+
+        internal virtual void SetupPickupHandler(CustomPickupHandlerBase handler, ushort? serialOverride)
+        {
+            _pickupHandlers.Add(handler);
+
+            if (serialOverride.HasValue)
+                handler.Serial = serialOverride.Value;
+            else if (handler.Serial <= 0)
+                handler.Serial = ItemSerialGenerator.GenerateNext();
+
+            handler.OnCreated(this);
+            OnPickupHandlerCreated(handler);
         }
     }
 }

@@ -59,7 +59,6 @@ namespace Compendium.Health
             }
 
             base.ClassChanged();
-
             ServerHeal(MaxValue);
         }
 

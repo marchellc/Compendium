@@ -29,6 +29,9 @@ namespace Compendium.Settings
         [Description("An alternative server name to be used by some features.")]
         public string AlternativeServerName { get; set; } = "none";
 
+        [Description("Whether or not to disable the Hint() extension.")]
+        public bool DisableHintMethod { get; set; }
+
         [Description("A list of features to use global directories.")]
         public List<string> GlobalDirectories { get; set; } = new List<string>()
         {
