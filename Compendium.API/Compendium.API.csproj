@@ -184,6 +184,8 @@
     <Compile Include="Guard\Vpn\VpnResponse.cs" />
     <Compile Include="Settings\EventSettings.cs" />
     <Compile Include="Settings\GuardSettings.cs" />
+    <Compile Include="Staff\StaffActivity.cs" />
+    <Compile Include="Staff\StaffActivityData.cs" />
     <Compile Include="Threading\ThreadScheduler.cs" />
     <Compile Include="Update\UpdateHandler.cs" />
     <Compile Include="Extensions\ColorExtensions.cs" />

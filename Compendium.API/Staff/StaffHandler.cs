@@ -1,9 +1,8 @@
-﻿using Compendium.Colors;
-using Compendium.Events;
+﻿using Compendium.Events;
 using Compendium.Round;
+
 using helpers;
 using helpers.Attributes;
-using helpers.Extensions;
 using helpers.IO.Watcher;
 using helpers.Random;
 
@@ -19,14 +18,18 @@ namespace Compendium.Staff
 {
     public static class StaffHandler
     {
+        private static bool _fwr;
+        private static bool _saved;
+        private static bool _firstSave;
+
         private static readonly Dictionary<string, string[]> _members = new Dictionary<string, string[]>();
         private static readonly Dictionary<string, StaffGroup> _groups = new Dictionary<string, StaffGroup>();
 
         private static readonly Dictionary<string, UserGroup> _groupsById = new Dictionary<string, UserGroup>();
         private static readonly Dictionary<ReferenceHub, string> _usersById = new Dictionary<ReferenceHub, string>();
 
-        public static string RolesFilePath => $"{Directories.ThisConfigs}/Staff Groups.txt";
-        public static string MembersFilePath => $"{Directories.ThisConfigs}/Staff Members.txt";
+        public static string RolesFilePath => Directories.GetDataPath("Staff Groups.txt", "groups");
+        public static string MembersFilePath => Directories.GetDataPath("Staff Members.txt", "members");
 
         public static IReadOnlyDictionary<string, string[]> Members => _members;
         public static IReadOnlyDictionary<string, StaffGroup> Groups => _groups;
@@ -38,6 +41,9 @@ namespace Compendium.Staff
         [Reload]
         private static void Load()
         {
+            if (_saved)
+                return;
+
             _members.Clear();
             _groups.Clear();
 
@@ -63,11 +69,31 @@ namespace Compendium.Staff
 
             ReassignGroups();
 
-            Save();
+            StaffActivity.Reload();
+
+            if (!_fwr)
+            {
+                StaticWatcher.AddHandler(RolesFilePath, Reflection.Method(typeof(StaffHandler), "Load"), null, NotifyFilters.LastWrite, WatcherChangeTypes.Changed);
+                StaticWatcher.AddHandler(MembersFilePath, Reflection.Method(typeof(StaffHandler), "Load"), null, NotifyFilters.LastWrite, WatcherChangeTypes.Changed);
+
+                _fwr = true;
+            }
+
+            Plugin.Info($"Loaded {_members.Count} member(s)");
+            Plugin.Info($"Loaded {_groups.Count} group(s)");
+
+            if (!_firstSave)
+            {
+                Save();
+                _firstSave = true;
+            }
         }
 
         private static void Save()
         {
+            _saved = true;
+            Calls.Delay(2f, () => _saved = false);
+
             StaffWriter.WriteGroups(_groups);
             StaffWriter.WriteMembers(_members);
 
@@ -196,7 +222,6 @@ namespace Compendium.Staff
 
                 target.serverRoles.RefreshPermissions();
                 target.queryProcessor.GameplayData = PermissionsHandler.IsPermitted(ogGroup.Permissions, PlayerPermissions.GameplayData);
-                target.Hint($"\n\n<b><color={ColorValues.Green}>Granted</color> server role</b>\n<b><color={ColorValues.LightGreen}>{ogGroup.BadgeText}</color></b>", 3f, true);
 
                 Plugin.Debug($"Set server role of {target.GetLogName(true)} to {ogGroup.BadgeText} (round ID: {groupId})");
             }

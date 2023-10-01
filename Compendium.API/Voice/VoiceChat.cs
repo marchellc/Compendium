@@ -123,7 +123,6 @@ namespace Compendium.Voice
         }
 
         [Load]
-        [Reload]
         private static void Load()
         {
             RegisterPrefab<ScpVoicePrefab>();

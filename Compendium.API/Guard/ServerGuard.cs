@@ -108,8 +108,6 @@ namespace Compendium.Guard
 
             if (!string.IsNullOrWhiteSpace(ip) && _cleanIpStorage.Contains(ip))
                 _cleanIpStorage.Remove(ip);
-
-            Plugin.Info($"Flagged user ID {userId ?? "none"} and IP {ip ?? "none"} as unsafe.");
         }
 
         public static void Safe(string userId, string ip)
@@ -125,8 +123,6 @@ namespace Compendium.Guard
 
             if (!string.IsNullOrWhiteSpace(ip) && _flaggedIpStorage.Contains(ip))
                 _flaggedIpStorage.Remove(ip);
-
-            Plugin.Info($"Marked user ID {userId} and IP {ip} as safe.");
         }
 
         public static bool IsClean(ReferenceHub hub)

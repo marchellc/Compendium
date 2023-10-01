@@ -1,4 +1,7 @@
-﻿using Compendium.Events;
+﻿using BetterCommands;
+using BetterCommands.Permissions;
+
+using Compendium.Events;
 using Compendium.Extensions;
 
 using System;
@@ -43,6 +46,23 @@ namespace Compendium.Update
 
             Synchronizer = ReferenceHub.HostHub.GetOrAddComponent<UpdateSynchronizer>();
             Plugin.Info($"Update Synchronizer loaded.");
+        }
+
+        [Command("tps", CommandType.RemoteAdmin, CommandType.GameConsole, CommandType.PlayerConsole)]
+        [Description("Shows the current value of server's ticks per second.")]
+        private static string GetTpsCommand(ReferenceHub sender)
+            => 
+            $"TPS: {World.Ticks} / {World.TicksPerSecondFull} TPS\n" +
+            $"Frame time: {World.Frametime} / {World.FrametimeFull} ms\n" +
+            $"Synchronizer: {LastFrameDuration} ms";
+
+        [Command("settps", CommandType.RemoteAdmin, CommandType.GameConsole)]
+        [Permission(PermissionLevel.Administrator)]
+        [Description("Sets the server's maximum ticks per second.")]
+        private static string SetTpsCommand(ReferenceHub sender, int tps)
+        {
+            Application.targetFrameRate = tps;
+            return $"TPS set to {Application.targetFrameRate}";
         }
     }
 }

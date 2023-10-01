@@ -35,7 +35,7 @@ namespace Compendium.Events
             if (LongestTime is -1 || time > LongestTime)
             {
                 LongestTime = time;
-                TicksWhenLongest = World.TicksPerSecond;
+                TicksWhenLongest = World.TicksPerSecondFull;
             }
 
             if (ShortestTime is -1 || time < ShortestTime)

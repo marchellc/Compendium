@@ -1,4 +1,6 @@
-﻿using helpers;
+﻿using Compendium.Events;
+
+using helpers;
 using helpers.Attributes;
 using helpers.Extensions;
 
@@ -7,19 +9,15 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Net;
 using System.Net.Http;
-using System.Threading;
 
 namespace Compendium.Http
 {
     [LogSource("HTTP")]
     public static class HttpDispatch
     {
-        private static volatile CancellationTokenSource _tSource;
         private static volatile HttpClient _client;
         private static volatile HttpClientHandler _handler;
         private static volatile ConcurrentQueue<HttpDispatchData> _dispatchQueue = new ConcurrentQueue<HttpDispatchData>();
-
-        private static Thread _runThread;
 
         public static void PostJson(string address, Action<HttpDispatchData> callback, string jsonContent, params KeyValuePair<string, string>[] headers)
             => Post(address, callback, new StringContent(jsonContent), headers);
@@ -38,6 +36,8 @@ namespace Compendium.Http
 
             if (content != null)
                 request.Content = content;
+
+            request.Headers.Add("User-Agent", "Other");
 
             _dispatchQueue.Enqueue(new HttpDispatchData(address, request, callback));
 
@@ -78,17 +78,11 @@ namespace Compendium.Http
         [Load]
         private static void Initialize()
         {
-            _tSource = new CancellationTokenSource();
-
             _handler = new HttpClientHandler();
-
             _handler.UseDefaultCredentials = true;
             _handler.UseProxy = false;
 
             _client = new HttpClient(_handler);
-
-            _runThread = new Thread(() => ThreadRunner(_tSource.Token));
-            _runThread.Start();
 
             if (Plugin.Config.ApiSetttings.HttpSettings.Debug)
                 Plugin.Debug($"HTTP dispatch client initialized.");
@@ -97,12 +91,7 @@ namespace Compendium.Http
         [Unload]
         private static void Unload()
         {
-            _tSource.Cancel();
-
             _dispatchQueue.Clear();
-
-            _runThread = null;
-
             _client.Dispose();
             _client = null;
 
@@ -152,45 +141,37 @@ namespace Compendium.Http
             httpDispatchData.OnRequeued();
         }
 
-        private static async void ThreadRunner(CancellationToken token)
+        [UpdateEvent(TickRate = 100)]
+        private static async void Update()
         {
-            while (true)
+            if (_dispatchQueue.TryDequeue(out var data))
             {
-                if (token.IsCancellationRequested)
-                    break;
-
-                if (_dispatchQueue.TryDequeue(out var data))
+                try
                 {
-                    try
+                    if (Plugin.Config.ApiSetttings.HttpSettings.Debug)
+                        Plugin.Debug($"Sending {data.Request.Method.Method} request to {data.Request.RequestUri} ..");
+
+                    data.RefreshRequest();
+
+                    using (var response = await _client.SendAsync(data.Request))
                     {
-                        if (Plugin.Config.ApiSetttings.HttpSettings.Debug)
-                            Plugin.Debug($"Sending {data.Request.Method.Method} request to {data.Request.RequestUri} ..");
-
-                        data.RefreshRequest();
-
-                        if (Plugin.Config.ApiSetttings.HttpSettings.Debug)
-                            data.Request.Headers.ForEach(h => Plugin.Debug($"Header '{h.Key}': {string.Join(" | ", h.Value)}"));
-
-                        using (var response = await _client.SendAsync(data.Request))
+                        if (!response.IsSuccessStatusCode)
                         {
-                            if (!response.IsSuccessStatusCode)
-                            {
-                                OnRequestFailed(data, response.StatusCode);
-                                continue;
-                            }
-
-                            var result = await response.Content.ReadAsStringAsync();
-
-                            if (Plugin.Config.ApiSetttings.HttpSettings.Debug)
-                                Plugin.Debug($"Received response for {data.Request.Method.Method} request to {data.Request.RequestUri}:\n{result}");
-
-                            data.OnReceived(result);
+                            OnRequestFailed(data, response.StatusCode);
+                            return;
                         }
+
+                        var result = await response.Content.ReadAsStringAsync();
+
+                        if (Plugin.Config.ApiSetttings.HttpSettings.Debug)
+                            Plugin.Debug($"Received response for {data.Request.Method.Method} request to {data.Request.RequestUri}:\n{result}");
+
+                        data.OnReceived(result);
                     }
-                    catch (Exception ex)
-                    {
-                        OnRequestFailed(data, ex);
-                    }
+                }
+                catch (Exception ex)
+                {
+                    OnRequestFailed(data, ex);
                 }
             }
         }

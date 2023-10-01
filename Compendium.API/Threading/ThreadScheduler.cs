@@ -48,7 +48,7 @@ namespace Compendium.Threading
         {
             try
             { 
-                while (_queue.TryDequeue(out var tuple))
+                if (_queue.TryDequeue(out var tuple))
                 {
                     try
                     {

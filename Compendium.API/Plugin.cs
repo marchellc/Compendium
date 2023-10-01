@@ -6,7 +6,6 @@ using Compendium.Features;
 
 using helpers;
 using helpers.Patching;
-using helpers.Events;
 using helpers.Attributes;
 
 using PluginAPI.Core;
@@ -25,13 +24,9 @@ using Log = PluginAPI.Core.Log;
 
 namespace Compendium
 {
-    [LogSource("Compendium")]
+    [LogSource("Compendium Core")]
     public class Plugin
     {
-        public static readonly EventProvider OnLoaded = new EventProvider();
-        public static readonly EventProvider OnUnloaded = new EventProvider();
-        public static readonly EventProvider OnReloaded = new EventProvider();
-
         public static Plugin Instance { get; private set; }
         public static Config Config { get => Instance?.ConfigInstance ?? null; }
         public static PluginHandler Handler { get => Instance?.HandlerInstance ?? null; }
@@ -74,10 +69,7 @@ namespace Compendium
                     RoundHelper.ScanAssemblyForOnChanged(exec);
 
                     LoadConfig();
-
                     Info("Loaded!");
-
-                    OnLoaded.Invoke();
                 }
                 catch (Exception ex)
                 {
@@ -108,8 +100,6 @@ namespace Compendium
 
             SaveConfig();
 
-            OnUnloaded.Invoke();
-
             Instance = null;
             HandlerInstance = null;
             ConfigInstance = null;
@@ -121,7 +111,6 @@ namespace Compendium
             LoadConfig();
             AttributeLoader.ExecuteReloadAttributes(Assembly.GetExecutingAssembly());
             FeatureManager.LoadedFeatures.ForEach(f => AttributeLoader.ExecuteReloadAttributes(f.GetType().Assembly));
-            OnReloaded.Invoke();
         }
 
         public static void SaveConfig()
@@ -147,7 +136,7 @@ namespace Compendium
             if (!Config.LogSettings.ShowDebug) 
                 return;
 
-            Log.Debug(message?.ToString() ?? "Null Message!", helpers.Log.ResolveCaller(1));
+            Log.Debug(message?.ToString() ?? "Null Message!", helpers.Log.ResolveCaller(3));
         }
 
         public static void Error(object message)
@@ -155,7 +144,7 @@ namespace Compendium
             if (!Config.LogSettings.UseLoggingProxy)
                 helpers.Log.Error(message);
 
-            Log.Error(message?.ToString() ?? "Null Message!", helpers.Log.ResolveCaller(1));
+            Log.Error(message?.ToString() ?? "Null Message!", helpers.Log.ResolveCaller(3));
         }
 
         public static void Warn(object message)
@@ -163,7 +152,7 @@ namespace Compendium
             if (!Config.LogSettings.UseLoggingProxy)
                 helpers.Log.Warn(message);
 
-            Log.Warning(message?.ToString() ?? "Null Message!", helpers.Log.ResolveCaller(1));
+            Log.Warning(message?.ToString() ?? "Null Message!", helpers.Log.ResolveCaller(3));
         }
 
         public static void Info(object message)
@@ -171,7 +160,7 @@ namespace Compendium
             if (!Config.LogSettings.UseLoggingProxy)
                 helpers.Log.Info(message);
 
-            Log.Info(message?.ToString() ?? "Null Message!", helpers.Log.ResolveCaller(1));
+            Log.Info(message?.ToString() ?? "Null Message!", helpers.Log.ResolveCaller(3));
         }
 
         [Command("announcerestart", CommandType.GameConsole, CommandType.RemoteAdmin, CommandType.PlayerConsole)]

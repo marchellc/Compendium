@@ -51,7 +51,12 @@ namespace Compendium
         public static string ServerIp => ConfigFile.ServerConfig.GetString("server_ip", "auto");
 
         public static int ServerPort => ServerStatic.ServerPort;
-        public static double TicksPerSecond => 1f / Time.deltaTime;
+
+        public static float TicksPerSecondFull => 1f / Time.smoothDeltaTime;
+        public static float FrametimeFull => 1f / Time.deltaTime;
+
+        public static int Ticks => Mathf.RoundToInt(TicksPerSecondFull);
+        public static int Frametime => Mathf.RoundToInt(FrametimeFull);
 
         public static bool CanEscape(ReferenceHub hub, bool useGameLogic = true)
             => hub.Position().IsWithinDistance(EscapePosition, Escape.RadiusSqr) && (useGameLogic ? Escape.ServerGetScenario(hub) != Escape.EscapeScenarioType.None : true);

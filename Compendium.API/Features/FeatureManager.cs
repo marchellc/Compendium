@@ -4,7 +4,9 @@ using BetterCommands.Management;
 using Compendium.Colors;
 using Compendium.Events;
 using Compendium.Round;
+
 using GameCore;
+
 using helpers;
 using helpers.Attributes;
 using helpers.Extensions;
@@ -51,19 +53,12 @@ namespace Compendium.Features
                     var instance = Reflection.Instantiate<IFeature>(type);
 
                     _features.Add(instance);
-
                     Singleton.Set(instance);
-
-                    Plugin.Info($"Instantiated internal feature: {type.FullName}");
                 }
             }
 
-            Plugin.Info($"Loading external features ..");
-
             foreach (var file in Directory.GetFiles(Directories.ThisFeatures, "*.dll"))
             {
-                Plugin.Debug($"Loading file: {Path.GetFileName(file)}");
-
                 try
                 {
                     var rawAssembly = File.ReadAllBytes(file);
@@ -92,6 +87,7 @@ namespace Compendium.Features
                 {
                     Plugin.Error($"Failed to load file: {file}");
                     Plugin.Error(ex);
+
                     continue;
                 }
             }
@@ -317,7 +313,10 @@ namespace Compendium.Features
         private static void OnWaiting()
         {
             if (Plugin.Config.ApiSetttings.ReloadOnRestart)
+            {
+                Plugin.LoadConfig();
                 ConfigFile.ReloadGameConfigs();
+            }
 
             _features.ForEach(feature =>
             {
@@ -354,7 +353,7 @@ namespace Compendium.Features
             });
         }
 
-        [UpdateEvent]
+        [UpdateEvent(IsMainThread = true, IsSynchronized = true, Type = Update.UpdateHandlerType.Thread)]
         private static void OnUpdate()
         {
             _features.ForEach(feature =>

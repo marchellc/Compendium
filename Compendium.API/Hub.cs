@@ -55,6 +55,7 @@ using RemoteAdmin;
 
 using VoiceChat;
 using Compendium.Staff;
+using Compendium.Comparison;
 
 namespace Compendium
 {
@@ -988,6 +989,9 @@ namespace Compendium
             if (record.TryGetHub(out var hub) && hub != null)
                 Calls.Delegate(target, hub);
         }
+
+        public static bool TryGetHub(string userId, out ReferenceHub hub)
+            => Hubs.TryGetFirst(x => UserIdComparison.Compare(userId, x.UserId()), out hub);
 
         public static ReferenceHub[] InRadius(Vector3 position, float radius, FacilityZone[] zoneFilter = null, RoomName[] roomFilter = null)
         {

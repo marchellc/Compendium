@@ -16,6 +16,30 @@ namespace Compendium
         public static string ThisData => !Plugin.Config.ApiSetttings.GlobalDirectories.Contains("data") ? $"{MainPath}/data_{ServerStatic.ServerPort}" : DataPath;
         public static string ThisFeatures => !Plugin.Config.ApiSetttings.GlobalDirectories.Contains("features") ? $"{MainPath}/features_{ServerStatic.ServerPort}" : FeaturesPath;
 
+        public static string GetDataPath(string fileName, string dataId = null, bool useGlobal = true)
+        {
+            var path = "";
+
+            if (!string.IsNullOrWhiteSpace(dataId))
+            {
+                if (Plugin.Config.ApiSetttings.GlobalDirectories.Contains(dataId))
+                    path = $"{DataPath}/{fileName}";
+                else
+                    path = useGlobal ? $"{ThisData}/{fileName}" : $"{MainPath}/data_{ServerStatic.ServerPort}/{fileName}";
+            }
+            else
+            {
+                path = $"{ThisData}/{fileName}";
+            }
+
+            var dir = Path.GetDirectoryName(path);
+
+            if (!Directory.Exists(dir))
+                Directory.CreateDirectory(dir);
+
+            return path;
+        }
+
         internal static void Load()
         {
             Plugin.Info($"Loading directories ..");
