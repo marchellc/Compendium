@@ -16,6 +16,7 @@ namespace Compendium.Http
     {
         private static volatile CancellationTokenSource _tSource;
         private static volatile HttpClient _client;
+        private static volatile HttpClientHandler _handler;
         private static volatile ConcurrentQueue<HttpDispatchData> _dispatchQueue = new ConcurrentQueue<HttpDispatchData>();
 
         private static Thread _runThread;
@@ -40,7 +41,7 @@ namespace Compendium.Http
 
             _dispatchQueue.Enqueue(new HttpDispatchData(address, request, callback));
 
-            if (Plugin.Config.HttpSettings.Debug)
+            if (Plugin.Config.ApiSetttings.HttpSettings.Debug)
                 Plugin.Debug($"Enqueued POST request to {address}.");
         }
 
@@ -59,36 +60,37 @@ namespace Compendium.Http
                 headers.ForEach(pair =>
                 {
                     request.Headers.Add(pair.Key, pair.Value);
+                    Plugin.Debug($"Added header '{pair.Key}': {pair.Value}");
                 });
             }
 
+            request.Headers.Add("User-Agent", "Other");
+
             if (content != null)
-            {
                 request.Content = content;
-            }
 
             _dispatchQueue.Enqueue(new HttpDispatchData(address, request, callback));
 
-            if (Plugin.Config.HttpSettings.Debug)
+            if (Plugin.Config.ApiSetttings.HttpSettings.Debug)
                 Plugin.Debug($"Enqueued GET request to {address}.");
         }
 
         [Load]
         private static void Initialize()
         {
-            if (!Plugin.Config.HttpSettings.IsEnabled)
-            {
-                Plugin.Warn($"HTTP Dispatch is disabled via config! Some features may fail due to this.");
-                return;
-            }
-
             _tSource = new CancellationTokenSource();
-            _client = new HttpClient();
+
+            _handler = new HttpClientHandler();
+
+            _handler.UseDefaultCredentials = true;
+            _handler.UseProxy = false;
+
+            _client = new HttpClient(_handler);
 
             _runThread = new Thread(() => ThreadRunner(_tSource.Token));
             _runThread.Start();
 
-            if (Plugin.Config.HttpSettings.Debug)
+            if (Plugin.Config.ApiSetttings.HttpSettings.Debug)
                 Plugin.Debug($"HTTP dispatch client initialized.");
         }
 
@@ -104,7 +106,7 @@ namespace Compendium.Http
             _client.Dispose();
             _client = null;
 
-            if (Plugin.Config.HttpSettings.Debug)
+            if (Plugin.Config.ApiSetttings.HttpSettings.Debug)
                 Plugin.Debug($"HTTP dispatch client unloaded.");
         }
 
@@ -113,22 +115,22 @@ namespace Compendium.Http
         {
             _dispatchQueue.Clear();
 
-            if (Plugin.Config.HttpSettings.Debug)
+            if (Plugin.Config.ApiSetttings.HttpSettings.Debug)
                 Plugin.Debug($"HTTP dispatch client reloaded.");
         }
 
         private static void OnRequestFailed(HttpDispatchData httpDispatchData, Exception exception)
         {
-            if (Plugin.Config.HttpSettings.Debug)
+            if (Plugin.Config.ApiSetttings.HttpSettings.Debug)
             {
                 Plugin.Warn($"Request to \"{httpDispatchData.Target}\" failed!");
                 Plugin.Warn($"{exception.Message}");
             }
 
-            if (Plugin.Config.HttpSettings.MaxRequeueCount is 0)
+            if (Plugin.Config.ApiSetttings.HttpSettings.MaxRequeueCount is 0)
                 return;
 
-            if (httpDispatchData.RequeueCount >= Plugin.Config.HttpSettings.MaxRequeueCount)
+            if (httpDispatchData.RequeueCount >= Plugin.Config.ApiSetttings.HttpSettings.MaxRequeueCount)
                 return;
 
             _dispatchQueue.Enqueue(httpDispatchData);
@@ -137,13 +139,13 @@ namespace Compendium.Http
 
         private static void OnRequestFailed(HttpDispatchData httpDispatchData, HttpStatusCode code)
         {
-            if (Plugin.Config.HttpSettings.Debug)
+            if (Plugin.Config.ApiSetttings.HttpSettings.Debug)
                 Plugin.Warn($"Request to \"{httpDispatchData.Target}\" failed! ({code.ToString().SpaceByPascalCase()})");
 
-            if (Plugin.Config.HttpSettings.MaxRequeueCount is 0)
+            if (Plugin.Config.ApiSetttings.HttpSettings.MaxRequeueCount is 0)
                 return;
 
-            if (httpDispatchData.RequeueCount >= Plugin.Config.HttpSettings.MaxRequeueCount)
+            if (httpDispatchData.RequeueCount >= Plugin.Config.ApiSetttings.HttpSettings.MaxRequeueCount)
                 return;
 
             _dispatchQueue.Enqueue(httpDispatchData);
@@ -161,8 +163,13 @@ namespace Compendium.Http
                 {
                     try
                     {
-                        if (Plugin.Config.HttpSettings.Debug)
+                        if (Plugin.Config.ApiSetttings.HttpSettings.Debug)
                             Plugin.Debug($"Sending {data.Request.Method.Method} request to {data.Request.RequestUri} ..");
+
+                        data.RefreshRequest();
+
+                        if (Plugin.Config.ApiSetttings.HttpSettings.Debug)
+                            data.Request.Headers.ForEach(h => Plugin.Debug($"Header '{h.Key}': {string.Join(" | ", h.Value)}"));
 
                         using (var response = await _client.SendAsync(data.Request))
                         {
@@ -174,7 +181,7 @@ namespace Compendium.Http
 
                             var result = await response.Content.ReadAsStringAsync();
 
-                            if (Plugin.Config.HttpSettings.Debug)
+                            if (Plugin.Config.ApiSetttings.HttpSettings.Debug)
                                 Plugin.Debug($"Received response for {data.Request.Method.Method} request to {data.Request.RequestUri}:\n{result}");
 
                             data.OnReceived(result);

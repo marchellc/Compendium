@@ -6,10 +6,10 @@ namespace Compendium.PlayerData
 {
     public class PlayerDataRecord
     {
-        public string Id { get; set; }
+        public string Id { get; set; } = "";
+        public string Ip { get; set; } = "";
+        public string UserId { get; set; } = "";
 
-        public PlayerDataCache IdTracking { get; set; } = new PlayerDataCache();
-        public PlayerDataCache IpTracking { get; set; } = new PlayerDataCache();
         public PlayerDataCache NameTracking { get; set; } = new PlayerDataCache();
 
         public DateTime LastActivity { get; set; } = DateTime.MinValue;

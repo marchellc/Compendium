@@ -32,7 +32,7 @@ namespace Compendium.Webhooks.Discord
             _client = null;
         }
 
-        [FixedUpdateEvent]
+        [UpdateEvent]
         public static void Update()
         {
             if (_lastCheck.HasValue)

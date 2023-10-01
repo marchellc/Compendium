@@ -1,54 +1,72 @@
 ﻿using helpers.Attributes;
+using helpers.Dynamic;
 using helpers.Extensions;
-
-using MEC;
 
 using System;
 using System.Collections.Generic;
+using System.Reflection;
+using System.Timers;
+
+using UnityEngine;
 
 namespace Compendium.Threading
 {
     public static class ThreadScheduler
     {
-        private static Queue<Tuple<Delegate, object[]>> _queue = new Queue<Tuple<Delegate, object[]>>();
-        private static CoroutineHandle _handle;
+        private static Queue<Tuple<MethodInfo, object, object[]>> _queue = new Queue<Tuple<MethodInfo, object, object[]>>();
+        private static Timer _timer;
 
         public static int Size => _queue.Count;
 
         [Load(Priority = helpers.Priority.Low)]
         public static void Load()
         {
-            _handle = Timing.RunCoroutine(Handle());
+            if (_timer != null)
+                Unload();
+
+            _timer = new Timer();
+            _timer.Interval = Time.deltaTime * 1000f;
+            _timer.Elapsed += OnElapsed;
+            _timer.Enabled = true;
         }
 
         public static void Unload()
         {
-            Timing.KillCoroutines(_handle);
+            if (_timer is null)
+                return;
+
+            _timer.Enabled = false;
+            _timer.Elapsed -= OnElapsed;
+            _timer.Dispose();
+            _timer = null;
         }
 
-        public static void Schedule(Delegate target, params object[] args)
-        {
-            _queue.Enqueue(new Tuple<Delegate, object[]>(target, args));
-        }
+        public static void Schedule(MethodInfo target, object handle, params object[] args)
+            => _queue.Enqueue(new Tuple<MethodInfo, object, object[]>(target, handle, args));
 
-        private static IEnumerator<float> Handle()
+        private static void OnElapsed(object sender, ElapsedEventArgs e)
         {
-            while (true)
-            {
-                yield return Timing.WaitForOneFrame;
-
-                if (_queue.TryDequeue(out var del))
+            try
+            { 
+                while (_queue.TryDequeue(out var tuple))
                 {
                     try
                     {
-                        del.Item1.Method.Invoke(del.Item1.Target, del.Item2);
+                        tuple.Item1.InvokeDynamic(tuple.Item2, tuple.Item3);
                     }
-                    catch (Exception ex)
+                    catch (Exception exx)
                     {
-                        Plugin.Error($"Failed to invoke scheduled delegate '{del.Item1.Method.ToLogName()}'");
-                        Plugin.Error(ex);
+                        Plugin.Error($"Failed to execute scheduled method '{tuple.Item1.ToLogName()}'");
+                        Plugin.Error(exx);
                     }
                 }
+
+                if (_timer != null)
+                    _timer.Interval = Time.deltaTime * 1000f;
+            }
+            catch (Exception ex)
+            {
+                Plugin.Error(ex);
             }
         }
     }

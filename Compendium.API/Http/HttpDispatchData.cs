@@ -1,4 +1,5 @@
-﻿using System;
+﻿using helpers;
+using System;
 using System.Net.Http;
 
 namespace Compendium.Http
@@ -8,13 +9,14 @@ namespace Compendium.Http
         private int _requeueCount;
         private string _response;
         private Action<HttpDispatchData> _onResponse;
+        private HttpRequestMessage _request;
 
         public string Target { get; }
         public string Response => _response;
 
         public int RequeueCount => _requeueCount;
 
-        public HttpRequestMessage Request { get; }
+        public HttpRequestMessage Request => _request;
 
         public HttpDispatchData(string target, HttpRequestMessage httpRequestMessage, Action<HttpDispatchData> onResponse)
         {
@@ -23,7 +25,7 @@ namespace Compendium.Http
             _onResponse = onResponse;
 
             Target = target;
-            Request = httpRequestMessage;
+            _request = httpRequestMessage;
         }
 
         internal void OnRequeued()
@@ -33,6 +35,28 @@ namespace Compendium.Http
         {
             _response = response;
             Calls.Delegate(_onResponse, this);
+        }
+
+        internal void RefreshRequest()
+        {
+            if (_requeueCount <= 0)
+                return;
+
+            if (_request != null)
+            {
+                var newReq = new HttpRequestMessage(_request.Method, _request.RequestUri);
+
+                newReq.Content = _request.Content;
+                newReq.Headers.Clear();
+
+                _request.Headers.ForEach(header =>
+                {
+                    newReq.Headers.Add(header.Key, header.Value);
+                });
+
+                _request.Dispose();
+                _request = newReq;
+            }
         }
     }
 }

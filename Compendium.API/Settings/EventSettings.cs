@@ -20,5 +20,8 @@ namespace Compendium.Settings
 
         [Description("Whether or not to log the round summary of event times.")]
         public bool ShowRoundSummary { get; set; } = true;
+
+        [Description("Whether or not to use the old event invocation system via Reflection (much slower, but also much more stable).")]
+        public bool UseStable { get; set; }
     }
 }

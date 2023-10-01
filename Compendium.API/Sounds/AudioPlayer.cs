@@ -303,7 +303,7 @@ namespace Compendium.Sounds
         {
             base.OnUnpooled();
 
-            _encoder = new OpusEncoder(Plugin.Config.AudioSettings.OpusType);
+            _encoder = new OpusEncoder(Plugin.Config.ApiSetttings.AudioSettings.OpusType);
             _playbackBuffer = new PlaybackBuffer();
             _buffer = new Queue<float>();
             _queryQueue = new ConcurrentQueue<string>();
@@ -311,7 +311,7 @@ namespace Compendium.Sounds
             _whitelist = new HashSet<uint>();
             _blacklist = new HashSet<uint>();
 
-            _encodedBuffer = new byte[Plugin.Config.AudioSettings.EncodingBufferSize];
+            _encodedBuffer = new byte[Plugin.Config.ApiSetttings.AudioSettings.EncodingBufferSize];
             _maxSamples = 0f;
 
             if (!_updateReg)
@@ -371,8 +371,8 @@ namespace Compendium.Sounds
 
             OnLoadedTrack.Invoke(_current);
 
-            _sendBuffer = new float[Plugin.Config.AudioSettings.SendBufferSize];
-            _readBuffer = new float[Plugin.Config.AudioSettings.ReadBufferSize];
+            _sendBuffer = new float[Plugin.Config.ApiSetttings.AudioSettings.SendBufferSize];
+            _readBuffer = new float[Plugin.Config.ApiSetttings.AudioSettings.ReadBufferSize];
 
             int read;
 
@@ -430,7 +430,7 @@ namespace Compendium.Sounds
             if (!IsReady || _buffer.IsEmpty() || IsPaused)
                 return;
 
-            _maxSamples += Time.deltaTime * Plugin.Config.AudioSettings.SamplingRate;
+            _maxSamples += Time.deltaTime * Plugin.Config.ApiSetttings.AudioSettings.SamplingRate;
 
             var toCopy = Mathf.Min(Mathf.FloorToInt(_maxSamples), _buffer.Count);
 

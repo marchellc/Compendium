@@ -249,16 +249,21 @@ namespace Compendium.Webhooks
                 if (PlayerDataRecorder.TryQuery(ev.BanDetails.Id, false, out var targetRecord))
                 {
                     targetNick = targetRecord.NameTracking.LastValue;
-                    targetId = targetRecord.IdTracking.LastValue;
-                    targetIp = targetRecord.IpTracking.LastValue;
+                    targetId = targetRecord.UserId;
+                    targetIp = targetRecord.Ip;
                 }
 
                 var issuerParts = ev.BanDetails.Issuer.Split(' ');
                 var issuerIdPart = issuerParts.LastOrDefault(s => s.StartsWith("(") && s.EndsWith(")") && s.Contains("@"));
 
+                Plugin.Debug($"issuerParts={string.Join(" ", issuerParts)}");
+                Plugin.Debug($"issuerIdPart={issuerIdPart ?? "NULL"}");
+
                 if (!string.IsNullOrWhiteSpace(issuerIdPart))
                 {
                     var issuerIdClearStr = issuerIdPart.Remove('(', ')');
+
+                    Plugin.Debug($"issueridClearStré{issuerIdClearStr}");
 
                     if (issuerIdClearStr == "SERVER CONSOLE")
                     {

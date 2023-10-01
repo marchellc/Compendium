@@ -1,6 +1,5 @@
-﻿using Compendium.Reflect.Dynamic;
-
-using helpers;
+﻿using helpers;
+using helpers.Dynamic;
 using helpers.Extensions;
 
 using PluginAPI.Enums;
@@ -26,33 +25,51 @@ namespace Compendium.Events
                     result = true;
                     return;
                 }
-
-                if (del is DynamicMethodDelegate methodDelegate)
+                else if (del is Func<bool> func)
+                {
+                    result = func();
+                    return;
+                }
+                else if (del is DynamicMethodDelegate methodDelegate)
                 {
                     data.PrepareBuffer(args, isAllowed);
 
-                    var res = methodDelegate(del.Target, data.Buffer);
+                    if (Plugin.Config.ApiSetttings.EventSettings.UseStable)
+                    {
+                        var res = data.Target.Method.Invoke(data.Handle, data.Buffer);
 
-                    if (res != null && res is bool b)
-                        result = b;
+                        if (res != null && res is bool b)
+                            result = b;
+                        else
+                            result = true;
+
+                        return;
+                    }
                     else
-                        result = true;
+                    {
+                        var res = methodDelegate(data.Handle, data.Buffer);
 
-                    return;
+                        if (res != null && res is bool b)
+                            result = b;
+                        else
+                            result = true;
+
+                        return;
+                    }
                 }
-
-                Plugin.Error($"Failed to invoke delegate '{del.GetType().FullName}' ({DynamicMethodDelegateFactory.GetMethodName(data.Target.Method)}) - unknown delegate type");
+                else
+                    Plugin.Warn($"Failed to invoke delegate '{del.GetType().FullName}' ({data.Target.Method.ToLogName()}) - unknown delegate type");
             }
             catch (Exception ex)
             {
-                Plugin.Error($"Failed to invoke delegate '{DynamicMethodDelegateFactory.GetMethodName(data.Target.Method)}' while executing event '{args.BaseType}'");
+                Plugin.Error($"Failed to invoke delegate '{data.Target.Method.ToLogName()}' while executing event '{args.BaseType}'");
                 Plugin.Error(ex);
             }
 
             result = true;
         }
 
-        public static bool TryCreateEventData(MethodInfo target, object handle, out EventRegistryData registryData)
+        public static bool TryCreateEventData(MethodInfo target, bool skipAttributeCheck, object handle, out EventRegistryData registryData)
         {
             if (target is null)
             {
@@ -60,10 +77,15 @@ namespace Compendium.Events
                 return false;
             }
 
-            if (!target.TryGetAttribute<EventAttribute>(out var evAttr))
+            EventAttribute evAttr = null;
+
+            if (!skipAttributeCheck)
             {
-                registryData = null;
-                return false;
+                if (!target.TryGetAttribute(out evAttr))
+                {
+                    registryData = null;
+                    return false;
+                }
             }
 
             if (!TryValidateInstance(target, ref handle))
@@ -73,18 +95,15 @@ namespace Compendium.Events
             }
 
             var parameters = target.GetParameters();
+            var evType = (evAttr?.Type.HasValue ?? false) ? evAttr.Type.Value : ServerEventType.None;
 
-            if (!evAttr.Type.HasValue)
+            if (evType is ServerEventType.None)
             {
-                if (!TryRecognizeEventType(parameters, out var evType))
+                if (!TryRecognizeEventType(target, parameters, out evType))
                 {
-                    Plugin.Error($"Failed to automatically determine the event type of '{target.ToLogName()}'!");
-
                     registryData = null;
                     return false;
                 }
-
-                evAttr.Type = evType;
             }
 
             if (!TryGenerateDelegate(target, handle, out var del))
@@ -102,7 +121,7 @@ namespace Compendium.Events
 
             var typeParams = parameters.Select(x => x.ParameterType).ToArray();
 
-            registryData = new EventRegistryData(del, evAttr.Priority, evAttr.Type.Value, handle, buffer, typeParams);
+            registryData = new EventRegistryData(del, evAttr?.Priority ?? Priority.Normal, evType, handle, buffer, typeParams);
             return true;
         }
 
@@ -114,11 +133,53 @@ namespace Compendium.Events
 
                 if (parameters.Length <= 0)
                 {
-                    del = method.CreateDelegate(typeof(Action), handle);
-                    return true;
+                    if (method.ReturnType == typeof(void))
+                    {
+                        del = method.CreateDelegate(typeof(Action), handle);
+                        return true;
+                    }
+                    else if (method.ReturnType == typeof(bool))
+                    {
+                        del = method.CreateDelegate(typeof(Func<bool>), handle);
+                        return true;
+                    }
+                    else
+                    {
+                        Plugin.Warn($"Cannot create invocation delegate for event handler '{method.ToLogName()}': unsupported return type ({method.ReturnType.FullName})");
+
+                        del = null;
+                        return false;
+                    }
                 }
 
-                del = DynamicMethodDelegateFactory.Create(method);
+                if (!Reflection.HasInterface<IEventArguments>(parameters[0].ParameterType))
+                {
+                    Plugin.Warn($"Event handler '{method.ToLogName()}' has invalid event argument at index '0' (expected a class deriving from IEventArguments, actual class is '{parameters[0].ParameterType.FullName}')");
+
+                    del = null;
+                    return false;
+                }
+
+                if (parameters.Length == 2)
+                {
+                    if (parameters[1].ParameterType != typeof(ValueReference))
+                    {
+                        Plugin.Warn($"Event handler '{method.ToLogName()}' has invalid event argument at index '1' (expected a ValueReference, actual class is '{parameters[1].ParameterType.FullName}')");
+
+                        del = null;
+                        return false;
+                    }
+                }
+
+                if (parameters.Length > 2)
+                {
+                    Plugin.Warn($"Event handler '{method.ToLogName()}' has too many arguments!");
+
+                    del = null;
+                    return false;
+                }
+
+                del = method.GetOrCreateInvoker();
                 return true;
             }
             catch (Exception ex)
@@ -131,10 +192,12 @@ namespace Compendium.Events
             }
         }
 
-        public static bool TryRecognizeEventType(ParameterInfo[] parameters, out ServerEventType serverEventType)
+        public static bool TryRecognizeEventType(MethodInfo method, ParameterInfo[] parameters, out ServerEventType serverEventType)
         {
             if (!parameters.Any())
             {
+                Plugin.Warn($"Failed to recognize event type of event handler '{method.ToLogName()}': no recognizable event parameters");
+
                 serverEventType = default;
                 return false;
             }
@@ -143,7 +206,7 @@ namespace Compendium.Events
 
             foreach (var p in parameters)
             {
-                if (helpers.Reflection.HasInterface<IEventArguments>(p.ParameterType))
+                if (Reflection.HasInterface<IEventArguments>(p.ParameterType))
                 {
                     evParameterType = p.ParameterType;
                     break;
@@ -152,6 +215,8 @@ namespace Compendium.Events
 
             if (evParameterType is null)
             {
+                Plugin.Warn($"Failed to recognize event type of event handler '{method.ToLogName()}': no recognizable event parameters");
+
                 serverEventType = default;
                 return false;
             }
@@ -159,6 +224,8 @@ namespace Compendium.Events
             if (!EventManager.Events.TryGetFirst(ev => ev.Value.EventArgType == evParameterType, out var infoPair)
                 || infoPair.Value is null)
             {
+                Plugin.Warn($"Failed to recognize event type of event handler '{method.ToLogName()}': unknown event type");
+
                 serverEventType = default;
                 return false;
             }
@@ -177,6 +244,7 @@ namespace Compendium.Events
                     return true;
                 }
 
+                Plugin.Warn($"Failed to register event handler '{method.ToLogName()}': missing class instance");
                 return false;
             }
 

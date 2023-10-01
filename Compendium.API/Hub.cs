@@ -460,9 +460,6 @@ namespace Compendium
 
         public static string Ip(this ReferenceHub hub)
         {
-            if (Plugin.Config.ApiSetttings.IpCompatibilityMode)
-                return PlayerDataRecorder.GetToken(hub)?.Ip ?? hub.connectionToClient.address;
-
             return hub.connectionToClient.address;
         }
 
@@ -539,14 +536,6 @@ namespace Compendium
     {
         public static void Kick(this ReferenceHub hub, string reason = "No reason provided.")
         {
-            if (Plugin.Config.ApiSetttings.LogKick)
-            {
-                var caller = Reflection.GetExecutingMethod(1);
-                var callerName = $"{caller.DeclaringType.FullName} -> {caller.Name}";
-
-                Plugin.Warn($"{hub.GetLogName(true, true)} was kicked by \"{callerName}\" with reason \"{reason}\"");
-            }
-
             ServerConsole.Disconnect(hub.connectionToClient, reason);
         }
 
@@ -556,14 +545,6 @@ namespace Compendium
 
             if (dur > 0)
             {
-                if (Plugin.Config.ApiSetttings.LogBan)
-                {
-                    var caller = Reflection.GetExecutingMethod(1);
-                    var callerName = $"{caller.DeclaringType.FullName} -> {caller.Name}";
-
-                    Plugin.Warn($"{hub.GetLogName(true, true)} was banned by \"{callerName}\" with reason \"{reason}\" for {duration} ({dur} seconds) [IP: {issueIp}]");
-                }
-
                 BanHandler.IssueBan(new BanDetails
                 {
                     Expires = (DateTime.Now + TimeSpan.FromSeconds(dur)).Ticks,
@@ -778,7 +759,7 @@ namespace Compendium
             if (hub is null)
                 return;
 
-            if (Plugin.Config.ApiSetttings.DisableHintMethod || HintProxy != null)
+            if (HintProxy != null)
             {
                 if (HintProxy != null)
                     Calls.Delegate(HintProxy, hub, content.ToString(), duration);
@@ -815,14 +796,6 @@ namespace Compendium
 
         public static void Message(this ReferenceHub hub, object content, bool isRemoteAdmin = false)
         {
-            if (Plugin.Config.ApiSetttings.ShowHubMessageDebug)
-            {
-                var caller = Reflection.GetExecutingMethod(1);
-                var callerName = $"{caller.DeclaringType.FullName}::{caller.Name}";
-
-                Plugin.Info($"[{(isRemoteAdmin ? "RA" : "PC")} OUTPUT DEBUG] {callerName} >> {hub.Nick()} ({hub.UserId()}): '{content}'");
-            }
-
             if (!isRemoteAdmin)
                 hub.characterClassManager.ConsolePrint(content.ToString(), "red");
             else
@@ -1004,10 +977,8 @@ namespace Compendium
         public static bool TryGetHub(this PlayerDataRecord record, out ReferenceHub hub)
             => Hubs.TryGetFirst(h => 
                     record.Id == h.UniqueId() ||
-                    record.IdTracking.LastValue == h.UserId() ||
-                    record.IpTracking.LastValue == h.Ip() ||
-                    record.IdTracking.AllValues.ContainsValue(h.UserId()) || 
-                    record.IpTracking.AllValues.ContainsValue(h.Ip()), out hub);
+                    record.UserId == h.UserId() ||
+                    record.Ip == h.Ip(), out hub);
 
         public static void TryInvokeHub(this PlayerDataRecord record, Action<ReferenceHub> target)
         {

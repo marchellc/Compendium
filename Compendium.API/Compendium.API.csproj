@@ -152,8 +152,9 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Comparison\NicknameComparison.cs" />
     <Compile Include="Comparison\NullableObjectComparison.cs" />
-    <Compile Include="Compatibility\IpCompatibilityPatch.cs" />
+    <Compile Include="Comparison\UserIdComparison.cs" />
     <Compile Include="Config.cs" />
     <Compile Include="Custom\Commands\ModerationCommands.cs" />
     <Compile Include="Custom\Items\CustomItemManager.cs" />
@@ -174,14 +175,15 @@
     <Compile Include="EasyComponents\EasyComponentFlags.cs" />
     <Compile Include="EasyComponents\EasyComponentManager.cs" />
     <Compile Include="EasyComponents\RangedTickRateEasyComponent.cs" />
-    <Compile Include="Events\EventState.cs" />
     <Compile Include="Events\EventStatistics.cs" />
     <Compile Include="Events\EventUtils.cs" />
-    <Compile Include="Reflect\ByteBuffer.cs" />
-    <Compile Include="Reflect\Dynamic\DynamicFactory.cs" />
-    <Compile Include="Reflect\Instruction.cs" />
-    <Compile Include="Reflect\MethodBodyReader.cs" />
+    <Compile Include="Guard\ServerGuard.cs" />
+    <Compile Include="Guard\ServerGuardClient.cs" />
+    <Compile Include="Guard\Steam\SteamClient.cs" />
+    <Compile Include="Guard\Vpn\VpnClient.cs" />
+    <Compile Include="Guard\Vpn\VpnResponse.cs" />
     <Compile Include="Settings\EventSettings.cs" />
+    <Compile Include="Settings\GuardSettings.cs" />
     <Compile Include="Threading\ThreadScheduler.cs" />
     <Compile Include="Update\UpdateHandler.cs" />
     <Compile Include="Extensions\ColorExtensions.cs" />
@@ -262,6 +264,7 @@
     <Compile Include="Units\UnitHelper.cs" />
     <Compile Include="Update\UpdateHandlerData.cs" />
     <Compile Include="Update\UpdateHandlerType.cs" />
+    <Compile Include="Update\UpdateIgnoreUnityWarningsAttribute.cs" />
     <Compile Include="Update\UpdateSynchronizer.cs" />
     <Compile Include="Uptime\BetterUptimeClient.cs" />
     <Compile Include="UserId\UserIdValue.cs" />
@@ -281,10 +284,8 @@
     <Compile Include="Plugin.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Settings\ApiSettings.cs" />
-    <Compile Include="Settings\BanSettings.cs" />
     <Compile Include="Settings\FeatureSettings.cs" />
     <Compile Include="Settings\LogSettings.cs" />
-    <Compile Include="Settings\RuleSettings.cs" />
     <Compile Include="Voice\IVoiceChatState.cs" />
     <Compile Include="Voice\IVoicePrefab.cs" />
     <Compile Include="Voice\IVoiceProfile.cs" />

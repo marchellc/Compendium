@@ -42,7 +42,7 @@ namespace Compendium
 
         [PluginEntryPoint(
             "Compendium API",
-            "3.3.2",
+            "3.4.1",
             "A huge API for each Compendium component.",
             "marchellc_")]
         [PluginPriority(PluginAPI.Enums.LoadPriority.Lowest)]
@@ -54,7 +54,7 @@ namespace Compendium
             Instance = this;
             HandlerInstance = PluginHandler.Get(this);
 
-            if (Config.UseLoggingProxy)
+            if (Config.LogSettings.UseLoggingProxy)
                 helpers.Log.AddLogger<LoggingProxy>();
 
             PlayerDataRecordParser.Load();
@@ -152,7 +152,7 @@ namespace Compendium
 
         public static void Error(object message)
         {
-            if (!Config.UseLoggingProxy)
+            if (!Config.LogSettings.UseLoggingProxy)
                 helpers.Log.Error(message);
 
             Log.Error(message?.ToString() ?? "Null Message!", helpers.Log.ResolveCaller(1));
@@ -160,7 +160,7 @@ namespace Compendium
 
         public static void Warn(object message)
         {
-            if (!Config.UseLoggingProxy)
+            if (!Config.LogSettings.UseLoggingProxy)
                 helpers.Log.Warn(message);
 
             Log.Warning(message?.ToString() ?? "Null Message!", helpers.Log.ResolveCaller(1));
@@ -168,7 +168,7 @@ namespace Compendium
 
         public static void Info(object message)
         {
-            if (!Config.UseLoggingProxy)
+            if (!Config.LogSettings.UseLoggingProxy)
                 helpers.Log.Info(message);
 
             Log.Info(message?.ToString() ?? "Null Message!", helpers.Log.ResolveCaller(1));

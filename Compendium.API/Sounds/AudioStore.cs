@@ -46,7 +46,7 @@ namespace Compendium.Sounds
 
         public static void Save(string id, byte[] oggBytes)
         {
-            if (Plugin.Config.AudioSettings.PreloadIds.Contains(id) || Plugin.Config.AudioSettings.PreloadIds.Contains("*"))
+            if (Plugin.Config.ApiSetttings.AudioSettings.PreloadIds.Contains(id) || Plugin.Config.ApiSetttings.AudioSettings.PreloadIds.Contains("*"))
             {
                 _preloaded[id] = oggBytes;
                 Plugin.Info($"Added audio '{id}' to preloaded files.");
@@ -142,7 +142,7 @@ namespace Compendium.Sounds
 
             _manifest.ForEach(pair =>
             {
-                if (Plugin.Config.AudioSettings.PreloadIds.Contains(pair.Key) || Plugin.Config.AudioSettings.PreloadIds.Contains("*"))
+                if (Plugin.Config.ApiSetttings.AudioSettings.PreloadIds.Contains(pair.Key) || Plugin.Config.ApiSetttings.AudioSettings.PreloadIds.Contains("*"))
                 {
                     if (File.Exists(pair.Value))
                     {

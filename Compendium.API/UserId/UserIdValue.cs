@@ -30,9 +30,7 @@
         public bool TryMatch(string id)
         {
             if (UserIdHelper.TryParse(id, out var idValue))
-            {
                 return TryMatch(idValue);
-            }
 
             return false;
         }

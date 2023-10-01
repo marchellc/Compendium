@@ -1,11 +1,12 @@
 ﻿using BetterCommands;
 
 using Compendium.Comparison;
-using Compendium.Reflect.Dynamic;
 using Compendium.Round;
+using Compendium.Update;
 
 using helpers;
 using helpers.Attributes;
+using helpers.Dynamic;
 using helpers.Extensions;
 
 using PluginAPI.Enums;
@@ -23,11 +24,11 @@ namespace Compendium.Events
         private static bool _everExecuted;
         private static List<EventRegistryData> _registry = new List<EventRegistryData>();
 
-        public static List<ServerEventType> RecordEvents => Plugin.Config.EventSettings.RecordEvents;
+        public static List<ServerEventType> RecordEvents => Plugin.Config.ApiSetttings.EventSettings.RecordEvents;
 
-        public static bool RoundSummary => Plugin.Config.EventSettings.ShowRoundSummary || DebugOverride;
-        public static bool LogExecutionTime => Plugin.Config.EventSettings.ShowTotalExecution || DebugOverride;
-        public static bool LogHandlers => Plugin.Config.EventSettings.ShowEventDuration || DebugOverride;
+        public static bool RoundSummary => Plugin.Config.ApiSetttings.EventSettings.ShowRoundSummary || DebugOverride;
+        public static bool LogExecutionTime => Plugin.Config.ApiSetttings.EventSettings.ShowTotalExecution || DebugOverride;
+        public static bool LogHandlers => Plugin.Config.ApiSetttings.EventSettings.ShowEventDuration || DebugOverride;
 
         public static bool DebugOverride;
 
@@ -60,20 +61,24 @@ namespace Compendium.Events
             => assembly.ForEachType(t => RegisterEvents(t));
 
         public static void RegisterEvents(Type type, object instance = null)
-            => type.ForEachMethod(m => RegisterEvents(m, instance));
+            => type.ForEachMethod(m => RegisterEvents(m, false, instance));
 
-        public static void RegisterEvents(MethodInfo method, object instance = null)
+        public static void RegisterEvents(MethodInfo method, bool skipAttributeCheck, object instance = null)
         {
             try
             {
                 if (method.DeclaringType.Namespace.StartsWith("System"))
                     return;
 
-                if (!EventUtils.TryCreateEventData(method, instance, out var data))
-                    return;
-
-                _registry.Add(data);
-                Plugin.Info($"Registered event '{data.Type}' ({DynamicMethodDelegateFactory.GetMethodName(data.Target.Method)})");
+                if (EventUtils.TryCreateEventData(method, skipAttributeCheck, instance, out var data))
+                {
+                    _registry.Add(data);
+                    Plugin.Info($"Registered event '{data.Type}' ({data.Target.Method.ToLogName()})");
+                }
+                else if (method.TryGetAttribute<UpdateEventAttribute>(out var updateAttr))
+                {
+                    UpdateHandler.AddData(method, instance, updateAttr.Type, updateAttr.IsSynchronized, updateAttr.IsMainThread, updateAttr.TickRate);
+                }
             }
             catch (Exception ex)
             {
@@ -87,8 +92,9 @@ namespace Compendium.Events
             if (!EventUtils.TryValidateInstance(method, ref instance))
                 return false;
 
-            DynamicMethodDelegateFactory.MethodCache.TryGetValue(method, out method);
-            return _registry.TryGetFirst(ev => ev.Target.Method == method && NullableObjectComparison.Compare(ev.Target.Target, instance), out _);
+            method = DynamicMethodCache.GetOriginalMethod(method);
+            return _registry.TryGetFirst(ev => ev.Target.Method == method 
+                        && NullableObjectComparison.Compare(ev.Target.Target, instance), out _);
         }
 
         public static void UnregisterEvents(object instance)
@@ -110,47 +116,61 @@ namespace Compendium.Events
             if (!EventUtils.TryValidateInstance(method, ref instance))
                 return false;
 
-            DynamicMethodDelegateFactory.MethodCache.TryGetValue(method, out method);
-            return _registry.RemoveAll(ev => ev.Target.Method == method && NullableObjectComparison.Compare(ev.Target.Target, instance)) > 0;
+            method = DynamicMethodCache.GetOriginalMethod(method);
+            return _registry.RemoveAll(ev => ev.Target.Method == method
+                        && NullableObjectComparison.Compare(ev.Target.Target, instance)) > 0;
         }
 
         private static bool OnExecutingEvent(IEventArguments args, Event evInfo, ValueReference isAllowed)
         {
-            if (!_registry.Any(ev => ev.Type == args.BaseType))
-                return true;
-
-            _everExecuted = true;
-
-            var startTime = DateTime.Now;
-            var list = _registry.Where(x => x.Type == args.BaseType);
-            var result = true;
-
-            foreach (var ev in list)
+            try
             {
-                var startEv = DateTime.Now;
+                if (!_registry.Any(ev => ev.Type == args.BaseType))
+                    return true;
 
-                EventUtils.TryInvoke(ev, args, isAllowed, out result);
+                _everExecuted = true;
 
-                var endEv = DateTime.Now;
-                var durationEv = TimeSpan.FromTicks((endEv - startEv).Ticks);
+                var startTime = DateTime.Now;
+                var list = _registry.Where(x => x.Type == args.BaseType);
+                var result = true;
 
-                ev.Stats.Record(durationEv.TotalMilliseconds);
+                foreach (var ev in list)
+                {
+                    var startEv = DateTime.Now;
 
-                if (LogHandlers)
-                    Plugin.Debug($"Finished executing '{ev.Type}' handler '{DynamicMethodDelegateFactory.GetMethodName(ev.Target.Method)}' in {durationEv.TotalMilliseconds} ms");
+                    EventUtils.TryInvoke(ev, args, isAllowed, out result);
+
+                    if (RecordEvents.Contains(ev.Type))
+                    {
+                        var endEv = DateTime.Now;
+                        var durationEv = TimeSpan.FromTicks((endEv - startEv).Ticks);
+
+                        ev.Stats.Record(durationEv.TotalMilliseconds);
+
+                        if (LogHandlers)
+                            Plugin.Debug($"Finished executing '{ev.Type}' handler '{ev.Target.Method.ToLogName()}' in {durationEv.TotalMilliseconds} ms");
+                    }
+                }
+
+                if (isAllowed.Value is null)
+                    isAllowed.Value = result;
+
+                if (!LogExecutionTime)
+                    return result;
+
+                var endTime = DateTime.Now;
+                var duration = TimeSpan.FromTicks((endTime - startTime).Ticks);
+
+                Plugin.Debug($"Total Event Execution of {args.BaseType} took {duration.TotalMilliseconds} ms.");
+                return result;
+            }
+            catch (Exception ex)
+            {
+                Plugin.Error($"Caught an exception while executing event '{args.BaseType}'");
+                Plugin.Error(ex);
             }
 
-            if (isAllowed.Value is null)
-                isAllowed.Value = result;
-
-            if (!LogExecutionTime)
-                return result;
-
-            var endTime = DateTime.Now;
-            var duration = TimeSpan.FromTicks((endTime - startTime).Ticks);
-
-            Plugin.Debug($"Total Event Execution of {args.BaseType} took {duration.TotalMilliseconds} ms; longest: {HighestEventDuration} ms; shortest: {ShortestEventDuration} ms");
-            return result;
+            return true;
         }
 
         [RoundStateChanged(RoundState.WaitingForPlayers)]
@@ -163,9 +183,6 @@ namespace Compendium.Events
 
                 _registry.ForEach(ev =>
                 {
-                    if (!dict.ContainsKey(ev.Type))
-                        dict[ev.Type] = Pools.PoolList<Tuple<string, double, double, double, double, double, int>>();
-
                     if (ev.Stats is null
                     || ev.Stats.LongestTime == -1
                     || ev.Stats.ShortestTime == -1
@@ -175,8 +192,11 @@ namespace Compendium.Events
                     || ev.Stats.Executions <= 0)
                         return;
 
+                    if (!dict.ContainsKey(ev.Type))
+                        dict[ev.Type] = Pools.PoolList<Tuple<string, double, double, double, double, double, int>>();
+
                     dict[ev.Type].Add(new Tuple<string, double, double, double, double, double, int>(
-                        DynamicMethodDelegateFactory.GetMethodName(ev.Target.Method),
+                        ev.Target.Method.ToLogName(),
                         ev.Stats.LongestTime,
                         ev.Stats.ShortestTime,
                         ev.Stats.AverageTime,
@@ -189,11 +209,14 @@ namespace Compendium.Events
 
                 dict.ForEach(p =>
                 {
+                    if (!p.Value.Any())
+                        return;
+
                     sb.AppendLine($"== EVENT: {p.Key} ({p.Value.Count} handler(s)) ==");
 
                     p.Value.ForEach(stats =>
                     {
-                        sb.AppendLine($"    > {stats.Item1} = L: {stats.Item2} ms;S: {stats.Item2} ms;A: {stats.Item3} ms;LS: {stats.Item4} ms;TPS: {stats.Item5};NUM: {stats.Item6};{stats.Item7}");
+                        sb.AppendLine($"    > {stats.Item1} = L: {stats.Item2} ms;S: {stats.Item3} ms;A: {stats.Item4} ms;LS: {stats.Item5} ms;TPS: {stats.Item6};NUM: {stats.Item7}");
                     });
 
                     p.Value.ReturnList();
@@ -215,7 +238,7 @@ namespace Compendium.Events
                 var ordered = _registry.OrderByDescending(x => x.Type);
                 var sb = Pools.PoolStringBuilder();
 
-                ordered.ForEach(h => sb.AppendLine($"{h.Type} {DynamicMethodDelegateFactory.GetMethodName(h.Target.Method)} {h.Buffer?.Length ?? -1} {h.Buffer?.Count(x => x != null) ?? -1}"));
+                ordered.ForEach(h => sb.AppendLine($"{h.Type} {h.Target.Method.ToLogName()} {h.Buffer?.Length ?? -1} {h.Buffer?.Count(x => x != null) ?? -1}"));
 
                 return sb.ReturnStringBuilderValue();
             }
@@ -227,9 +250,6 @@ namespace Compendium.Events
 
                 _registry.ForEach(ev =>
                 {
-                    if (!dict.ContainsKey(ev.Type))
-                        dict[ev.Type] = Pools.PoolList<Tuple<string, double, double, double, double, double, int>>();
-
                     if (ev.Stats is null
                     || ev.Stats.LongestTime == -1
                     || ev.Stats.ShortestTime == -1
@@ -239,8 +259,11 @@ namespace Compendium.Events
                     || ev.Stats.Executions <= 0)
                         return;
 
+                    if (!dict.ContainsKey(ev.Type))
+                        dict[ev.Type] = Pools.PoolList<Tuple<string, double, double, double, double, double, int>>();
+
                     dict[ev.Type].Add(new Tuple<string, double, double, double, double, double, int>(
-                        DynamicMethodDelegateFactory.GetMethodName(ev.Target.Method),
+                        ev.Target.Method.ToLogName(),
                         ev.Stats.LongestTime,
                         ev.Stats.ShortestTime,
                         ev.Stats.AverageTime,
@@ -253,18 +276,20 @@ namespace Compendium.Events
 
                 dict.ForEach(p =>
                 {
+                    if (!p.Value.Any())
+                        return;
+
                     sb.AppendLine($"== EVENT: {p.Key} ({p.Value.Count} handler(s)) ==");
 
                     p.Value.ForEach(stats =>
                     {
-                        sb.AppendLine($"    > {stats.Item1} = L: {stats.Item2} ms;S: {stats.Item2} ms;A: {stats.Item3} ms;LS: {stats.Item4} ms;TPS: {stats.Item5};NUM: {stats.Item6};{stats.Item7}");
+                        sb.AppendLine($"    > {stats.Item1} = L: {stats.Item2} ms;S: {stats.Item3} ms;A: {stats.Item4} ms;LS: {stats.Item5} ms;TPS: {stats.Item6};NUM: {stats.Item7}");
                     });
 
                     p.Value.ReturnList();
                 });
 
                 dict.ReturnDictionary();
-
                 return sb.ReturnStringBuilderValue();
             }
 

@@ -26,8 +26,8 @@ namespace Compendium.Staff
 
             foreach (var memberPair in membersDict)
             {
-                if (PlayerDataRecorder.TryGetById(memberPair.Key, out var record))
-                    sb.AppendLine($"# User: {record.NameTracking.LastValue} ({record.IpTracking.LastValue}; {record.Id})");
+                if (PlayerDataRecorder.TryQuery(memberPair.Key, false, out var record))
+                    sb.AppendLine($"# User: {record.NameTracking.LastValue} ({record.UserId}; {record.Ip})");
 
                 sb.AppendLine($"{memberPair.Key}: {string.Join(",", memberPair.Value)}");
             }

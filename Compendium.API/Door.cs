@@ -264,7 +264,7 @@ namespace Compendium
         {
             if (__instance.HasCustomAccessModifier(out var modifier))
             {
-                if (Calls.Delegate(modifier, __instance, ply, true))
+                if (Calls.Delegate<bool>(modifier, __instance, ply, true))
                 {
                     if (__instance.AllowInteracting(ply, colliderId))
                     {

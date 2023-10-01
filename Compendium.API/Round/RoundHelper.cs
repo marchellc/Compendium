@@ -2,6 +2,7 @@
 
 using helpers;
 using helpers.Attributes;
+using helpers.Dynamic;
 using helpers.Extensions;
 
 using PluginAPI.Enums;
@@ -16,32 +17,49 @@ namespace Compendium.Round
     public static class RoundHelper
     {
         private static RoundState _state;
-        private static readonly List<Tuple<Delegate, bool, bool, bool, bool>> _onChanged = new List<Tuple<Delegate, bool, bool, bool, bool>>();
+
+        private static object[] _stateArgs;
+        private static object[] _emptyArgs = Array.Empty<object>();
+
+        private static readonly List<Tuple<DynamicMethodDelegate, bool, bool, bool, bool, bool>> _onChanged = new List<Tuple<DynamicMethodDelegate, bool, bool, bool, bool, bool>>();
 
         public static RoundState State
         {
             get => _state;
             set
             {
+                if (_stateArgs is null)
+                    _stateArgs = new object[1];
+
                 _state = value;
+                _stateArgs[0] = value;
+
                 _onChanged.For((_, pair) =>
                 {
-                    if (_state is RoundState.WaitingForPlayers && !pair.Item2)
-                        return;
+                    try
+                    {
+                        if (_state is RoundState.WaitingForPlayers && !pair.Item3)
+                            return;
 
-                    if (_state is RoundState.InProgress && !pair.Item3)
-                        return;
+                        if (_state is RoundState.InProgress && !pair.Item4)
+                            return;
 
-                    if (_state is RoundState.Restarting && !pair.Item4)
-                        return;
+                        if (_state is RoundState.Restarting && !pair.Item5)
+                            return;
 
-                    if (_state is RoundState.Ending && !pair.Item5)
-                        return;
+                        if (_state is RoundState.Ending && !pair.Item6)
+                            return;
 
-                    if (pair.Item1 is Action action)
-                        Calls.DirectAction(action);
-                    else if (pair.Item1 is Action<RoundState> act)
-                        Calls.DirectAction(act, _state);
+                        if (pair.Item2)
+                            pair.Item1(null, _stateArgs);
+                        else
+                            pair.Item1(null, _emptyArgs);
+                    }
+                    catch (Exception ex)
+                    {
+                        Plugin.Error($"Failed to execute round-changed attribute of {pair.Item1.Method.ToLogName()}");
+                        Plugin.Error(ex);
+                    }
                 });
             }
         }
@@ -80,16 +98,17 @@ namespace Compendium.Round
                             hasState = true;
                         }
 
-                        Delegate del = null;
+                        var del = method.GetOrCreateInvoker();
 
-                        if (hasState)
-                            del = method.CreateDelegate(typeof(Action<RoundState>));
-                        else
-                            del = method.CreateDelegate(typeof(Action));
+                        if (del is null)
+                        {
+                            Plugin.Error($"Failed to create dynamic method invoker for method '{method.ToLogName()}'");
+                            return;
+                        }
 
-                        _onChanged.Add(new Tuple<Delegate, bool, bool, bool, bool>(
+                        _onChanged.Add(new Tuple<DynamicMethodDelegate, bool, bool, bool, bool, bool>(
                             del,
-
+                            hasState,
                             roundStateChangedAttribute.TargetStates.IsEmpty() || roundStateChangedAttribute.TargetStates.Contains(RoundState.WaitingForPlayers),
                             roundStateChangedAttribute.TargetStates.IsEmpty() || roundStateChangedAttribute.TargetStates.Contains(RoundState.InProgress),
                             roundStateChangedAttribute.TargetStates.IsEmpty() || roundStateChangedAttribute.TargetStates.Contains(RoundState.Restarting),

@@ -1,4 +1,4 @@
-﻿using helpers;
+﻿using helpers.Dynamic;
 using helpers.Extensions;
 
 using MEC;
@@ -37,7 +37,9 @@ namespace Compendium
 
         private static IEnumerator<float> CallAfterFramesCoroutine(Action action, int frameCount)
         {
-            for (var i = 0; i < frameCount; i++) yield return Timing.WaitForOneFrame;
+            for (var i = 0; i < frameCount; i++) 
+                yield return Timing.WaitForOneFrame;
+
             action();
         }
 
@@ -57,7 +59,9 @@ namespace Compendium
         {
             while (validator())
             {
-                if (delay.HasValue) yield return Timing.WaitForSeconds(delay.Value);
+                if (delay.HasValue) 
+                    yield return Timing.WaitForSeconds(delay.Value);
+
                 action?.Invoke();
             }
         }
@@ -66,7 +70,9 @@ namespace Compendium
         {
             while (!validator())
             {
-                if (delay.HasValue) yield return Timing.WaitForSeconds(delay.Value);
+                if (delay.HasValue) 
+                    yield return Timing.WaitForSeconds(delay.Value);
+
                 action?.Invoke();
             }
         }
@@ -75,7 +81,9 @@ namespace Compendium
         {
             for (int i = 0; i < amount; i++)
             {
-                if (delay.HasValue) yield return Timing.WaitForSeconds(delay.Value);
+                if (delay.HasValue) 
+                    yield return Timing.WaitForSeconds(delay.Value);
+
                 action?.Invoke();
             }
         }
@@ -84,37 +92,11 @@ namespace Compendium
         {
             try
             {
-                del.Method.Invoke(del.Target, args);
+                del.Method.InvokeDynamic(del.Target, args);
             }
             catch (Exception ex)
             {
-                Plugin.Error($"Failed to execute delegate: {del.Method.ToLogName(false)}");
-                Plugin.Error(ex);
-            }
-        }
-
-        public static void DirectAction(Action del) 
-        {
-            try
-            {
-                del();
-            }
-            catch (Exception ex)
-            {
-                Plugin.Error($"Failed to directly invoke delegate {del.Method.ToLogName()}");
-                Plugin.Error(ex);
-            }
-        }
-
-        public static void DirectAction<TValue>(Action<TValue> del, TValue value)
-        {
-            try
-            {
-                del(value);
-            }
-            catch (Exception ex)
-            {
-                Plugin.Error($"Failed to directly invoke delegate {del.Method.ToLogName()}");
+                Plugin.Error($"Failed to execute delegate: {del.Method.ToLogName()}");
                 Plugin.Error(ex);
             }
         }
@@ -123,44 +105,15 @@ namespace Compendium
         {
             try
             {
-                var res = del.Method.Invoke(del.Target, args);
-
-                if (res is null)
-                    return default;
-
-                if (!(res is TResult result))
-                {
-                    Plugin.Error($"Delegate {del.Method.ToLogName(false)} returned the wrong object type! (Expected: {typeof(TResult).FullName} | Got: {res.GetType().FullName})");
-                    return default;
-                }
-
-                return result;
+                return del.Method.InvokeDynamicResult<TResult>(del.Target, args);
             }
             catch (Exception ex)
             {
-                Plugin.Error($"Failed to execute delegate: {del.Method.ToLogName(false)}");
+                Plugin.Error($"Failed to execute delegate: {del.Method.ToLogName()}");
                 Plugin.Error(ex);
             }
 
             return default;
-        }
-
-        public static TResult Delegate<TResult, TInput1, TInput2>(Func<TInput1, TInput2, TResult> del, TInput1 input1, TInput2 input2, TResult defResult = default)
-        {
-            try
-            {
-                if (del is null)
-                    return defResult;
-
-                return del(input1, input2);
-            }
-            catch (Exception ex)
-            {
-                Plugin.Error($"Failed to execute Func<{typeof(TInput1).FullName}, {typeof(TInput2).FullName}, {typeof(TResult).FullName}> !");
-                Plugin.Error(ex);
-
-                return defResult;
-            }
         }
 
         public static void Call(Func<bool> validator, Action ifFalse, Action ifTrue)

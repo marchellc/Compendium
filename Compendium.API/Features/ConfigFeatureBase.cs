@@ -69,9 +69,6 @@ namespace Compendium.Features
 
             OnUnload.Invoke();
 
-            if (Config != null)
-                Config.OnLoaded = null;
-
             Config?.Save();
             Config = null;
         }

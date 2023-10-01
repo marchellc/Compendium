@@ -146,7 +146,7 @@ namespace Compendium.Warns
 
         [Command("warns", CommandType.RemoteAdmin, CommandType.GameConsole)]
         [Description("Retrieves a list of warns for a specific player.")]
-        private static string ListWarnsCommand(ReferenceHub sender, PlayerDataRecord target, string filter)
+        private static string ListWarnsCommand(ReferenceHub sender, PlayerDataRecord target, string filter = "*")
         {
             var warns = ListReceivedWarns(target, filter);
 

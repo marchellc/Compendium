@@ -63,12 +63,12 @@ namespace Compendium.Custom.Commands
             }
             else if (hasRecord)
             {
-                details.Id = record.IdTracking.LastValue;
+                details.Id = record.UserId;
                 BanHandler.IssueBan(details, BanHandler.BanType.UserId);
                 idBanIssued = true;
                 sender.Message($"Issued record-based user ID ban for '{userIdValue.FullId}'", true);
 
-                details.Id = record.IpTracking.LastValue;
+                details.Id = record.Ip;
                 BanHandler.IssueBan(details, BanHandler.BanType.IP);
                 ipBanIssued = true;
                 sender.Message($"Issued record-based IP ban for '{details.Id}'", true);
@@ -80,7 +80,7 @@ namespace Compendium.Custom.Commands
             {
                 if (!idBanIssued)
                 {
-                    details.Id = record.IdTracking.LastValue;
+                    details.Id = record.UserId;
                     BanHandler.IssueBan(details, BanHandler.BanType.UserId);
                     idBanIssued = true;
                     sender.Message($"Issued record-based user ID ban for '{details.Id}' ({record.NameTracking.LastValue})", true);
@@ -88,10 +88,10 @@ namespace Compendium.Custom.Commands
 
                 if (!ipBanIssued)
                 {
-                    details.Id = record.IpTracking.LastValue;
+                    details.Id = record.Ip;
                     BanHandler.IssueBan(details, BanHandler.BanType.IP);
                     ipBanIssued = true;
-                    sender.Message($"Issued record-based IP ban for '{record.IpTracking.LastValue}' ({record.NameTracking.LastValue})", true);
+                    sender.Message($"Issued record-based IP ban for '{record.Ip}' ({record.NameTracking.LastValue})", true);
                 }
             }
             
@@ -138,8 +138,8 @@ namespace Compendium.Custom.Commands
 
             if (PlayerDataRecorder.TryQuery(target, true, out var record))
             {
-                targetId = record.IdTracking.LastValue;
-                targetIp = record.IpTracking.LastValue;
+                targetId = record.Id;
+                targetIp = record.Ip;
 
                 sender.Message($"Identified target's ID and IP by offline records: {targetId} / {targetIp}", true);
             }

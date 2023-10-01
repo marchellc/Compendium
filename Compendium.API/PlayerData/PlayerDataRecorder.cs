@@ -3,7 +3,6 @@ using helpers.Verify;
 using helpers.Time;
 using helpers.Events;
 using helpers.IO.Storage;
-using helpers.Extensions;
 using helpers;
 
 using PluginAPI.Events;
@@ -14,10 +13,12 @@ using Compendium.Events;
 using Compendium.TokenCache;
 using Compendium.IdCache;
 using Compendium.Round;
+using Compendium.UserId;
+using Compendium.Comparison;
 
 using System.Collections.Generic;
-using System.Linq;
 using System.Text;
+using System.Net;
 
 namespace Compendium.PlayerData
 {
@@ -30,25 +31,49 @@ namespace Compendium.PlayerData
 
         public static readonly EventProvider OnRecordUpdated = new EventProvider();
 
-        public static bool TryGetById(string userId, out PlayerDataRecord dataRecord)
-            => _records.Data.TryGetFirst(d => d.IdTracking.LastValue == userId, out dataRecord);
-
         public static bool TryQuery(string query, bool queryNick, out PlayerDataRecord record)
         {
-            if (int.TryParse(query, out var pId) 
-                && Hub.Hubs.TryGetFirst(h => h.PlayerId == pId, out var target))
+            if (int.TryParse(query, out var plyId) && Hub.Hubs.TryGetFirst(h => h.PlayerId == plyId, out var hub))
             {
-                record = GetData(target);
+                record = GetData(hub);
                 return true;
             }
 
-            return _records.Data.TryGetFirst(r =>
-                    r != null
-                 &&
-                    (r.Id == query
-                 || r.IpTracking.AllValues.Any(p => p.Value != null && p.Value == query)
-                 || r.IdTracking.AllValues.Any(p => p.Value != null && (p.Value == query || p.Value.StartsWith(query)))
-                 || (queryNick && r.NameTracking.AllValues.Any(p => p.Value != null && (p.Value.GetSimilarity(query) >= 0.8)))), out record);
+            var isIp = IPAddress.TryParse(query, out _);
+            var isId = UserIdHelper.TryParse(query, out var uid);
+
+            foreach (var rec in _records.Data)
+            {
+                if (rec.Id == query)
+                {
+                    record = rec;
+                    return true;
+                }
+
+                if (rec.Ip == query && isIp)
+                {
+                    record = rec;
+                    return true;
+                }    
+
+                if (isId && uid.TryMatch(rec.UserId))
+                {
+                    record = rec;
+                    return true;
+                }
+
+                if (!isId 
+                    && !isIp 
+                    && queryNick 
+                    && NicknameComparison.Compare(query, rec.NameTracking.LastValue))
+                {
+                    record = rec;
+                    return true;
+                }
+            }
+
+            record = null;
+            return false;
         }
 
         public static TokenData GetToken(ReferenceHub hub)
@@ -70,7 +95,7 @@ namespace Compendium.PlayerData
             if (token is null)
                 return null;
 
-            if (!TryQuery(token.Ip, false, out var record) && !TryQuery(token.UserId, false, out record))
+            if (!TryQuery(token.UserId, false, out var record))
                 return null;
 
             return record;
@@ -112,9 +137,9 @@ namespace Compendium.PlayerData
 
             _activeRecords[hub] = data;
 
-            data.IpTracking.Compare(hub.Ip());
+            data.Ip = hub.Ip();
+            data.UserId = hub.UserId();
             data.NameTracking.Compare(hub.Nick().Trim());
-            data.IdTracking.Compare(hub.UserId());
             data.LastActivity = TimeUtils.LocalTime;
 
             _records.Save();
@@ -167,13 +192,8 @@ namespace Compendium.PlayerData
 
             record.NameTracking.AllValues.For((i, pair) => sb.AppendLine($"   -> [{i + 1}] {pair.Value} ({pair.Key.ToString("F")})"));
 
-            sb.AppendLine($" > Tracked Accounts ({record.IdTracking.AllValues.Count}):");
-
-            record.IdTracking.AllValues.For((i, pair) => sb.AppendLine($"   -> [{i + 1}] {pair.Value} ({pair.Key.ToString("F")})"));
-
-            sb.AppendLine($" > Tracked IPs");
-
-            record.IpTracking.AllValues.For((i, pair) => sb.AppendLine($"   -> [{i + 1}] {pair.Value} ({pair.Key.ToString("F")})"));
+            sb.AppendLine($" > Tracked Account: {record.UserId}");
+            sb.AppendLine($" > Tracked IP: {record.Ip}");
 
             sb.AppendLine($" > Last Seen: {record.LastActivity.ToString("F")}");
             sb.AppendLine($" > Tracked Since: {record.CreationTime.ToString("F")}");

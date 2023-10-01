@@ -12,12 +12,21 @@ namespace Compendium.Update
         public static int LastFrameDuration { get; private set; }
         public static UpdateSynchronizer Synchronizer { get; private set; }
 
-        internal static event Action OnUpdate;
+        public static event Action OnUpdate;
 
         void Update()
         {
-            LastFrameDuration = (Mathf.RoundToInt(Time.deltaTime) / 100f) < 1f ? 1 : Mathf.RoundToInt(Time.deltaTime);
-            OnUpdate?.Invoke();
+            LastFrameDuration = Mathf.CeilToInt(Time.deltaTime * 1000f);
+
+            try
+            {
+                OnUpdate?.Invoke();
+            }
+            catch (Exception ex)
+            {
+                Plugin.Error($"Failed to execute OnUpdate event!");
+                Plugin.Error(ex);
+            }
         }
 
         [Event(PluginAPI.Enums.ServerEventType.WaitingForPlayers)]
@@ -33,6 +42,7 @@ namespace Compendium.Update
                 ReferenceHub.HostHub.DestroyComponent<UpdateSynchronizer>();
 
             Synchronizer = ReferenceHub.HostHub.GetOrAddComponent<UpdateSynchronizer>();
+            Plugin.Info($"Update Synchronizer loaded.");
         }
     }
 }

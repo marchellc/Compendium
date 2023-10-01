@@ -1,43 +1,73 @@
 ﻿using Compendium.Comparison;
-using Compendium.Reflect;
 using Compendium.Round;
 using Compendium.Threading;
 
 using helpers;
+using helpers.CustomReflect;
 using helpers.Extensions;
 
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Reflection;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Timers;
+
+using UnityEngine;
+
+using MonoMod.Utils;
+
+using Timer = System.Timers.Timer;
+using ThreadPriority = System.Threading.ThreadPriority;
 
 namespace Compendium.Update
 {
     public static class UpdateHandler
     {
         private static readonly HashSet<UpdateHandlerData> _handlers = new HashSet<UpdateHandlerData>();
+        private static readonly Timer _timer;
+
+        public static double NextInterval => Time.deltaTime * 1000f;
 
         static UpdateHandler()
         {
-            UpdateSynchronizer.OnUpdate += OnUpdate;
+            _timer = new Timer();
+            _timer.Interval = NextInterval;
+            _timer.Elapsed += OnElapsed;
+            _timer.Enabled = true;
         }
 
-        public static void AddData(Action del, UpdateHandlerType type = UpdateHandlerType.Thread, bool sync = false, bool main = false, int rate = 1)
+        public static void AddData(MethodInfo target, object handle, UpdateHandlerType type = UpdateHandlerType.Thread, bool sync = false, bool main = false, int rate = 1)
         {
-            var data = new UpdateHandlerData(del, type, sync, main, rate);
+            UpdateHandlerData data = null;
 
             if (type is UpdateHandlerType.Thread)
             {
-                CheckForUnityReferences(del, main);
+                if (!TryValidate(target, main))
+                    return;
 
+                if (main)
+                    data = new UpdateHandlerData(target, handle, type, sync, main, rate);
+                else
+                    data = new UpdateHandlerData(target.CreateDelegate<Action>(), type, sync, main, rate);
+            }
+            else
+            {
+                data = new UpdateHandlerData(target.CreateDelegate<Action>(), type, sync, main, rate);
+            }
+
+            if (data is null)
+                return;
+
+            if (type is UpdateHandlerType.Thread)
+            {
                 data.Thread = CreateThread(data);
                 data.Thread.Start();
             }
 
             _handlers.Add(data);
-            Plugin.Debug($"Registered {type} update handler '{del.Method.ToLogName()}' (sync: {sync}; main: {main}; rate: {rate})");
+
+            Plugin.Debug($"Registered {type} update handler '{target.ToLogName()}' (sync: {sync}; main: {main}; rate: {rate})");
         }
 
         public static bool RemoveData(Action del)
@@ -62,7 +92,7 @@ namespace Compendium.Update
                     if (data.Delegate is null || !RoundHelper.IsReady)
                         continue;
 
-                    var delay = data.TickRate < 0 ? 10 : data.TickRate;
+                    var delay = data.TickRate <= 0 ? 10 : data.TickRate;
 
                     if (data.SyncTickRate)
                         delay = UpdateSynchronizer.LastFrameDuration;
@@ -71,7 +101,7 @@ namespace Compendium.Update
 
                     if (data.ExecuteOnMain)
                     {
-                        ThreadScheduler.Schedule(data.Delegate);
+                        ThreadScheduler.Schedule(data.Method, data.Handle);
                     }
                     else
                     {
@@ -81,18 +111,18 @@ namespace Compendium.Update
                         }
                         catch (Exception ex)
                         {
-                            Plugin.Error($"Failed to invoke update handler: {data.Delegate.Method.ToLogName(false)}");
+                            Plugin.Error($"Failed to invoke update handler: {data.Delegate.Method.ToLogName()}");
                             Plugin.Error(ex);
                         }
                     }
                 }
             });
 
-            thread.Priority = ThreadPriority.Highest;
+            thread.Priority = ThreadPriority.Lowest;
             return thread;
         }
 
-        private static void OnUpdate()
+        private static void OnElapsed(object sender, ElapsedEventArgs e)
         {
             try
             {
@@ -109,42 +139,49 @@ namespace Compendium.Update
                         }
                         catch (Exception ex)
                         {
-                            Plugin.Error($"Failed to invoke update handler: {data.Delegate.Method.ToLogName(false)}");
+                            Plugin.Error($"Failed to invoke update handler: {data.Delegate.Method.ToLogName()}");
                             Plugin.Error(ex);
                         }
                     }
                 });
+
+                _timer.Interval = NextInterval;
             }
             catch { }
         }
 
-        private static void CheckForUnityReferences(Delegate del, bool isMain)
+        private static bool TryValidate(MethodInfo method, bool main)
         {
+            if (main)
+                return true;
+
             try
             {
-                if (isMain)
-                    return;
+                var methodBody = new MethodBodyReader(method);
+                var methodCalls = methodBody.GetMethodCalls();
+                var shouldIgnore = method.TryGetAttribute<UpdateIgnoreUnityWarningsAttribute>(out _);
 
-                var methodBody = MethodBodyReader.GetInstructions(del.Method);
-
-                methodBody.ForEach(m =>
+                foreach (var call in methodCalls)
                 {
-                    if (m.Operand is MethodBase method)
+                    if (call.DeclaringType.FullName.StartsWith("Unity")
+                        || call.DeclaringType.BaseType != null && call.DeclaringType.BaseType.FullName.StartsWith("Unity")
+                        || call.DeclaringType.BaseType != null && call.DeclaringType.BaseType.BaseType != null && call.DeclaringType.BaseType.BaseType.FullName.StartsWith("Unity")
+                        || call.DeclaringType.BaseType != null && call.DeclaringType.BaseType.Assembly.FullName.Contains("Unity")
+                        || call.DeclaringType.BaseType != null && call.DeclaringType.BaseType.Assembly.FullName.Contains("Assembly-CSharp"))
                     {
-                        if (method.DeclaringType.FullName.StartsWith("Unity") 
-                        || (method.DeclaringType.BaseType != null && method.DeclaringType.BaseType.FullName.StartsWith("Unity"))
-                        || (method.DeclaringType.BaseType != null && method.DeclaringType.BaseType.BaseType != null && method.DeclaringType.BaseType.BaseType.FullName.StartsWith("Unity")))
-                        {
-                            Plugin.Warn($"Detected a Unity Engine reference in an update handler being executed on a separate thread! Consider using the main thread instead.");
-                            Plugin.Warn($"Method: {del.Method.ToLogName()}; Operand: {method.DeclaringType.FullName}.{method.Name}({string.Join(", ", method.GetParameters().Select(p => p.ParameterType.FullName + " " + p.Name).ToArray())}");
-                        }
+                        Plugin.Warn($"Detected a Unity Engine reference in an update handler being executed on a separate thread! Consider using the main thread instead.");
+                        Plugin.Warn($"Method: {method.ToLogName()}; Operand: {call.ToLogName()}");
+
+                        return false;
                     }
-                });
+                }
             }
             catch (Exception ex)
             {
-                Plugin.Error($"Failed to read instructions of method {del.Method.ToLogName(false)}\n{ex}");
+                Plugin.Error($"Failed to read instructions of method {method.ToLogName()}\n{ex}");
             }
+
+            return true;
         }
     }
 }

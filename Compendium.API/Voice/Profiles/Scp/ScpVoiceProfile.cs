@@ -196,7 +196,7 @@ namespace Compendium.Voice.Profiles.Scp
                         continue;
 
                     scpVoice._lastHint = DateTime.Now;
-                    scpVoice.Owner.Hint($"\n\n\n\n\n\n\n<b><color={ColorValues.LightGreen}>Aktivní voice: {scpVoice.TypeAndColor()}</color></b>", 1f, false);
+                    scpVoice.Owner.Hint($"\n\n\n\n\n\n\n<b><color={ColorValues.LightGreen}>Aktivní voice: {scpVoice.TypeAndColor()}</color></b>", 1.3f, false);
                 }
             }
         }

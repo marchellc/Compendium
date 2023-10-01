@@ -311,8 +311,8 @@ namespace Compendium.Webhooks
 
             embed.WithColor(System.Drawing.Color.Red);
             embed.WithTitle($"⚠️ {World.CurrentClearOrAlternativeServerName}");
-            embed.WithField("🔗 Udělil", $"**{issuer.NameTracking.LastValue}** *({issuer.IdTracking.LastValue.Split('@')[0]})*", false);
-            embed.WithField("🔗 Hráč", $"**{target.NameTracking.LastValue}** *({target.IdTracking.LastValue.Split('@')[0]} | {target.IpTracking.LastValue})*", false);
+            embed.WithField("🔗 Udělil", $"**{issuer.NameTracking.LastValue}** *({issuer.Id.Split('@')[0]})*", false);
+            embed.WithField("🔗 Hráč", $"**{target.NameTracking.LastValue}** *({target.Id.Split('@')[0]} | {target.Ip})*", false);
             embed.WithField("❓ Důvod", warn.Reason, false);
             embed.WithFooter($"📝 {warn.Id} | 🕒 {warn.IssuedAt.ToString("F")}");
 
