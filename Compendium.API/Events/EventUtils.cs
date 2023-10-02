@@ -248,6 +248,12 @@ namespace Compendium.Events
                 return false;
             }
 
+            if (instance != null && instance.GetType() != method.DeclaringType)
+            {
+                Plugin.Warn($"Failed to register event handler '{method.ToLogName()}': invalid class handle (method's class: {method.DeclaringType.FullName}, class handle type: {instance.GetType().FullName})");
+                return false;
+            }
+
             return true;
         }
     }

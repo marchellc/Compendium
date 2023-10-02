@@ -36,6 +36,10 @@
     <Reference Include="Assembly-CSharp_publicized">
       <HintPath>..\..\..\..\..\..\Program Files (x86)\Steam\steamapps\common\SCP Secret Laboratory Dedicated Server\SCPSL_Data\Managed\Assembly-CSharp_publicized.dll</HintPath>
     </Reference>
+    <Reference Include="BetterCommands, Version=1.0.0.0, Culture=neutral, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>..\..\BetterCommands\BetterCommands\bin\Debug\BetterCommands.dll</HintPath>
+    </Reference>
     <Reference Include="Compendium.API, Version=3.3.2.0, Culture=neutral, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
       <HintPath>..\Compendium.API\bin\Release\Compendium.API.dll</HintPath>
@@ -48,6 +52,10 @@
     </Reference>
     <Reference Include="PluginAPI_publicized">
       <HintPath>..\..\..\..\..\..\Program Files (x86)\Steam\steamapps\common\SCP Secret Laboratory Dedicated Server\SCPSL_Data\Managed\PluginAPI_publicized.dll</HintPath>
+    </Reference>
+    <Reference Include="Pooling, Version=0.0.0.0, Culture=neutral, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>..\..\..\..\..\..\Program Files (x86)\Steam\steamapps\common\SCP Secret Laboratory Dedicated Server\SCPSL_Data\Managed\Pooling.dll</HintPath>
     </Reference>
     <Reference Include="System" />
     <Reference Include="System.Core" />
@@ -73,11 +81,25 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="RemoteKeycardAccess.cs" />
-    <Compile Include="RemoteKeycardFeature.cs" />
+    <Compile Include="AccessUtils.cs" />
+    <Compile Include="Commands.cs" />
+    <Compile Include="DoorUtils.cs" />
+    <Compile Include="Enums\InteractableCategory.cs" />
+    <Compile Include="Feature.cs" />
+    <Compile Include="Handlers\Doors\DoorDamageData.cs" />
+    <Compile Include="Handlers\Doors\DoorDamageHandler.cs" />
+    <Compile Include="Handlers\Doors\DoorDamageSource.cs" />
+    <Compile Include="Handlers\Doors\DoorDamageStatus.cs" />
+    <Compile Include="Handlers\Doors\DoorHandler.cs" />
+    <Compile Include="Handlers\Doors\DoorZombieConfig.cs" />
+    <Compile Include="Handlers\Doors\DoorZombieStatus.cs" />
+    <Compile Include="Handlers\GeneratorHandler.cs" />
+    <Compile Include="Handlers\LockerHandler.cs" />
+    <Compile Include="Handlers\RoundSwitches.cs" />
+    <Compile Include="Handlers\ShootHandler.cs" />
+    <Compile Include="Handlers\ThrowHandler.cs" />
+    <Compile Include="Handlers\WarheadHandler.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="RemoteKeycardLogic.cs" />
-    <Compile Include="RemoteKeycardPatches.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="app.config" />

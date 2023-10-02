@@ -56,6 +56,7 @@ using RemoteAdmin;
 using VoiceChat;
 using Compendium.Staff;
 using Compendium.Comparison;
+using InventorySystem.Disarming;
 
 namespace Compendium
 {
@@ -749,51 +750,11 @@ namespace Compendium
             global::Broadcast.Singleton?.TargetAddElement(hub.connectionToClient, content.ToString(), (ushort)time, global::Broadcast.BroadcastFlags.Normal);
         }
 
-        public static void Hint(this ReferenceHub hub, object content, float duration, bool clear, params BasicHintEffectType[] effects)
-        {
-            if (string.IsNullOrWhiteSpace(content?.ToString()))
-                return;
+        public static void MessageBox(this ReferenceHub hub, object content)
+            => hub.gameConsoleTransmission.SendToClient($"[REPORTING] {content}", "red");
 
-            if (duration <= 0f)
-                return;
-
-            if (hub is null)
-                return;
-
-            if (HintProxy != null)
-            {
-                if (HintProxy != null)
-                    Calls.Delegate(HintProxy, hub, content.ToString(), duration);
-
-                return;
-            }
-
-            if (effects.Any())
-            {
-                var effectList = new List<HintEffect>();
-
-                foreach (var effect in effects)
-                {
-                    if (effect is BasicHintEffectType.FadeIn)
-                        effectList.Add(HintEffectPresets.FadeIn());
-
-                    if (effect is BasicHintEffectType.FadeOut)
-                        effectList.Add(HintEffectPresets.FadeOut());
-
-                    if (effect is BasicHintEffectType.Pulse)
-                        effectList.Add(HintEffectPresets.PulseAlpha(5f, 7f));
-
-                    if (effect is BasicHintEffectType.FadeInAndOut)
-                        effectList.AddRange(HintEffectPresets.FadeInAndOut(duration));
-                }
-
-                hub.hints.Show(new TextHint(content.ToString(), new HintParameter[] { new StringHintParameter(content.ToString()) }, effectList.ToArray(), duration));
-            }
-            else
-            {
-                hub.hints.Show(new TextHint(content.ToString(), new HintParameter[] { new StringHintParameter(content.ToString()) }, null, duration));
-            }
-        }
+        public static void Hint(this ReferenceHub hub, object content, float duration)
+            => HintQueue.Enqueue(hub, content?.ToString(), duration);
 
         public static void Message(this ReferenceHub hub, object content, bool isRemoteAdmin = false)
         {
@@ -904,6 +865,36 @@ namespace Compendium
                 return room.name;
 
             return "unknown room";
+        }
+
+        public static bool IsHandcuffed(this ReferenceHub hub)
+            => hub.inventory.IsDisarmed();
+
+        public static bool HasHandcuffed(this ReferenceHub hub)
+            => hub.GetCuffed() != null;
+
+        public static void Handcuff(this ReferenceHub hub, ReferenceHub cuffer = null)
+            => hub.inventory.SetDisarmedStatus(cuffer?.inventory ?? ReferenceHub.HostHub.inventory);
+
+        public static void Uncuff(this ReferenceHub hub)
+            => hub.inventory.SetDisarmedStatus(null);
+
+        public static ReferenceHub GetCuffer(this ReferenceHub hub)
+        {
+            if (DisarmedPlayers.Entries.TryGetFirst(x => x.DisarmedPlayer == hub.netId, out var entry)
+                && ReferenceHub.TryGetHubNetID(entry.Disarmer, out var cuffer))
+                return cuffer;
+
+            return null;
+        }
+
+        public static ReferenceHub GetCuffed(this ReferenceHub hub)
+        {
+            if (DisarmedPlayers.Entries.TryGetFirst(x => x.Disarmer == hub.netId, out var entry)
+                && ReferenceHub.TryGetHubNetID(entry.DisarmedPlayer, out var cuffed))
+                return cuffed;
+
+            return null;
         }
     }
 

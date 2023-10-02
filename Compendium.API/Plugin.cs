@@ -68,6 +68,8 @@ namespace Compendium
                     AttributeLoader.ExecuteLoadAttributes(exec);
                     RoundHelper.ScanAssemblyForOnChanged(exec);
 
+                    helpers.Log.AddLogger(new helpers.Logging.Loggers.FileLogger(helpers.Logging.Loggers.FileLoggerMode.AppendToFile, 0, $"Server {ServerStatic.ServerPort}.txt"));
+
                     LoadConfig();
                     Info("Loaded!");
                 }

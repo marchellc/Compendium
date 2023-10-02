@@ -130,14 +130,14 @@ namespace Compendium.Warns
                 {
                     issuerHub.Hint(
                         $"\n\n<b><color={ColorValues.LightGreen}>Hráči <color={ColorValues.Red}>{target.NameTracking.LastValue}</color> bylo uděleno varování</color></b>\n" +
-                        $"<color={ColorValues.Green}>{reason}</color>", 10f, true);
+                        $"<color={ColorValues.Green}>{reason}</color>", 10f);
                 });
 
                 target.TryInvokeHub(targetHub =>
                 {
                     targetHub.Broadcast(
                         $"\n\n<b><color={ColorValues.LightGreen}>Obdržel jsi varování!</color></b>\n" +
-                        $"<b><color={ColorValues.Red}>{reason}</color>", 10, true);
+                        $"<b><color={ColorValues.Red}>{reason}</color>", 10);
                 });
             }
 

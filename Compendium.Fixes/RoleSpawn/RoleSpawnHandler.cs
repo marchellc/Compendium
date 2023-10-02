@@ -81,7 +81,7 @@ namespace Compendium.Fixes.RoleSpawn
                                 var newRole = PossibleRoles.RandomItem();
 
                                 hub.RoleId(newRole);
-                                hub.Hint($"\n\n<b><color={ColorValues.LightGreen}>Your role was set to <color={ColorValues.Red}>{newRole}</color> to prevent duplicate SCPs.</color></b>", 5f, true);
+                                hub.Hint($"\n\n<b><color={ColorValues.LightGreen}>Your role was set to <color={ColorValues.Red}>{newRole}</color> to prevent duplicate SCPs.</color></b>", 5f);
                             });
                         }
 

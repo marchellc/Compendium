@@ -16,14 +16,12 @@ namespace Compendium.Hints
         public string Message { get; set; } = "";
         public float Duration { get; set; } = 0f;
 
-        public BasicHintEffectType[] Effects { get; set; } = Array.Empty<BasicHintEffectType>();
-
         public void Send(ReferenceHub target)
         {
             if (string.IsNullOrWhiteSpace(Message) || Duration <= 0)
                 return;
 
-            target.Hint(Message, Duration, false, Effects);
+            target.Hint(Message, Duration);
         }
 
         public void SendToAll()
@@ -31,7 +29,7 @@ namespace Compendium.Hints
             if (string.IsNullOrWhiteSpace(Message) || Duration <= 0)
                 return;
 
-            World.Hint(Message, Duration, false, Effects);
+            World.Hint(Message, Duration);
         }
 
         public void SendToSpectatorsOf(ReferenceHub hub)
@@ -47,7 +45,7 @@ namespace Compendium.Hints
                 if (!hub.IsSpectatedBy(hub))
                     return;
 
-                h.Hint(Message, Duration, false, Effects);
+                h.Hint(Message, Duration);
             });
         }
 
@@ -64,16 +62,18 @@ namespace Compendium.Hints
                 if (!h.IsWithinDistance(position, range))
                     return;
 
-                h.Hint(Message, Duration, false, Effects);
+                h.Hint(Message, Duration);
             });
         }
 
-        public static HintInfo Get(object message, float duration = 3f, params BasicHintEffectType[] effects)
+        public bool IsValid()
+            => !string.IsNullOrWhiteSpace(Message) && Duration > 0f;
+
+        public static HintInfo Get(object message, float duration = 3f)
             => new HintInfo
             {
                 Message = message?.ToString() ?? "",
-                Duration = duration,
-                Effects = effects
+                Duration = duration
             };
     }
 }

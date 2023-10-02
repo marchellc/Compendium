@@ -189,11 +189,11 @@ namespace Compendium.Voice
                     $"<b><color={ColorValues.LightGreen}>Vítej!\n" +
                     $"Na tomto serveru máme pár funkcí, které závisí na bindování. Pro více informací si otevři <color={ColorValues.Red}>herní konzoli</color>\n" +
                     $"<i>(<color={ColorValues.Green}>klávesa nad tabulátorem a pod Escapem: ~)</color></i>" +
-                    $"\n</color></b>", 15f, true);
+                    $"\n</color></b>", 15f);
             });
         }
 
-        [UpdateEvent(IsMainThread = true, IsSynchronized = false, TickRate = 50)]
+        [UpdateEvent(IsMainThread = true, TickRate = 50, Type = Update.UpdateHandlerType.Engine)]
         private static void OnUpdate()
         {
             foreach (var hub in Hub.Hubs)

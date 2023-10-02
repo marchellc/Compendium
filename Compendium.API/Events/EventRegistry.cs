@@ -70,14 +70,16 @@ namespace Compendium.Events
                 if (method.DeclaringType.Namespace.StartsWith("System"))
                     return;
 
-                if (EventUtils.TryCreateEventData(method, skipAttributeCheck, instance, out var data))
+                if (method.IsDefined(typeof(EventAttribute), false)
+                    && !IsRegistered(method, instance)
+                    && EventUtils.TryCreateEventData(method, skipAttributeCheck, instance, out var data))
                 {
                     _registry.Add(data);
                     Plugin.Info($"Registered event '{data.Type}' ({data.Target.Method.ToLogName()})");
                 }
                 else if (method.TryGetAttribute<UpdateEventAttribute>(out var updateAttr))
                 {
-                    UpdateHandler.AddData(method, instance, updateAttr.Type, updateAttr.IsSynchronized, updateAttr.IsMainThread, updateAttr.TickRate);
+                    UpdateHandler.AddData(method, instance, updateAttr.Type, updateAttr.IsMainThread, updateAttr.TickRate);
                 }
             }
             catch (Exception ex)

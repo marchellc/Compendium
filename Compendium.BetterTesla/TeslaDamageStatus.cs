@@ -55,7 +55,7 @@ namespace Compendium.BetterTesla
                         if (!hub.IsWithinDistance(m_Tesla.transform.position, BetterTeslaLogic.DamagedTeslaRadius))
                             continue;
 
-                        hub.Hint($"\n\n<b><color=#33FFA5>Tesla Gate <color=#FF0000>disabled</color> for <color=#FF0000>{time}</color> second(s)</color></b>!", 3f, true);
+                        hub.Hint($"\n\n<b><color=#33FFA5>Tesla Gate <color=#FF0000>disabled</color> for <color=#FF0000>{time}</color> second(s)</color></b>!", 3f);
                     }
                 }
 

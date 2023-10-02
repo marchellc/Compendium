@@ -66,10 +66,10 @@ namespace Compendium.Webhooks
             var scps = Hub.Hubs.Where(h => h.IsSCP(true)).OrderBy(h => h.DistanceSquared(target));
             var sb = StringBuilderPool.Pool.Get();
 
-            sb.AppendLine($"**{target.Nick()}**: [{target.Zone()}] {targetRoom}");
-
             if (attacker != null && attacker != target)
                 sb.AppendLine($"**{attacker.Nick()}**: [{attacker.Zone()}] {attacker.RoomId().ToString().SpaceByPascalCase()}");
+
+            sb.AppendLine($"**{target.Nick()}**: [{target.Zone()}] {targetRoom}");
 
             scps.ForEach(h =>
             {
@@ -237,9 +237,6 @@ namespace Compendium.Webhooks
             var expiresDate = new DateTime(ev.BanDetails.Expires);
             var duration = (int)Math.Floor(TimeSpan.FromTicks((expiresDate - issuedDate).Ticks).TotalSeconds);
 
-            var issuerNick = "Unknown Nick";
-            var issuerId = "Unknown ID";
-
             var targetNick = "Unknown Nick";
             var targetId = "Unknown ID";
             var targetIp = "Unknown IP";
@@ -251,48 +248,6 @@ namespace Compendium.Webhooks
                     targetNick = targetRecord.NameTracking.LastValue;
                     targetId = targetRecord.UserId;
                     targetIp = targetRecord.Ip;
-                }
-
-                var issuerParts = ev.BanDetails.Issuer.Split(' ');
-                var issuerIdPart = issuerParts.LastOrDefault(s => s.StartsWith("(") && s.EndsWith(")") && s.Contains("@"));
-
-                Plugin.Debug($"issuerParts={string.Join(" ", issuerParts)}");
-                Plugin.Debug($"issuerIdPart={issuerIdPart ?? "NULL"}");
-
-                if (!string.IsNullOrWhiteSpace(issuerIdPart))
-                {
-                    var issuerIdClearStr = issuerIdPart.Remove('(', ')');
-
-                    Plugin.Debug($"issueridClearStré{issuerIdClearStr}");
-
-                    if (issuerIdClearStr == "SERVER CONSOLE")
-                    {
-                        issuerNick = "Server";
-                        issuerId = "server";
-                    }
-                    else
-                    {
-                        if (!string.IsNullOrWhiteSpace(issuerIdClearStr)
-                            && UserIdHelper.TryParse(issuerIdClearStr, out var issuerIdValue)
-                            && PlayerDataRecorder.TryQuery(issuerIdValue.FullId, false, out var record))
-                        {
-                            issuerNick = record.NameTracking.LastValue;
-                            issuerId = record.NameTracking.LastValue;
-                        }
-                        else
-                        {
-                            if (!PlayerDataRecorder.TryQuery(ev.BanDetails.Issuer, true, out record))
-                            {
-                                issuerNick = ev.BanDetails.Issuer;
-                                issuerId = ev.BanDetails.Issuer;
-                            }
-                            else
-                            {
-                                issuerNick = record.NameTracking.LastValue;
-                                issuerId = record.NameTracking.LastValue;
-                            }
-                        }
-                    }
                 }
             }
             catch (Exception ex)
@@ -327,10 +282,7 @@ namespace Compendium.Webhooks
 
                     if (WebhookHandler.PrivateBansIncludeIp)
                     {
-                        issuerField.WithValue(
-                            $"**Username**: {issuerNick}\n" +
-                            $"**User ID**: {issuerId}", false);
-
+                        issuerField.WithValue(ev.BanDetails.Issuer, false);
                         bannedField.WithValue(
                             $"**Username**: {targetNick}\n" +
                             $"**User ID**: {targetId}\n" +
@@ -338,10 +290,7 @@ namespace Compendium.Webhooks
                     }
                     else
                     {
-                        issuerField.WithValue(
-                            $"**Username**: {issuerNick}\n" +
-                            $"**User ID**: {issuerId}", false);
-
+                        issuerField.WithValue(ev.BanDetails.Issuer, false);
                         bannedField.WithValue(
                             $"**Username**: {targetNick}\n" +
                             $"**User ID**: {targetId}\n", false);
@@ -381,7 +330,7 @@ namespace Compendium.Webhooks
                     durationField.WithName($"🕒 Duration");
                     durationField.WithValue($"{TimeUtils.SecondsToCompoundTime(duration)}", false);
 
-                    issuerField.WithValue($"**{issuerNick}**", false);
+                    issuerField.WithValue(ev.BanDetails.Issuer, false);
                     bannedField.WithValue($"**{targetNick}**", false);
 
                     footer.WithText(
@@ -413,7 +362,7 @@ namespace Compendium.Webhooks
                         $"<b><color={ColorValues.Red}>[REPORT]</color></b>" +
                         $"Hráč <b><color={ColorValues.Green}>{ev.Player.Nickname}</color></b> nahlásil hráče <b><color={ColorValues.Green}>{ev.Target.Nickname}</color></b> za:\n" +
                         $"<b><color={ColorValues.LightGreen}>{ev.Reason}</color></b>",
-                        10f, false);
+                        10f);
                 });
             }
 
@@ -494,7 +443,7 @@ namespace Compendium.Webhooks
                         $"<b><color={ColorValues.Red}>[CHEATER REPORT]</color></b>" +
                         $"Hráč <b><color={ColorValues.Green}>{ev.Player.Nickname}</color></b> nahlásil hráče <b><color={ColorValues.Green}>{ev.Target.Nickname}</color></b> za:\n" +
                         $"<b><color={ColorValues.LightGreen}>{ev.Reason}</color></b>",
-                        10f, false);
+                        10f);
                 });
             }
 

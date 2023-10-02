@@ -44,6 +44,9 @@ namespace Compendium.PlayerData
 
             foreach (var rec in _records.Data)
             {
+                if (rec is null)
+                    continue;
+
                 if (rec.Id == query)
                 {
                     record = rec;

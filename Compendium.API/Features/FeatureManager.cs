@@ -353,7 +353,7 @@ namespace Compendium.Features
             });
         }
 
-        [UpdateEvent(IsMainThread = true, IsSynchronized = true, Type = Update.UpdateHandlerType.Thread)]
+        [UpdateEvent]
         private static void OnUpdate()
         {
             _features.ForEach(feature =>

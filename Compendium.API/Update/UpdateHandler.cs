@@ -3,6 +3,7 @@ using Compendium.Round;
 using Compendium.Threading;
 
 using helpers;
+using helpers.Dynamic;
 using helpers.CustomReflect;
 using helpers.Extensions;
 
@@ -15,8 +16,6 @@ using System.Timers;
 
 using UnityEngine;
 
-using MonoMod.Utils;
-
 using Timer = System.Timers.Timer;
 using ThreadPriority = System.Threading.ThreadPriority;
 
@@ -24,8 +23,9 @@ namespace Compendium.Update
 {
     public static class UpdateHandler
     {
-        private static readonly HashSet<UpdateHandlerData> _handlers = new HashSet<UpdateHandlerData>();
-        private static readonly Timer _timer;
+        private static volatile List<UpdateHandlerData> _handlers = new List<UpdateHandlerData>();
+        private static volatile Timer _timer;
+        private static volatile Thread _thread;
 
         public static double NextInterval => Time.deltaTime * 1000f;
 
@@ -35,90 +35,80 @@ namespace Compendium.Update
             _timer.Interval = NextInterval;
             _timer.Elapsed += OnElapsed;
             _timer.Enabled = true;
+
+            _thread = CreateThread();
+            _thread.Start();
         }
 
-        public static void AddData(MethodInfo target, object handle, UpdateHandlerType type = UpdateHandlerType.Thread, bool sync = false, bool main = false, int rate = 1)
+        public static void AddData(MethodInfo target, object handle, UpdateHandlerType type = UpdateHandlerType.Thread, bool main = false, int rate = 1)
         {
-            UpdateHandlerData data = null;
-
-            if (type is UpdateHandlerType.Thread)
-            {
-                if (!TryValidate(target, main))
-                    return;
-
-                if (main)
-                    data = new UpdateHandlerData(target, handle, type, sync, main, rate);
-                else
-                    data = new UpdateHandlerData(target.CreateDelegate<Action>(), type, sync, main, rate);
-            }
-            else
-            {
-                data = new UpdateHandlerData(target.CreateDelegate<Action>(), type, sync, main, rate);
-            }
-
-            if (data is null)
+            if (type is UpdateHandlerType.Thread
+                && !TryValidate(target, main))
                 return;
 
-            if (type is UpdateHandlerType.Thread)
-            {
-                data.Thread = CreateThread(data);
-                data.Thread.Start();
-            }
+            var data = new UpdateHandlerData(target.GetOrCreateInvoker(), type, main, rate, handle);
 
             _handlers.Add(data);
 
-            Plugin.Debug($"Registered {type} update handler '{target.ToLogName()}' (sync: {sync}; main: {main}; rate: {rate})");
+            Plugin.Debug($"Registered {type} update handler '{target.ToLogName()}' (main: {main}; rate: {rate})");
         }
 
-        public static bool RemoveData(Action del)
+        public static bool RemoveData(MethodInfo target, object handle = null)
         {
-            if (TryGetData(del, out var data))
-                data.TokenSource?.Cancel();
-
-            return _handlers.RemoveWhere(d => d.Delegate.Method == del.Method && NullableObjectComparison.Compare(del.Target, d.Delegate.Target)) > 0;
+            return _handlers.RemoveAll(d => DynamicMethodCache.GetOriginalMethod(d.Delegate.Method) == target 
+                            && NullableObjectComparison.Compare(d.Handle, handle)) > 0;
         }
 
-        public static bool TryGetData(Action del, out UpdateHandlerData handlerData)
-            => _handlers.TryGetFirst(d => d.Delegate.Method == del.Method && NullableObjectComparison.Compare(del.Target, d.Delegate.Target), out handlerData);
+        public static bool TryGetData(MethodInfo target, object handle, out UpdateHandlerData handlerData)
+            => _handlers.TryGetFirst(d => DynamicMethodCache.GetOriginalMethod(d.Delegate.Method) == target
+                            && NullableObjectComparison.Compare(d.Handle, handle), out handlerData);
 
-        private static Thread CreateThread(UpdateHandlerData data)
+        private static Thread CreateThread()
         {
             var thread = new Thread(async () =>
             {
                 while (true)
                 {
-                    data?.Token.ThrowIfCancellationRequested();
-
-                    if (data.Delegate is null || !RoundHelper.IsReady)
+                    if (!RoundHelper.IsReady)
                         continue;
 
-                    var delay = data.TickRate <= 0 ? 10 : data.TickRate;
+                    await Task.Delay(UpdateSynchronizer.LastFrameDuration);
 
-                    if (data.SyncTickRate)
-                        delay = UpdateSynchronizer.LastFrameDuration;
+                    var copy = Pools.PoolList(_handlers);
 
-                    await Task.Delay(delay);
-
-                    if (data.ExecuteOnMain)
+                    foreach (var data in copy)
                     {
-                        ThreadScheduler.Schedule(data.Method, data.Handle);
-                    }
-                    else
-                    {
-                        try
+                        if (data.Delegate is null)
+                            continue;
+
+                        if ((DateTime.Now - data.LastExecute).TotalMilliseconds < data.TickRate)
+                            continue;
+
+                        data.LastExecute = DateTime.Now;
+
+                        if (data.ExecuteOnMain)
                         {
-                            data.Delegate();
+                            ThreadScheduler.Schedule(data.Delegate, data.Handle);
                         }
-                        catch (Exception ex)
+                        else
                         {
-                            Plugin.Error($"Failed to invoke update handler: {data.Delegate.Method.ToLogName()}");
-                            Plugin.Error(ex);
+                            try
+                            {
+                                data.Delegate(data.Handle, CachedArray.EmptyObject);
+                            }
+                            catch (Exception ex)
+                            {
+                                Plugin.Error($"Failed to invoke update handler: {data.Delegate.Method.ToLogName()}");
+                                Plugin.Error(ex);
+                            }
                         }
                     }
+
+                    copy.ReturnList();
                 }
             });
 
-            thread.Priority = ThreadPriority.Lowest;
+            thread.Priority = ThreadPriority.Highest;
             return thread;
         }
 
@@ -131,11 +121,15 @@ namespace Compendium.Update
                     if (!RoundHelper.IsReady)
                         return;
 
+                    if ((DateTime.Now - data.LastExecute).TotalMilliseconds < data.TickRate)
+                        return;
+
                     if (data.Type is UpdateHandlerType.Engine)
                     {
                         try
                         {
-                            data.Delegate();
+                            ThreadScheduler.Schedule(data.Delegate, data.Handle, CachedArray.EmptyObject);
+                            data.LastExecute = DateTime.Now;
                         }
                         catch (Exception ex)
                         {
@@ -157,22 +151,19 @@ namespace Compendium.Update
 
             try
             {
-                var methodBody = new MethodBodyReader(method);
-                var methodCalls = methodBody.GetMethodCalls();
+                var methodCalls = MethodBodyReader.GetMethodCalls(method);
                 var shouldIgnore = method.TryGetAttribute<UpdateIgnoreUnityWarningsAttribute>(out _);
 
                 foreach (var call in methodCalls)
                 {
-                    if (call.DeclaringType.FullName.StartsWith("Unity")
-                        || call.DeclaringType.BaseType != null && call.DeclaringType.BaseType.FullName.StartsWith("Unity")
-                        || call.DeclaringType.BaseType != null && call.DeclaringType.BaseType.BaseType != null && call.DeclaringType.BaseType.BaseType.FullName.StartsWith("Unity")
-                        || call.DeclaringType.BaseType != null && call.DeclaringType.BaseType.Assembly.FullName.Contains("Unity")
-                        || call.DeclaringType.BaseType != null && call.DeclaringType.BaseType.Assembly.FullName.Contains("Assembly-CSharp"))
+                    if (call.DeclaringType.Assembly.FullName.Contains("Assembly-CSharp")
+                        || Reflection.HasType<UnityEngine.Object>(call.DeclaringType))
                     {
                         Plugin.Warn($"Detected a Unity Engine reference in an update handler being executed on a separate thread! Consider using the main thread instead.");
                         Plugin.Warn($"Method: {method.ToLogName()}; Operand: {call.ToLogName()}");
 
-                        return false;
+                        if (!shouldIgnore)
+                            return false;
                     }
                 }
             }

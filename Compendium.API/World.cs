@@ -64,8 +64,8 @@ namespace Compendium
         public static void Broadcast(object message, int duration, bool clear = true)
             => Hub.ForEach(hub => hub.Broadcast(message, duration, clear));
 
-        public static void Hint(object message, float duration, bool clear, params BasicHintEffectType[] effects)
-            => Hub.ForEach(hub => hub.Hint(message, duration, clear, effects));
+        public static void Hint(object message, float duration)
+            => Hub.ForEach(hub => hub.Hint(message, duration));
 
         public static void ClearPickups()
             => Pickups.ForEach(pickup => pickup.DestroySelf());

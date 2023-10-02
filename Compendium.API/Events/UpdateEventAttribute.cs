@@ -1,4 +1,5 @@
 ﻿using Compendium.Update;
+
 using System;
 
 namespace Compendium.Events
@@ -7,10 +8,9 @@ namespace Compendium.Events
     public class UpdateEventAttribute : Attribute
     {
         public bool IsMainThread { get; set; } 
-        public bool IsSynchronized { get; set; }
 
         public int TickRate { get; set; } = 10;
 
-        public UpdateHandlerType Type { get; set; } = UpdateHandlerType.Thread;
+        public UpdateHandlerType Type { get; set; } = UpdateHandlerType.Engine;
     }
 }

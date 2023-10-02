@@ -23,8 +23,6 @@ namespace Compendium.Voice.Profiles.Scp
 {
     public class ScpVoiceProfile : BaseProfile
     {
-        private DateTime? _lastHint;
-
         private static SingleFileStorage<string> _mutes;
 
         public ScpVoiceProfile(ReferenceHub owner) : base(owner) { }
@@ -54,7 +52,6 @@ namespace Compendium.Voice.Profiles.Scp
         public override void Disable()
         {
             base.Disable();
-            _lastHint = null;
         }
 
         public override void Process(VoicePacket packet)
@@ -179,25 +176,6 @@ namespace Compendium.Voice.Profiles.Scp
 
                 default:
                     return $"<color={ColorValues.Red}>UNKNOWN</color>";
-            }
-        }
-
-        [UpdateEvent(IsMainThread = true, TickRate = 300)]
-        private static void ChatStateHintHandler()
-        {
-            foreach (var profile in VoiceChat.Profiles)
-            {
-                if (profile is ScpVoiceProfile scpVoice
-                    && scpVoice.IsEnabled
-                    && scpVoice.Owner != null)
-                {
-                    if (scpVoice._lastHint.HasValue
-                        && !((DateTime.Now - scpVoice._lastHint.Value).TotalMilliseconds >= 1100))
-                        continue;
-
-                    scpVoice._lastHint = DateTime.Now;
-                    scpVoice.Owner.Hint($"\n\n\n\n\n\n\n<b><color={ColorValues.LightGreen}>Aktivní voice: {scpVoice.TypeAndColor()}</color></b>", 1.3f, false);
-                }
             }
         }
 

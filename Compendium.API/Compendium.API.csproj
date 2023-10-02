@@ -80,6 +80,9 @@
     <Reference Include="Pooling">
       <HintPath>..\..\..\..\..\..\Program Files (x86)\Steam\steamapps\common\SCP Secret Laboratory Dedicated Server\SCPSL_Data\Managed\Pooling.dll</HintPath>
     </Reference>
+    <Reference Include="SmartOverlays">
+      <HintPath>..\..\SmartOverlays.dll</HintPath>
+    </Reference>
     <Reference Include="System" />
     <Reference Include="System.Buffers, Version=4.0.3.0, Culture=neutral, PublicKeyToken=cc7b13ffcd2ddd51, processorArchitecture=MSIL">
       <HintPath>..\packages\System.Buffers.4.5.1\lib\net461\System.Buffers.dll</HintPath>
@@ -182,10 +185,12 @@
     <Compile Include="Guard\Steam\SteamClient.cs" />
     <Compile Include="Guard\Vpn\VpnClient.cs" />
     <Compile Include="Guard\Vpn\VpnResponse.cs" />
+    <Compile Include="Hints\HintQueue.cs" />
     <Compile Include="Settings\EventSettings.cs" />
     <Compile Include="Settings\GuardSettings.cs" />
     <Compile Include="Staff\StaffActivity.cs" />
     <Compile Include="Staff\StaffActivityData.cs" />
+    <Compile Include="Threading\ThreadHandler.cs" />
     <Compile Include="Threading\ThreadScheduler.cs" />
     <Compile Include="Update\UpdateHandler.cs" />
     <Compile Include="Extensions\ColorExtensions.cs" />
@@ -213,7 +218,6 @@
     <Compile Include="Calls.cs" />
     <Compile Include="Colors\ColorValues.cs" />
     <Compile Include="Health\CustomHealthStat.cs" />
-    <Compile Include="Hints\BasicHintEffectType.cs" />
     <Compile Include="Input\IInputHandler.cs" />
     <Compile Include="Input\InputManager.cs" />
     <Compile Include="Input\InputBinding.cs" />

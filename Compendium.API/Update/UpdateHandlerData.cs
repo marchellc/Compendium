@@ -1,51 +1,30 @@
-﻿using System;
-using System.Reflection;
-using System.Threading;
+﻿using helpers.Dynamic;
+
+using System;
 
 namespace Compendium.Update
 {
     public class UpdateHandlerData
     {
-        public Action Delegate { get; }
-        public MethodInfo Method { get; }
+        public DynamicMethodDelegate Delegate { get; }
 
-        public Thread Thread { get; set; }
+        public UpdateHandlerType Type { get; } = UpdateHandlerType.Engine;
 
-        public CancellationTokenSource TokenSource { get; }
-        public CancellationToken Token { get; }
+        public DateTime LastExecute { get; set; }
 
-        public UpdateHandlerType Type { get; } = UpdateHandlerType.Thread;
-
-        public bool SyncTickRate { get; set; }
         public bool ExecuteOnMain { get; set; }
 
         public int TickRate { get; set; } = 10;
 
         public object Handle { get; set; }
 
-        public UpdateHandlerData(Action del, UpdateHandlerType type, bool syncTickRate, bool executeOnMain, int tickRate)
+        public UpdateHandlerData(DynamicMethodDelegate del, UpdateHandlerType type, bool executeOnMain, int tickRate, object handle)
         {
             Delegate = del;
             Type = type;
-            SyncTickRate = syncTickRate;
             ExecuteOnMain = executeOnMain;
             TickRate = tickRate;
-
-            TokenSource = new CancellationTokenSource();
-            Token = TokenSource.Token;
-        }
-
-        public UpdateHandlerData(MethodInfo method, object handle, UpdateHandlerType type, bool syncTickRate, bool executeOnMain, int tickRate)
-        {
-            Method = method;
             Handle = handle;
-            Type = type;
-            SyncTickRate = syncTickRate;
-            ExecuteOnMain = executeOnMain;
-            TickRate = tickRate;
-
-            TokenSource = new CancellationTokenSource();
-            Token = TokenSource.Token;
         }
     }
 }

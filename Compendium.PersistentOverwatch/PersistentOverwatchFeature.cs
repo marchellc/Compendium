@@ -65,7 +65,7 @@ namespace Compendium.PersistentOverwatch
                 if (Storage.Delete(hub.characterClassManager.UserId))
                 {
                     Storage.Save();
-                    hub.Hint($"\n\n<b>Persistent Overwatch is now <color={ColorValues.Red}>disabled</color>.", 5f, true);
+                    hub.Hint($"\n\n<b>Persistent Overwatch is now <color={ColorValues.Red}>disabled</color>.", 5f);
                 }
             }
             else
@@ -75,7 +75,7 @@ namespace Compendium.PersistentOverwatch
                     if (Storage.Append(hub.characterClassManager.UserId))
                     {
                         Storage.Save();
-                        hub.Hint($"\n\n<b>Persistent Overwatch is now <color={ColorValues.Green}>active</color>.</b>", 5f, true);
+                        hub.Hint($"\n\n<b>Persistent Overwatch is now <color={ColorValues.Green}>active</color>.</b>", 5f);
                     }
                 }
             }
@@ -94,7 +94,7 @@ namespace Compendium.PersistentOverwatch
                     ev.Player.SetRole(RoleTypeId.Overwatch);
                     ev.Player.ReferenceHub.Hint(
                         $"\n\n<b><color={ColorValues.LightGreen}>[Persistent Overwatch]</color></b>\n" +
-                        $"<b>Role changed to <color={ColorValues.Green}>Overwatch</color>.</b>", 3f, true);
+                        $"<b>Role changed to <color={ColorValues.Green}>Overwatch</color>.</b>", 3f);
                 });
             }
         }

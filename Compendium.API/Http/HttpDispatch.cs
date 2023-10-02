@@ -60,7 +60,6 @@ namespace Compendium.Http
                 headers.ForEach(pair =>
                 {
                     request.Headers.Add(pair.Key, pair.Value);
-                    Plugin.Debug($"Added header '{pair.Key}': {pair.Value}");
                 });
             }
 
