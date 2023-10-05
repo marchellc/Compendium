@@ -17,8 +17,12 @@ using System;
 using Utils.Networking;
 
 using RelativePositioning;
+
 using MapGeneration;
-using Compendium.Round;
+
+using Compendium.Enums;
+using Compendium.Attributes;
+
 using BetterCommands;
 
 namespace Compendium.Gameplay.Tutorial

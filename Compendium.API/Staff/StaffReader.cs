@@ -1,4 +1,4 @@
-﻿using Compendium.UserId;
+﻿using Compendium;
 
 using helpers.Extensions;
 using helpers;
@@ -38,7 +38,7 @@ namespace Compendium.Staff
                 var group = parts[1].Trim();
                 var groups = group.Split(',');
 
-                if (!UserIdHelper.TryParse(id, out var idValue))
+                if (!UserIdValue.TryParse(id, out var idValue))
                 {
                     Plugin.Warn($"Failed to parse ID \"{id}\"!");
                     continue;
@@ -47,7 +47,7 @@ namespace Compendium.Staff
                 for (int i = 0; i < groups.Length; i++)
                     groups[i] = groups[i].Trim();
 
-                membersDict[idValue.FullId] = groups;
+                membersDict[idValue.Value] = groups;
             }
 
             MembersBuffer = null;

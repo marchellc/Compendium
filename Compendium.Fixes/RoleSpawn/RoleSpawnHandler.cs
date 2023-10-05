@@ -1,11 +1,12 @@
 ﻿using Compendium.Features;
-using Compendium.Colors;
 
 using helpers;
 using helpers.Attributes;
 using helpers.Pooling.Pools;
 
-using Compendium.Round;
+using Compendium.Enums;
+using Compendium.Attributes;
+using Compendium.Constants;
 
 using PlayerRoles;
 using PlayerRoles.FirstPersonControl;
@@ -81,7 +82,7 @@ namespace Compendium.Fixes.RoleSpawn
                                 var newRole = PossibleRoles.RandomItem();
 
                                 hub.RoleId(newRole);
-                                hub.Hint($"\n\n<b><color={ColorValues.LightGreen}>Your role was set to <color={ColorValues.Red}>{newRole}</color> to prevent duplicate SCPs.</color></b>", 5f);
+                                hub.Hint($"\n\n<b><color={Colors.LightGreenValue}>Your role was set to <color={Colors.RedValue}>{newRole}</color> to prevent duplicate SCPs.</color></b>", 5f);
                             });
                         }
 

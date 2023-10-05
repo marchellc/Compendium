@@ -21,6 +21,7 @@ using helpers.Pooling;
 using helpers;
 
 using Compendium.Npc;
+using helpers.Random;
 
 namespace Compendium.Sounds
 {
@@ -184,10 +185,10 @@ namespace Compendium.Sounds
                                 AudioStore.Save(data.Id, data.Data);
                         }
 
-                        if (!Timing.IsRunning(_coroutine))
+                        if (!MEC.Timing.IsRunning(_coroutine))
                         {
                             _current = data;
-                            _coroutine = Timing.RunCoroutine(PlaybackHandler());
+                            _coroutine = MEC.Timing.RunCoroutine(PlaybackHandler());
 
                             message?.Invoke($"Starting the playback coroutine ..");
                         }
@@ -211,10 +212,10 @@ namespace Compendium.Sounds
                         AudioStore.Save(data.Id, data.Data);
                 }
 
-                if (!Timing.IsRunning(_coroutine))
+                if (!MEC.Timing.IsRunning(_coroutine))
                 {
                     _current = data;
-                    _coroutine = Timing.RunCoroutine(PlaybackHandler());
+                    _coroutine = MEC.Timing.RunCoroutine(PlaybackHandler());
 
                     message?.Invoke($"Starting the playback coroutine ..");
                 }
@@ -235,7 +236,7 @@ namespace Compendium.Sounds
         }
 
         public void Queue(byte[] data, Action<string> message, bool convOverride = true)
-            => Queue(new AudioData("pipe-source", IdCache.IdGenerator.Generate(5), data, convOverride), message, convOverride);
+            => Queue(new AudioData("pipe-source", RandomGeneration.Default.GetReadableString(5), data, convOverride), message, convOverride);
 
         public override void OnPooled()
         {
@@ -245,8 +246,8 @@ namespace Compendium.Sounds
 
             Audio._activePlayers.Remove(this);
 
-            if (Timing.IsRunning(_coroutine))
-                Timing.KillCoroutines(_coroutine);
+            if (MEC.Timing.IsRunning(_coroutine))
+                MEC.Timing.KillCoroutines(_coroutine);
 
             _encoder.Dispose();
             _encoder = null;
@@ -341,10 +342,10 @@ namespace Compendium.Sounds
             {
                 Plugin.Error($"Failed to start playback ({_current.Id}): Audio must be mono.");
 
-                yield return Timing.WaitForSeconds(1f);
+                yield return MEC.Timing.WaitForSeconds(1f);
 
                 if (_next != null)
-                    _coroutine = Timing.RunCoroutine(PlaybackHandler());
+                    _coroutine = MEC.Timing.RunCoroutine(PlaybackHandler());
 
                 _reader.Dispose();
                 _stream.Dispose();
@@ -357,10 +358,10 @@ namespace Compendium.Sounds
             {
                 Plugin.Error($"Failed to start playback ({_current.Id}): Audio must have a sampling rate of 48 000 Hz.");
 
-                yield return Timing.WaitForSeconds(1f);
+                yield return MEC.Timing.WaitForSeconds(1f);
 
                 if (_next != null)
-                    _coroutine = Timing.RunCoroutine(PlaybackHandler());
+                    _coroutine = MEC.Timing.RunCoroutine(PlaybackHandler());
 
                 _reader.Dispose();
                 _stream.Dispose();
@@ -388,14 +389,14 @@ namespace Compendium.Sounds
                 while (IsPaused)
                 {
                     Status = AudioStatus.Paused;
-                    yield return Timing.WaitForOneFrame;
+                    yield return MEC.Timing.WaitForOneFrame;
                 }
 
                 while (_buffer.Count >= _readBuffer.Length)
                 {
                     IsReady = true;
                     Status = AudioStatus.Playing;
-                    yield return Timing.WaitForOneFrame;
+                    yield return MEC.Timing.WaitForOneFrame;
                 }
 
                 for (int i = 0; i < _readBuffer.Length; i++)
@@ -413,10 +414,10 @@ namespace Compendium.Sounds
 
             Status = AudioStatus.Idle;
 
-            yield return Timing.WaitForSeconds(1f);
+            yield return MEC.Timing.WaitForSeconds(1f);
 
             if (_next != null)
-                _coroutine = Timing.RunCoroutine(PlaybackHandler());
+                _coroutine = MEC.Timing.RunCoroutine(PlaybackHandler());
 
             _reader.Dispose();
             _stream.Dispose();

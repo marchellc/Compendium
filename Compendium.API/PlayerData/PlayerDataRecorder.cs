@@ -11,10 +11,10 @@ using BetterCommands;
 
 using Compendium.Events;
 using Compendium.TokenCache;
-using Compendium.IdCache;
-using Compendium.Round;
-using Compendium.UserId;
+using Compendium.Generation;
 using Compendium.Comparison;
+using Compendium.Attributes;
+using Compendium.Enums;
 
 using System.Collections.Generic;
 using System.Text;
@@ -40,7 +40,7 @@ namespace Compendium.PlayerData
             }
 
             var isIp = IPAddress.TryParse(query, out _);
-            var isId = UserIdHelper.TryParse(query, out var uid);
+            var isId = UserIdValue.TryParse(query, out var uid);
 
             foreach (var rec in _records.Data)
             {
@@ -59,7 +59,7 @@ namespace Compendium.PlayerData
                     return true;
                 }    
 
-                if (isId && uid.TryMatch(rec.UserId))
+                if (isId && uid.Value == rec.UserId)
                 {
                     record = rec;
                     return true;
@@ -122,7 +122,7 @@ namespace Compendium.PlayerData
                 {
                     CreationTime = TimeUtils.LocalTime,
                     LastActivity = TimeUtils.LocalTime,
-                    Id = IdGenerator.Generate()
+                    Id = UniqueIdGeneration.Generate()
                 };
 
                 _records.Add(data);

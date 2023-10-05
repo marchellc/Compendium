@@ -1,5 +1,4 @@
 ﻿using Compendium.Extensions;
-using Compendium.Hints;
 
 using GameCore;
 

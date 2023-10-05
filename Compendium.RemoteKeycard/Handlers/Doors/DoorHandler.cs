@@ -2,15 +2,17 @@
 using Interactables.Interobjects;
 
 using System;
+using System.Collections.Generic;
 
 using UnityEngine;
 
 using PluginAPI.Events;
 
-using Compendium.Round;
+using Compendium.Enums;
+using Compendium.Attributes;
 using Compendium.Extensions;
-using Compendium.Hints;
-using Compendium.Colors;
+using Compendium.Messages;
+using Compendium.Constants;
 
 using helpers;
 using helpers.Configuration;
@@ -19,12 +21,17 @@ using helpers.Attributes;
 using helpers.Patching;
 
 using PlayerRoles;
+using PlayerRoles.FirstPersonControl;
 using PlayerRoles.PlayableScps.Scp049.Zombies;
 using PlayerRoles.PlayableScps;
 
 using Mirror;
 
 using LightContainmentZoneDecontamination;
+
+using RelativePositioning;
+
+using Utils.Networking;
 
 namespace Compendium.RemoteKeycard.Handlers.Doors
 {
@@ -52,9 +59,9 @@ namespace Compendium.RemoteKeycard.Handlers.Doors
         public static float BaseDamage { get; set; } = 50f;
 
         [Config(Name = "Failure Hint", Description = "The hint to display when a door interaction fails.")]
-        public static HintInfo FailureHint { get; set; } = HintInfo.Get(
+        public static HintMessage FailureHint { get; set; } = HintMessage.Create(
             $"\n\n\n" +
-            $"<b><color={ColorValues.LightGreen}>Z nějakého důvodu tyto dveře <color={ColorValues.Red}>nefungují</color> ..</color></b>", 5f);
+            $"<b><color={Colors.LightGreenValue}>Z nějakého důvodu tyto dveře <color={Colors.RedValue}>nefungují</color> ..</color></b>", 5);
 
         [Load]
         private static void Load()
@@ -83,7 +90,7 @@ namespace Compendium.RemoteKeycard.Handlers.Doors
 
                 if (FailureChance > 0 && WeightedRandomGeneration.Default.GetBool(FailureChance))
                 {
-                    if (FailureHint != null && FailureHint.IsValid())
+                    if (FailureHint != null && FailureHint.IsValid)
                         FailureHint.Send(ply);
 
                     return false;
@@ -138,33 +145,45 @@ namespace Compendium.RemoteKeycard.Handlers.Doors
 
         private static bool OnZombieAttackHandler(ReferenceHub ply)
         {
-            if (!Physics.Raycast(ply.PlayerCameraReference.position, ply.PlayerCameraReference.forward, out var rayHit, 20f, Mask))
-                return true;
+            try
+            {
+                if (!Physics.Raycast(ply.PlayerCameraReference.position, ply.PlayerCameraReference.forward, out var rayHit, 20f, Mask))
+                    return true;
 
-            var obj = rayHit.transform?.parent?.gameObject ?? rayHit.transform.gameObject;
+                var obj = rayHit.transform?.parent?.gameObject ?? rayHit.transform.gameObject;
 
-            if (obj is null)
-                return true;
+                if (obj is null)
+                    return true;
 
-            if (obj.TryGet<DoorVariant>(out var door) || obj.TryGet<RegularDoorButton>(out var button) && (door = button.Target as DoorVariant) != null)
-                DoorDamageHandler.DoDamage(ply, 0f, door, DoorDamageSource.Zombie);
+                if (obj.TryGet<DoorVariant>(out var door) 
+                    || obj.TryGet<RegularDoorButton>(out var button) && (door = button.Target as DoorVariant) != null)
+                    DoorDamageHandler.DoDamage(ply, 0f, door, DoorDamageSource.Zombie);
+            }
+            catch (StackOverflowException)
+            {
+
+            }
+            catch (Exception ex)
+            {
+                Plugin.Error(ex);
+            }
 
             return true;
         }
 
         private static bool OnHit(ReferenceHub ply, Ray ray, RaycastHit hit, GameObject target)
         {
-            if (!Physics.Raycast(ply.PlayerCameraReference.position, ply.PlayerCameraReference.forward, out var rayHit, 70f, Mask)
-                || rayHit.collider is null)
-                return true;
-
-            var obj = rayHit.transform?.parent?.gameObject ?? rayHit.transform.gameObject;
-
-            if (obj is null)
-                return true;
-
             if (IsEnabled && AllowShot)
             {
+                if (!Physics.Raycast(ply.PlayerCameraReference.position, ply.PlayerCameraReference.forward, out var rayHit, 70f, Mask)
+                    || rayHit.collider is null)
+                    return true;
+
+                var obj = rayHit.transform?.parent?.gameObject ?? rayHit.transform.gameObject;
+
+                if (obj is null)
+                    return true;
+
                 if (obj.TryGet<RegularDoorButton>(out var button))
                 {
                     var door = button.GetComponentInParent<DoorVariant>();
@@ -202,51 +221,78 @@ namespace Compendium.RemoteKeycard.Handlers.Doors
                         ElevatorManager.SyncedDestinations[panel.AssignedChamber.AssignedGroup] = panel.AssignedChamber.CurrentLevel;
                     }
                 }
-            }
 
-            if (OnRaycast != null)
-                return OnRaycast(ply, obj);
+                if (OnRaycast != null)
+                    return OnRaycast(ply, obj);
+            }
 
             return true;
         }
 
+        /*
         [Patch(typeof(ScpAttackAbilityBase<ZombieRole>), nameof(ScpAttackAbilityBase<ZombieRole>.ServerProcessCmd), PatchType.Prefix)]
-        private static bool OnAttack(ZombieAttackAbility __instance, NetworkReader reader)
+        private static bool OnAttack(ScpAttackAbilityBase<ZombieRole> __instance, NetworkReader reader)
         {
+            if (__instance is null
+                || __instance.Owner is null
+                || __instance.Role is null
+                || __instance.Role.RoleTypeId != RoleTypeId.Scp0492
+                || !(__instance is ZombieAttackAbility))
+                return true;
+
             if (OnZombieAttack != null && !OnZombieAttack(__instance.Owner))
                 return false;
 
-            var num = Physics.OverlapSphereNonAlloc(
-                __instance.OverlapSphereOrigin, 
-                __instance._detectionRadius, 
-                
-                ScpAttackAbilityBase<ZombieRole>.DetectionsNonAlloc, 
-                ScpAttackAbilityBase<ZombieRole>.DetectionMask);
-            
-            __instance._syncAttack = AttackResult.None;
+            var relativePosition = reader.ReadRelativePosition();
 
-            for (int i = 0; i < num; i++)
+            if (relativePosition.WaypointId == 0)
             {
-                if (ScpAttackAbilityBase<ZombieRole>.DetectionsNonAlloc[i].TryGetComponent<IDestructible>(out var destructible)
-                    && destructible.NetworkId != __instance.Owner.netId)
-                {
-                    var hitbox = destructible as HitboxIdentity;
+                __instance._attackTriggered = true;
+                __instance.ServerSendRpc(true);
 
-                    if (hitbox is null)
-                    {
-                        __instance.DamageDestructible(destructible);
-                        __instance._syncAttack |= AttackResult.AttackedObject;
-                    }
-                    else if (hitbox.TargetHub.roleManager.CurrentRole is HumanRole)
-                        __instance.DetectedPlayers.Add(hitbox.TargetHub);
-                }
-
+                return false;
             }
 
-            __instance.DamagePlayers();
-            __instance.ServerSendRpc(true);
+            if (!__instance._serverCooldown.TolerantIsReady
+                && !__instance.Owner.isLocalPlayer)
+                return false;
 
+            __instance._attackTriggered = false;
+
+            var position = relativePosition.Position;
+            var value = reader.ReadLowPrecisionQuaternion().Value;
+
+            ScpAttackAbilityBase<ZombieRole>.BacktrackedPlayers.Add(new FpcBacktracker(__instance.Owner, position, value, 0.1f, 0.15f));
+
+            var list = new List<ReferenceHub>();
+
+            while (reader.Position < reader.Capacity)
+            {
+                var referenceHub = reader.ReadReferenceHub();
+
+                list.Add(referenceHub);
+
+                var relativePosition2 = reader.ReadRelativePosition();
+
+                if (!(referenceHub == null) && referenceHub.roleManager.CurrentRole is HumanRole)
+                    ScpAttackAbilityBase<ZombieRole>.BacktrackedPlayers.Add(new FpcBacktracker(referenceHub, relativePosition2.Position, 0.4f));
+            }
+
+            __instance.ServerPerformAttack();
+
+            ScpAttackAbilityBase<ZombieRole>.BacktrackedPlayers.ForEach(delegate (FpcBacktracker x)
+            {
+                x.RestorePosition();
+            });
+
+            __instance._serverCooldown.Trigger((double)__instance.BaseCooldown);
+            __instance.DetectedPlayers.Clear();
+
+            ScpAttackAbilityBase<ZombieRole>.BacktrackedPlayers.Clear();
+
+            __instance.ServerSendRpc(true);
             return false;
         }
+        */
     }
 }

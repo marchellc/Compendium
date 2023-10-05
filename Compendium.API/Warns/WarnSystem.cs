@@ -1,7 +1,5 @@
 ﻿using BetterCommands;
 
-using Compendium.Colors;
-using Compendium.IdCache;
 using Compendium.PlayerData;
 
 using helpers.Attributes;
@@ -16,6 +14,8 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using Compendium.Generation;
+using Compendium.Constants;
 
 namespace Compendium.Warns
 {
@@ -111,7 +111,7 @@ namespace Compendium.Warns
         {
             var warn = new WarnData
             {
-                Id = IdGenerator.Generate(7),
+                Id = UniqueIdGeneration.Generate(7),
 
                 IssuedAt = TimeUtils.LocalTime,
 
@@ -128,16 +128,16 @@ namespace Compendium.Warns
             {
                 issuer.TryInvokeHub(issuerHub =>
                 {
-                    issuerHub.Hint(
-                        $"\n\n<b><color={ColorValues.LightGreen}>Hráči <color={ColorValues.Red}>{target.NameTracking.LastValue}</color> bylo uděleno varování</color></b>\n" +
-                        $"<color={ColorValues.Green}>{reason}</color>", 10f);
+                    issuerHub.Hint(Colors.LightGreen(
+                        $"<b>Hráči <color={Colors.RedValue}>{target.NameTracking.LastValue}</color> bylo uděleno varování</b>\n" +
+                        $"<color={Colors.GreenValue}>{reason}</color>"), 10f);
                 });
 
                 target.TryInvokeHub(targetHub =>
                 {
-                    targetHub.Broadcast(
-                        $"\n\n<b><color={ColorValues.LightGreen}>Obdržel jsi varování!</color></b>\n" +
-                        $"<b><color={ColorValues.Red}>{reason}</color>", 10);
+                    targetHub.Broadcast(Colors.LightGreen(
+                        $"<b>Obdržel jsi varování!</b>\n" +
+                        $"<b><color={Colors.RedValue}>{reason}</color>"), 10);
                 });
             }
 

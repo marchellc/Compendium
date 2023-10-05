@@ -3,7 +3,7 @@ using BetterCommands.Permissions;
 
 using Compendium.Events;
 using Compendium.PlayerData;
-
+using Compendium.Scheduling.Update;
 using helpers;
 using helpers.Attributes;
 using helpers.IO.Storage;
@@ -16,7 +16,7 @@ namespace Compendium.Staff
 {
     public static class StaffActivity
     {
-        private static SingleFileStorage<StaffActivityData> _storage;
+        internal static SingleFileStorage<StaffActivityData> _storage;
         private static DateTime _nextSave;
 
         [Load]
@@ -53,7 +53,7 @@ namespace Compendium.Staff
             });
         }
 
-        [UpdateEvent(TickRate = 5000)]
+        [Update(Type = UpdateSchedulerType.SideThread, Delay = 5000)]
         private static void OnUpdate()
         {
             if (_storage is null)

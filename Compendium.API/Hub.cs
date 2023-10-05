@@ -1,12 +1,13 @@
 ﻿using Compendium.Extensions;
 using Compendium.PlayerData;
-using Compendium.Health;
-using Compendium.Hints;
-using Compendium.Units;
-using Compendium.UserId;
-using Compendium.Round;
+using Compendium.Custom.Stats.Health;
+using Compendium.Scheduling;
+using Compendium.Messages;
+using Compendium;
 using Compendium.Npc;
-using Compendium.RemoteAdmin;
+using Compendium.Enums;
+using Compendium.Staff;
+using Compendium.Comparison;
 using Compendium.Snapshots;
 using Compendium.Snapshots.Data;
 
@@ -14,8 +15,6 @@ using helpers;
 using helpers.Extensions;
 using helpers.Patching;
 using helpers.Pooling.Pools;
-
-using Hints;
 
 using MapGeneration;
 
@@ -25,6 +24,7 @@ using PlayerRoles.FirstPersonControl.NetworkMessages;
 using PlayerRoles.PlayableScps.Scp079;
 using PlayerRoles.PlayableScps.Scp106;
 using PlayerRoles.PlayableScps.Scp049.Zombies;
+using PlayerRoles.Visibility;
 using PlayerRoles.Voice;
 
 using PlayerStatsSystem;
@@ -38,6 +38,7 @@ using UnityEngine;
 
 using InventorySystem.Items.Firearms;
 using InventorySystem.Items;
+using InventorySystem.Disarming;
 using InventorySystem;
 
 using RelativePositioning;
@@ -54,9 +55,7 @@ using RemoteAdmin.Communication;
 using RemoteAdmin;
 
 using VoiceChat;
-using Compendium.Staff;
-using Compendium.Comparison;
-using InventorySystem.Disarming;
+using Compendium.Attributes;
 
 namespace Compendium
 {
@@ -74,6 +73,40 @@ namespace Compendium
 
         private static readonly Dictionary<ReferenceHub, Dictionary<Type, byte>> _fakeIntensity = new Dictionary<ReferenceHub, Dictionary<Type, byte>>();
         private static readonly Dictionary<ReferenceHub, RemoteAdminIconType> _raIcons = new Dictionary<ReferenceHub, RemoteAdminIconType>();
+
+        private static readonly Dictionary<uint, List<uint>> _invisMatrix = new Dictionary<uint, List<uint>>();
+        private static readonly HashSet<uint> _invisList = new HashSet<uint>();
+
+        public static bool IsInvisibleTo(this ReferenceHub player, ReferenceHub target)
+        {
+            if (_invisList.Contains(player.netId))
+                return true;
+
+            return _invisMatrix.TryGetValue(player.netId, out var list) && list.Contains(target.netId);
+        }
+
+        public static bool IsInvisible(this ReferenceHub player)
+            => _invisList.Contains(player.netId);
+
+        public static void MakeInvisible(this ReferenceHub player)
+            => _invisList.Add(player.netId);
+
+        public static void MakeVisible(this ReferenceHub player)
+            => _invisList.Remove(player.netId);
+
+        public static void MakeInvisibleTo(this ReferenceHub player, ReferenceHub target)
+        {
+            if (_invisMatrix.TryGetValue(player.netId, out var list))
+                list.Add(target.netId);
+            else
+                _invisMatrix[player.netId] = new List<uint>() { target.netId };
+        }
+
+        public static void MakeVisibleTo(this ReferenceHub player, ReferenceHub target)
+        {
+            if (_invisMatrix.TryGetValue(player.netId, out var list))
+                list.Remove(target.netId);
+        }
 
         public static bool TryGetFakePosition(this ReferenceHub hub, ReferenceHub target, out Vector3 position)
         {
@@ -385,6 +418,8 @@ namespace Compendium
             _fakePositionsMatrix.Clear();
             _fakeIntensity.Clear();
             _raIcons.Clear();
+            _invisList.Clear();
+            _invisMatrix.Clear();
         }
     }
 
@@ -447,7 +482,7 @@ namespace Compendium
             => PlayerDataRecorder.GetData(hub)?.Id ?? "";
 
         public static UserIdValue ParsedUserId(this ReferenceHub hub)
-            => UserIdHelper.TryParse(hub.UserId(), out var parsed) ? parsed : throw new Exception($"Failed to parse user ID of {hub.UserId()}");
+            => UserIdValue.TryParse(hub.UserId(), out var parsed) ? parsed : throw new Exception($"Failed to parse user ID of {hub.UserId()}");
 
         public static string UserId2(this ReferenceHub hub, string userId2 = null)
         {
@@ -753,8 +788,8 @@ namespace Compendium
         public static void MessageBox(this ReferenceHub hub, object content)
             => hub.gameConsoleTransmission.SendToClient($"[REPORTING] {content}", "red");
 
-        public static void Hint(this ReferenceHub hub, object content, float duration)
-            => HintQueue.Enqueue(hub, content?.ToString(), duration);
+        public static void Hint(this ReferenceHub hub, object content, float duration = 5f)
+            => MessageScheduler.Schedule(hub, HintMessage.Create(content?.ToString() ?? "empty", duration));
 
         public static void Message(this ReferenceHub hub, object content, bool isRemoteAdmin = false)
         {
@@ -880,22 +915,10 @@ namespace Compendium
             => hub.inventory.SetDisarmedStatus(null);
 
         public static ReferenceHub GetCuffer(this ReferenceHub hub)
-        {
-            if (DisarmedPlayers.Entries.TryGetFirst(x => x.DisarmedPlayer == hub.netId, out var entry)
-                && ReferenceHub.TryGetHubNetID(entry.Disarmer, out var cuffer))
-                return cuffer;
-
-            return null;
-        }
+            => Hub.GetHub(DisarmedPlayers.Entries.FirstOrDefault(x => x.DisarmedPlayer == hub.netId).Disarmer);
 
         public static ReferenceHub GetCuffed(this ReferenceHub hub)
-        {
-            if (DisarmedPlayers.Entries.TryGetFirst(x => x.Disarmer == hub.netId, out var entry)
-                && ReferenceHub.TryGetHubNetID(entry.DisarmedPlayer, out var cuffed))
-                return cuffed;
-
-            return null;
-        }
+            => Hub.GetHub(DisarmedPlayers.Entries.FirstOrDefault(x => x.Disarmer == hub.netId).DisarmedPlayer);
     }
 
     public static class InventoryExtensions
@@ -965,6 +988,9 @@ namespace Compendium
 
         public static ReferenceHub GetHub(this PlayerDataRecord record, bool supplyServer = true)
             => TryGetHub(record, out var hub) ? hub : (supplyServer ? ReferenceHub.HostHub : null);
+
+        public static ReferenceHub GetHub(uint netId)
+            => Hubs.TryGetFirst(x => x.netId == netId, out var hub) ? hub : null;
 
         public static bool TryGetHub(this PlayerDataRecord record, out ReferenceHub hub)
             => Hubs.TryGetFirst(h => 
@@ -1062,6 +1088,66 @@ namespace Compendium
 
     public static class HubExtensionPatches
     {
+        [Patch(typeof(FpcServerPositionDistributor), nameof(FpcServerPositionDistributor.WriteAll), PatchType.Prefix)]
+        private static bool InvisPatch(ReferenceHub receiver, NetworkWriter writer)
+        {
+            var index = ushort.MinValue;
+            var visRole = receiver.roleManager.CurrentRole as ICustomVisibilityRole;
+            var hasRole = false;
+
+            VisibilityController controller = null;
+
+            if (visRole != null)
+            {
+                hasRole = true;
+                controller = visRole.VisibilityController;
+            }
+            else
+            {
+                hasRole = false;
+                controller = null;
+            }
+
+            ReferenceHub.AllHubs.ForEach(hub =>
+            {
+                if (hub.netId != receiver.netId)
+                {
+                    if (hub.Role() is IFpcRole fpcRole)
+                    {
+                        var isInvisible = hasRole && !controller.ValidateVisibility(hub);
+
+                        if (!isInvisible)
+                        {
+                            if (hub.IsInvisible())
+                                isInvisible = true;
+                            else if (hub.IsInvisibleTo(receiver))
+                                isInvisible = true;
+                        }
+
+                        var syncData = FpcServerPositionDistributor.GetNewSyncData(receiver, hub, fpcRole.FpcModule, isInvisible);
+
+                        if (!isInvisible)
+                        {
+                            FpcServerPositionDistributor._bufferPlayerIDs[index] = hub.PlayerId;
+                            FpcServerPositionDistributor._bufferSyncData[index] = syncData;
+
+                            index++;
+                        }
+                    }
+                }
+            });
+
+            writer.WriteUShort(index);
+
+            for (int i = 0; i < index; i++)
+            {
+                writer.WriteRecyclablePlayerId(new RecyclablePlayerId(FpcServerPositionDistributor._bufferPlayerIDs[i]));
+                FpcServerPositionDistributor._bufferSyncData[i].Write(writer);
+            }
+
+            return false;
+        }
+
         [Patch(typeof(RaPlayerList), nameof(RaPlayerList.ReceiveData), PatchType.Prefix, typeof(CommandSender), typeof(string))]
         private static bool RaPlayerListPatch(RaPlayerList __instance, CommandSender sender, string data)
         {

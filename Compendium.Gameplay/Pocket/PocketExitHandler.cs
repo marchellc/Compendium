@@ -1,8 +1,10 @@
-﻿using Compendium.Colors;
-using Compendium.Hints;
+﻿using Compendium.Constants;
+using Compendium.Messages;
 using Compendium.Staff;
 using Compendium.Events;
-using Compendium.Round;
+using Compendium;
+using Compendium.Attributes;
+using Compendium.Enums;
 
 using helpers.Configuration;
 using helpers.Patching;
@@ -33,10 +35,10 @@ namespace Compendium.Gameplay.Pocket
         private static int _totalEscapes = 0;
 
         [Config(Name = "Failed Hint", Description = "The hint to display if a player fails to escape.")]
-        public static HintInfo EscapeFailedHint { get; set; } = HintInfo.Get($"<b><color={ColorValues.LightGreen}><color={ColorValues.Red}>Nepovedlo</color> se ti utéct .. možná příště.</color></b>", 5f);
+        public static HintMessage EscapeFailedHint { get; set; } = HintMessage.Create($"<b><color={Colors.LightGreenValue}><color={Colors.RedValue}>Nepovedlo</color> se ti utéct .. možná příště.</color></b>", 5);
 
         [Config(Name = "Escaped Hint", Description = "The hint to display if a player succesfully escapes.")]
-        public static HintInfo EscapeSuccessHint { get; set; } = HintInfo.Get($"<b><color={ColorValues.LightGreen}><color={ColorValues.Green}>Povedlo</color> se ti utéct! Dobrá práce.</color></b>");
+        public static HintMessage EscapeSuccessHint { get; set; } = HintMessage.Create($"<b><color={Colors.LightGreenValue}><color={Colors.GreenValue}>Povedlo</color> se ti utéct! Dobrá práce.</color></b>", 5);
 
         [Config(Name = "Exit Count", Description = "The amount of exits that are always correct.")]
         public static int AlwaysExitCount { get; set; } = 1;
@@ -44,7 +46,7 @@ namespace Compendium.Gameplay.Pocket
         [Config(Name = "Escape Window", Description = "The amount of milliseconds to keep a count of player's escapes for. Chance of escape decreases based on this.")]
         public static int EscapeTimeWindow { get; set; } = 60000;
 
-        [Config(Name = "Regenerate Count", Description = "The amount of escapes required for the pocket dimension to regenerate. Set to zero to disable.")]
+        [Config(Name = "Regenerate Count", Description = "The amount of escapes requiRedValue for the pocket dimension to regenerate. Set to zero to disable.")]
         public static int RegenerateAfterEscapes { get; set; } = 0;
 
         [Config(Name = "Escape Chances", Description = "A list of chances of escape.")]
@@ -141,7 +143,7 @@ namespace Compendium.Gameplay.Pocket
 
             hub.playerStats.DealDamage(new UniversalDamageHandler(-1f, DeathTranslations.PocketDecay));
 
-            if (EscapeFailedHint != null && EscapeFailedHint.IsValid())
+            if (EscapeFailedHint != null && EscapeFailedHint.IsValid)
                 EscapeFailedHint.Send(hub);
 
             _escapedTimes.Remove(hub);
@@ -162,7 +164,7 @@ namespace Compendium.Gameplay.Pocket
 
             Reflection.TryInvokeEvent(typeof(PocketDimensionTeleport), "OnPlayerEscapePocketDimension", hub);
 
-            if (EscapeSuccessHint != null && EscapeSuccessHint.IsValid())
+            if (EscapeSuccessHint != null && EscapeSuccessHint.IsValid)
                 EscapeSuccessHint.Send(hub);
 
             if (RegenerateAfterEscapes > 0 && _totalEscapes >= RegenerateAfterEscapes)

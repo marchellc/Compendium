@@ -3,7 +3,7 @@
 using Compendium.Events;
 using Compendium.Guard.Steam;
 using Compendium.Guard.Vpn;
-using Compendium.UserId;
+using Compendium;
 
 using helpers.Attributes;
 using helpers.IO.Storage;
@@ -143,11 +143,11 @@ namespace Compendium.Guard
         [Description("Marks the specified user ID as safe.")]
         private static string SafeIdCommand(ReferenceHub sender, string userId)
         {
-            if (!UserIdHelper.TryParse(userId, out var uid))
+            if (!UserIdValue.TryParse(userId, out var uid))
                 return "Invalid User ID.";
 
-            Safe(uid.FullId, "");
-            return $"Marked user ID '{uid.FullId}' as safe.";
+            Safe(uid.Value, "");
+            return $"Marked user ID '{uid.Value}' as safe.";
         }
 
         [Command("safeip", CommandType.RemoteAdmin, CommandType.GameConsole)]
@@ -166,9 +166,9 @@ namespace Compendium.Guard
         private static string GuardCommand(ReferenceHub sender, string query)
         {
             bool isFlaggedIp = _flaggedIpStorage.Contains(query);
-            bool isFlaggedId = UserIdHelper.TryParse(query, out var uid) && _flaggedIdStorage.Contains(uid.FullId);
+            bool isFlaggedId = UserIdValue.TryParse(query, out var uid) && _flaggedIdStorage.Contains(uid.Value);
             bool isCleanIp = _cleanIpStorage.Contains(query);
-            bool isCleanId = UserIdHelper.TryParse(query, out uid) && _cleanIdStorage.Contains(uid.FullId);
+            bool isCleanId = UserIdValue.TryParse(query, out uid) && _cleanIdStorage.Contains(uid.Value);
 
             return $"Guard status of '{query}'\n" +
                 $"IP flag: {isFlaggedIp}\n" +

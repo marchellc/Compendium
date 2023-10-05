@@ -1,6 +1,6 @@
 ﻿using Compendium;
 using Compendium.Features;
-using Compendium.Colors;
+using Compendium.Constants;
 using Compendium.Events;
 
 using helpers;
@@ -8,10 +8,7 @@ using helpers.IO.Storage;
 
 using PlayerRoles;
 
-using PluginAPI.Enums;
 using PluginAPI.Events;
-
-using System;
 
 namespace Compendium.PersistentOverwatch
 {
@@ -65,7 +62,7 @@ namespace Compendium.PersistentOverwatch
                 if (Storage.Delete(hub.characterClassManager.UserId))
                 {
                     Storage.Save();
-                    hub.Hint($"\n\n<b>Persistent Overwatch is now <color={ColorValues.Red}>disabled</color>.", 5f);
+                    hub.Hint($"\n\n<b>Persistent Overwatch is now <color={Colors.RedValue}>disabled</color>.", 5f);
                 }
             }
             else
@@ -75,7 +72,7 @@ namespace Compendium.PersistentOverwatch
                     if (Storage.Append(hub.characterClassManager.UserId))
                     {
                         Storage.Save();
-                        hub.Hint($"\n\n<b>Persistent Overwatch is now <color={ColorValues.Green}>active</color>.</b>", 5f);
+                        hub.Hint($"\n\n<b>Persistent Overwatch is now <color={Colors.GreenValue}>active</color>.</b>", 5f);
                     }
                 }
             }
@@ -93,8 +90,8 @@ namespace Compendium.PersistentOverwatch
                 {
                     ev.Player.SetRole(RoleTypeId.Overwatch);
                     ev.Player.ReferenceHub.Hint(
-                        $"\n\n<b><color={ColorValues.LightGreen}>[Persistent Overwatch]</color></b>\n" +
-                        $"<b>Role changed to <color={ColorValues.Green}>Overwatch</color>.</b>", 3f);
+                        $"\n\n<b><color={Colors.LightGreenValue}>[Persistent Overwatch]</color></b>\n" +
+                        $"<b>Role changed to <color={Colors.GreenValue}>Overwatch</color>.</b>", 3f);
                 });
             }
         }

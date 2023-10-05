@@ -1,10 +1,13 @@
 ﻿using BetterCommands;
 
-using Compendium.Colors;
 using Compendium.Events;
-using Compendium.Round;
+using Compendium;
 using Compendium.Voice.Pools;
 using Compendium.Voice.Prefabs.Scp;
+using Compendium.Attributes;
+using Compendium.Constants;
+using Compendium.Scheduling.Update;
+using Compendium.Enums;
 
 using helpers.Attributes;
 using helpers.Patching;
@@ -184,16 +187,15 @@ namespace Compendium.Voice
                     $"Poté vyžaduje hra ještě potvrzení, které můžeš provést tím, že do této konzole napíšeš dvakrát synccmd (můžeš provést i teď, nebo potom).\n" +
                     $"Toť vše, užij si hru!");
 
-                ev.Player.ReferenceHub.Hint(
-                    $"\n\n\n" +
-                    $"<b><color={ColorValues.LightGreen}>Vítej!\n" +
-                    $"Na tomto serveru máme pár funkcí, které závisí na bindování. Pro více informací si otevři <color={ColorValues.Red}>herní konzoli</color>\n" +
-                    $"<i>(<color={ColorValues.Green}>klávesa nad tabulátorem a pod Escapem: ~)</color></i>" +
-                    $"\n</color></b>", 15f);
+                ev.Player.ReferenceHub.Hint(Colors.LightGreen(
+                    $"<b>Vítej!\n" +
+                    $"Na tomto serveru máme pár funkcí, které závisí na bindování. Pro více informací si otevři {Colors.Red("herní konzoli")}\n" +
+                    $"<i>({Colors.Green("klávesa nad tabulátorem a pod Escapem: ~")})</i>" +
+                    $"\n</b>"), 15f);
             });
         }
 
-        [UpdateEvent(IsMainThread = true, TickRate = 50, Type = Update.UpdateHandlerType.Engine)]
+        [Update(Type = UpdateSchedulerType.UnityThread)]
         private static void OnUpdate()
         {
             foreach (var hub in Hub.Hubs)

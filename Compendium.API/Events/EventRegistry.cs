@@ -1,9 +1,7 @@
 ﻿using BetterCommands;
-
+using Compendium.Attributes;
 using Compendium.Comparison;
-using Compendium.Round;
-using Compendium.Update;
-
+using Compendium.Enums;
 using helpers;
 using helpers.Attributes;
 using helpers.Dynamic;
@@ -76,10 +74,6 @@ namespace Compendium.Events
                 {
                     _registry.Add(data);
                     Plugin.Info($"Registered event '{data.Type}' ({data.Target.Method.ToLogName()})");
-                }
-                else if (method.TryGetAttribute<UpdateEventAttribute>(out var updateAttr))
-                {
-                    UpdateHandler.AddData(method, instance, updateAttr.Type, updateAttr.IsMainThread, updateAttr.TickRate);
                 }
             }
             catch (Exception ex)

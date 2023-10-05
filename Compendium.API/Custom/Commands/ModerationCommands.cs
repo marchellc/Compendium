@@ -1,7 +1,7 @@
 ﻿using BetterCommands;
 
 using Compendium.PlayerData;
-using Compendium.UserId;
+using Compendium;
 
 using helpers;
 using helpers.Time;
@@ -47,12 +47,12 @@ namespace Compendium.Custom.Commands
             if (hasRecord = (PlayerDataRecorder.TryQuery(target, true, out record) && record != null))
                 details.OriginalName = record.NameTracking.LastValue;
 
-            if (UserIdHelper.TryParse(target, out var userIdValue))
+            if (UserIdValue.TryParse(target, out var userIdValue))
             {
-                details.Id = userIdValue.FullId;
+                details.Id = userIdValue.Value;
                 BanHandler.IssueBan(details, BanHandler.BanType.UserId);
                 idBanIssued = true;
-                sender.Message($"Issued user ID ban for '{userIdValue.FullId}'", true);
+                sender.Message($"Issued user ID ban for '{userIdValue.Value}'", true);
             }
             else if (IPAddress.TryParse(target, out _))
             {
@@ -66,7 +66,7 @@ namespace Compendium.Custom.Commands
                 details.Id = record.UserId;
                 BanHandler.IssueBan(details, BanHandler.BanType.UserId);
                 idBanIssued = true;
-                sender.Message($"Issued record-based user ID ban for '{userIdValue.FullId}'", true);
+                sender.Message($"Issued record-based user ID ban for '{userIdValue.Value}'", true);
 
                 details.Id = record.Ip;
                 BanHandler.IssueBan(details, BanHandler.BanType.IP);
@@ -110,8 +110,8 @@ namespace Compendium.Custom.Commands
         {
             if (!removeAll)
             {
-                if (UserIdHelper.TryParse(target, out var idValue))
-                    target = idValue.FullId;
+                if (UserIdValue.TryParse(target, out var idValue))
+                    target = idValue.Value;
 
                 var banQuery = BanHandler.QueryBan(target, target);
 
@@ -167,11 +167,11 @@ namespace Compendium.Custom.Commands
                     if (!ipBans.TryGetFirst(b => b.Id == target, out relevantBan))
                         return $"The specified IP address does not have any active IP bans.";
                 }
-                else if (UserIdHelper.TryParse(target, out var userId))
+                else if (UserIdValue.TryParse(target, out var userId))
                 {
                     sender.Message($"Identified target as user ID", true);
 
-                    if (!idBans.TryGetFirst(b => b.Id == userId.FullId, out relevantBan))
+                    if (!idBans.TryGetFirst(b => b.Id == userId.Value, out relevantBan))
                         return $"The specified user ID does not have any active ID bans.";
                 }
 

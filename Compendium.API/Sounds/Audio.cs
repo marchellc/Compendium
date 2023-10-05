@@ -1,6 +1,8 @@
 ﻿using BetterCommands;
+
 using Compendium.Npc;
-using Compendium.Round;
+using Compendium.Attributes;
+using Compendium.Enums;
 
 using helpers.Attributes;
 using helpers;

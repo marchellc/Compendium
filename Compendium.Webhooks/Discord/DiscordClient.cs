@@ -1,7 +1,7 @@
 ﻿using Compendium.Events;
 using Compendium.Features;
 using Compendium.Logging;
-
+using Compendium.Scheduling.Update;
 using helpers.Attributes;
 using helpers.Json;
 
@@ -32,7 +32,7 @@ namespace Compendium.Webhooks.Discord
             _client = null;
         }
 
-        [UpdateEvent]
+        [Update(Delay = 100, Type = UpdateSchedulerType.SideThread)]
         public static void Update()
         {
             if (_lastCheck.HasValue)

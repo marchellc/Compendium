@@ -37,8 +37,8 @@
     <Reference Include="0Harmony, Version=2.2.2.0, Culture=neutral, processorArchitecture=MSIL">
       <HintPath>..\packages\Lib.Harmony.2.2.2\lib\net48\0Harmony.dll</HintPath>
     </Reference>
-    <Reference Include="AngleSharp, Version=1.0.4.0, Culture=neutral, PublicKeyToken=e83494dcdc6d31ea, processorArchitecture=MSIL">
-      <HintPath>..\packages\AngleSharp.1.0.4\lib\net472\AngleSharp.dll</HintPath>
+    <Reference Include="AngleSharp, Version=1.0.6.0, Culture=neutral, PublicKeyToken=e83494dcdc6d31ea, processorArchitecture=MSIL">
+      <HintPath>..\packages\AngleSharp.1.0.6-alpha-321\lib\net472\AngleSharp.dll</HintPath>
     </Reference>
     <Reference Include="Assembly-CSharp-firstpass">
       <HintPath>..\..\..\..\..\..\Program Files (x86)\Steam\steamapps\common\SCP Secret Laboratory Dedicated Server\SCPSL_Data\Managed\Assembly-CSharp-firstpass.dll</HintPath>
@@ -54,12 +54,69 @@
     <Reference Include="CommandSystem.Core">
       <HintPath>..\..\..\..\..\..\Program Files (x86)\Steam\steamapps\common\SCP Secret Laboratory Dedicated Server\SCPSL_Data\Managed\CommandSystem.Core.dll</HintPath>
     </Reference>
+    <Reference Include="Grapeseed, Version=5.0.0.0, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>..\packages\Grapeseed.5.0.0-rc.10\lib\netstandard2.0\Grapeseed.dll</HintPath>
+    </Reference>
+    <Reference Include="Grapevine_publicized">
+      <HintPath>..\..\..\..\..\..\Program Files (x86)\Steam\steamapps\common\SCP Secret Laboratory Dedicated Server\SCPSL_Data\Managed\publicized_assemblies\Grapevine_publicized.dll</HintPath>
+    </Reference>
     <Reference Include="helpers, Version=3.7.1.1, Culture=neutral, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
       <HintPath>..\..\helpers\helpers\bin\Release\helpers.dll</HintPath>
     </Reference>
     <Reference Include="Microsoft.Bcl.AsyncInterfaces, Version=8.0.0.0, Culture=neutral, PublicKeyToken=cc7b13ffcd2ddd51, processorArchitecture=MSIL">
       <HintPath>..\packages\Microsoft.Bcl.AsyncInterfaces.8.0.0-rc.1.23419.4\lib\net462\Microsoft.Bcl.AsyncInterfaces.dll</HintPath>
+    </Reference>
+    <Reference Include="Microsoft.Extensions.Configuration, Version=5.0.0.0, Culture=neutral, PublicKeyToken=adb9793829ddae60, processorArchitecture=MSIL">
+      <HintPath>..\packages\Microsoft.Extensions.Configuration.5.0.0\lib\net461\Microsoft.Extensions.Configuration.dll</HintPath>
+    </Reference>
+    <Reference Include="Microsoft.Extensions.Configuration.Abstractions, Version=5.0.0.0, Culture=neutral, PublicKeyToken=adb9793829ddae60, processorArchitecture=MSIL">
+      <HintPath>..\packages\Microsoft.Extensions.Configuration.Abstractions.5.0.0\lib\net461\Microsoft.Extensions.Configuration.Abstractions.dll</HintPath>
+    </Reference>
+    <Reference Include="Microsoft.Extensions.Configuration.Binder, Version=5.0.0.0, Culture=neutral, PublicKeyToken=adb9793829ddae60, processorArchitecture=MSIL">
+      <HintPath>..\packages\Microsoft.Extensions.Configuration.Binder.5.0.0\lib\net461\Microsoft.Extensions.Configuration.Binder.dll</HintPath>
+    </Reference>
+    <Reference Include="Microsoft.Extensions.Configuration.FileExtensions, Version=5.0.0.0, Culture=neutral, PublicKeyToken=adb9793829ddae60, processorArchitecture=MSIL">
+      <HintPath>..\packages\Microsoft.Extensions.Configuration.FileExtensions.5.0.0\lib\net461\Microsoft.Extensions.Configuration.FileExtensions.dll</HintPath>
+    </Reference>
+    <Reference Include="Microsoft.Extensions.Configuration.Json, Version=5.0.0.0, Culture=neutral, PublicKeyToken=adb9793829ddae60, processorArchitecture=MSIL">
+      <HintPath>..\packages\Microsoft.Extensions.Configuration.Json.5.0.0\lib\net461\Microsoft.Extensions.Configuration.Json.dll</HintPath>
+    </Reference>
+    <Reference Include="Microsoft.Extensions.DependencyInjection, Version=5.0.0.1, Culture=neutral, PublicKeyToken=adb9793829ddae60, processorArchitecture=MSIL">
+      <HintPath>..\packages\Microsoft.Extensions.DependencyInjection.5.0.1\lib\net461\Microsoft.Extensions.DependencyInjection.dll</HintPath>
+    </Reference>
+    <Reference Include="Microsoft.Extensions.DependencyInjection.Abstractions, Version=5.0.0.0, Culture=neutral, PublicKeyToken=adb9793829ddae60, processorArchitecture=MSIL">
+      <HintPath>..\packages\Microsoft.Extensions.DependencyInjection.Abstractions.5.0.0\lib\net461\Microsoft.Extensions.DependencyInjection.Abstractions.dll</HintPath>
+    </Reference>
+    <Reference Include="Microsoft.Extensions.FileProviders.Abstractions, Version=5.0.0.0, Culture=neutral, PublicKeyToken=adb9793829ddae60, processorArchitecture=MSIL">
+      <HintPath>..\packages\Microsoft.Extensions.FileProviders.Abstractions.5.0.0\lib\net461\Microsoft.Extensions.FileProviders.Abstractions.dll</HintPath>
+    </Reference>
+    <Reference Include="Microsoft.Extensions.FileProviders.Physical, Version=5.0.0.0, Culture=neutral, PublicKeyToken=adb9793829ddae60, processorArchitecture=MSIL">
+      <HintPath>..\packages\Microsoft.Extensions.FileProviders.Physical.5.0.0\lib\net461\Microsoft.Extensions.FileProviders.Physical.dll</HintPath>
+    </Reference>
+    <Reference Include="Microsoft.Extensions.FileSystemGlobbing, Version=5.0.0.0, Culture=neutral, PublicKeyToken=adb9793829ddae60, processorArchitecture=MSIL">
+      <HintPath>..\packages\Microsoft.Extensions.FileSystemGlobbing.5.0.0\lib\net461\Microsoft.Extensions.FileSystemGlobbing.dll</HintPath>
+    </Reference>
+    <Reference Include="Microsoft.Extensions.Logging, Version=5.0.0.0, Culture=neutral, PublicKeyToken=adb9793829ddae60, processorArchitecture=MSIL">
+      <HintPath>..\packages\Microsoft.Extensions.Logging.5.0.0\lib\net461\Microsoft.Extensions.Logging.dll</HintPath>
+    </Reference>
+    <Reference Include="Microsoft.Extensions.Logging.Abstractions, Version=5.0.0.0, Culture=neutral, PublicKeyToken=adb9793829ddae60, processorArchitecture=MSIL">
+      <HintPath>..\packages\Microsoft.Extensions.Logging.Abstractions.5.0.0\lib\net461\Microsoft.Extensions.Logging.Abstractions.dll</HintPath>
+    </Reference>
+    <Reference Include="Microsoft.Extensions.Logging.Configuration, Version=5.0.0.0, Culture=neutral, PublicKeyToken=adb9793829ddae60, processorArchitecture=MSIL">
+      <HintPath>..\packages\Microsoft.Extensions.Logging.Configuration.5.0.0\lib\net461\Microsoft.Extensions.Logging.Configuration.dll</HintPath>
+    </Reference>
+    <Reference Include="Microsoft.Extensions.Logging.Console, Version=5.0.0.0, Culture=neutral, PublicKeyToken=adb9793829ddae60, processorArchitecture=MSIL">
+      <HintPath>..\packages\Microsoft.Extensions.Logging.Console.5.0.0\lib\net461\Microsoft.Extensions.Logging.Console.dll</HintPath>
+    </Reference>
+    <Reference Include="Microsoft.Extensions.Options, Version=5.0.0.0, Culture=neutral, PublicKeyToken=adb9793829ddae60, processorArchitecture=MSIL">
+      <HintPath>..\packages\Microsoft.Extensions.Options.5.0.0\lib\net461\Microsoft.Extensions.Options.dll</HintPath>
+    </Reference>
+    <Reference Include="Microsoft.Extensions.Options.ConfigurationExtensions, Version=5.0.0.0, Culture=neutral, PublicKeyToken=adb9793829ddae60, processorArchitecture=MSIL">
+      <HintPath>..\packages\Microsoft.Extensions.Options.ConfigurationExtensions.5.0.0\lib\net461\Microsoft.Extensions.Options.ConfigurationExtensions.dll</HintPath>
+    </Reference>
+    <Reference Include="Microsoft.Extensions.Primitives, Version=5.0.0.0, Culture=neutral, PublicKeyToken=adb9793829ddae60, processorArchitecture=MSIL">
+      <HintPath>..\packages\Microsoft.Extensions.Primitives.5.0.0\lib\net461\Microsoft.Extensions.Primitives.dll</HintPath>
     </Reference>
     <Reference Include="Mirror_publicized">
       <HintPath>..\..\..\..\..\..\Program Files (x86)\Steam\steamapps\common\SCP Secret Laboratory Dedicated Server\SCPSL_Data\Managed\Mirror_publicized.dll</HintPath>
@@ -80,6 +137,9 @@
     <Reference Include="Pooling">
       <HintPath>..\..\..\..\..\..\Program Files (x86)\Steam\steamapps\common\SCP Secret Laboratory Dedicated Server\SCPSL_Data\Managed\Pooling.dll</HintPath>
     </Reference>
+    <Reference Include="QuickChart, Version=1.0.0.0, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>..\packages\QuickChart.2.3.0\lib\net472\QuickChart.dll</HintPath>
+    </Reference>
     <Reference Include="SmartOverlays">
       <HintPath>..\..\SmartOverlays.dll</HintPath>
     </Reference>
@@ -87,20 +147,59 @@
     <Reference Include="System.Buffers, Version=4.0.3.0, Culture=neutral, PublicKeyToken=cc7b13ffcd2ddd51, processorArchitecture=MSIL">
       <HintPath>..\packages\System.Buffers.4.5.1\lib\net461\System.Buffers.dll</HintPath>
     </Reference>
+    <Reference Include="System.ComponentModel.Composition" />
     <Reference Include="System.Core" />
+    <Reference Include="System.Diagnostics.DiagnosticSource, Version=5.0.0.0, Culture=neutral, PublicKeyToken=cc7b13ffcd2ddd51, processorArchitecture=MSIL">
+      <HintPath>..\packages\System.Diagnostics.DiagnosticSource.5.0.0\lib\net46\System.Diagnostics.DiagnosticSource.dll</HintPath>
+    </Reference>
+    <Reference Include="System.IO, Version=4.1.1.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL">
+      <HintPath>..\packages\System.IO.4.3.0\lib\net462\System.IO.dll</HintPath>
+      <Private>True</Private>
+      <Private>True</Private>
+    </Reference>
     <Reference Include="System.Management" />
     <Reference Include="System.Memory, Version=4.0.1.2, Culture=neutral, PublicKeyToken=cc7b13ffcd2ddd51, processorArchitecture=MSIL">
       <HintPath>..\packages\System.Memory.4.5.5\lib\net461\System.Memory.dll</HintPath>
     </Reference>
+    <Reference Include="System.Net.Http, Version=4.1.1.3, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL">
+      <HintPath>..\packages\System.Net.Http.4.3.4\lib\net46\System.Net.Http.dll</HintPath>
+      <Private>True</Private>
+      <Private>True</Private>
+    </Reference>
     <Reference Include="System.Numerics" />
     <Reference Include="System.Numerics.Vectors, Version=4.1.4.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL">
       <HintPath>..\packages\System.Numerics.Vectors.4.5.0\lib\net46\System.Numerics.Vectors.dll</HintPath>
+    </Reference>
+    <Reference Include="System.Runtime, Version=4.1.1.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL">
+      <HintPath>..\packages\System.Runtime.4.3.0\lib\net462\System.Runtime.dll</HintPath>
+      <Private>True</Private>
+      <Private>True</Private>
     </Reference>
     <Reference Include="System.Runtime.CompilerServices.Unsafe, Version=7.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL">
       <HintPath>..\packages\System.Runtime.CompilerServices.Unsafe.7.0.0-preview.2.22152.2\lib\net462\System.Runtime.CompilerServices.Unsafe.dll</HintPath>
     </Reference>
     <Reference Include="System.Runtime.InteropServices.RuntimeInformation, Version=4.0.1.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL">
       <HintPath>..\packages\System.Runtime.InteropServices.RuntimeInformation.4.3.0\lib\net45\System.Runtime.InteropServices.RuntimeInformation.dll</HintPath>
+      <Private>True</Private>
+      <Private>True</Private>
+    </Reference>
+    <Reference Include="System.Security.Cryptography.Algorithms, Version=4.2.1.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL">
+      <HintPath>..\packages\System.Security.Cryptography.Algorithms.4.3.1\lib\net463\System.Security.Cryptography.Algorithms.dll</HintPath>
+      <Private>True</Private>
+      <Private>True</Private>
+    </Reference>
+    <Reference Include="System.Security.Cryptography.Encoding, Version=4.0.1.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL">
+      <HintPath>..\packages\System.Security.Cryptography.Encoding.4.3.0\lib\net46\System.Security.Cryptography.Encoding.dll</HintPath>
+      <Private>True</Private>
+      <Private>True</Private>
+    </Reference>
+    <Reference Include="System.Security.Cryptography.Primitives, Version=4.0.1.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL">
+      <HintPath>..\packages\System.Security.Cryptography.Primitives.4.3.0\lib\net46\System.Security.Cryptography.Primitives.dll</HintPath>
+      <Private>True</Private>
+      <Private>True</Private>
+    </Reference>
+    <Reference Include="System.Security.Cryptography.X509Certificates, Version=4.1.1.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL">
+      <HintPath>..\packages\System.Security.Cryptography.X509Certificates.4.3.0\lib\net461\System.Security.Cryptography.X509Certificates.dll</HintPath>
       <Private>True</Private>
       <Private>True</Private>
     </Reference>
@@ -123,7 +222,6 @@
     <Reference Include="System.Data.DataSetExtensions" />
     <Reference Include="Microsoft.CSharp" />
     <Reference Include="System.Data" />
-    <Reference Include="System.Net.Http" />
     <Reference Include="System.Xml" />
     <Reference Include="UnityEngine">
       <HintPath>..\..\..\..\..\..\Program Files (x86)\Steam\steamapps\common\SCP Secret Laboratory Dedicated Server\SCPSL_Data\Managed\UnityEngine.dll</HintPath>
@@ -150,58 +248,93 @@
     <Reference Include="Xabe.FFmpeg, Version=5.2.6.0, Culture=neutral, processorArchitecture=MSIL">
       <HintPath>..\packages\Xabe.FFmpeg.5.2.6\lib\netstandard2.0\Xabe.FFmpeg.dll</HintPath>
     </Reference>
-    <Reference Include="YoutubeExplode, Version=6.3.4.0, Culture=neutral, processorArchitecture=MSIL">
-      <HintPath>..\packages\YoutubeExplode.6.3.4\lib\net461\YoutubeExplode.dll</HintPath>
+    <Reference Include="YoutubeExplode, Version=6.3.5.0, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>..\packages\YoutubeExplode.6.3.5\lib\net461\YoutubeExplode.dll</HintPath>
     </Reference>
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Attributes\AttributeData.cs" />
+    <Compile Include="Attributes\AttributeRegistry.cs" />
+    <Compile Include="Charts\Chart.cs" />
+    <Compile Include="Charts\ChartBuilder.cs" />
+    <Compile Include="Charts\ChartData.cs" />
+    <Compile Include="Charts\ChartDataset.cs" />
     <Compile Include="Comparison\NicknameComparison.cs" />
     <Compile Include="Comparison\NullableObjectComparison.cs" />
     <Compile Include="Comparison\UserIdComparison.cs" />
+    <Compile Include="Conditions\Condition.cs" />
+    <Compile Include="Conditions\RangeCondition.cs" />
+    <Compile Include="Conditions\RoomCondition.cs" />
+    <Compile Include="Conditions\ZoneCondition.cs" />
     <Compile Include="Config.cs" />
     <Compile Include="Custom\Commands\ModerationCommands.cs" />
-    <Compile Include="Custom\Items\CustomItemManager.cs" />
-    <Compile Include="Custom\Items\CustomItem.cs" />
-    <Compile Include="Custom\Items\CustomItemBase.cs" />
-    <Compile Include="Custom\Items\CustomItemHandler.cs" />
-    <Compile Include="Custom\Items\CustomItemHandlerBase.cs" />
-    <Compile Include="Custom\Items\CustomItemOverrides.cs" />
-    <Compile Include="Custom\Items\CustomPickupHandler.cs" />
-    <Compile Include="Custom\Items\CustomPickupHandlerBase.cs" />
-    <Compile Include="Custom\Items\Firearms\CustomFirearm.cs" />
-    <Compile Include="Custom\Items\Firearms\CustomFirearmItemHandler.cs" />
-    <Compile Include="Custom\Items\Firearms\CustomFirearmPickupHandler.cs" />
-    <Compile Include="Custom\Items\Firearms\CustomFirearmProperties.cs" />
-    <Compile Include="Custom\Items\Firearms\FirearmHelper.cs" />
+    <Compile Include="Custom\Scp914\Scp914Controller.cs" />
+    <Compile Include="Custom\Scp914\Scp914Defaults.cs" />
+    <Compile Include="Items\CustomItemManager.cs" />
+    <Compile Include="Items\CustomItem.cs" />
+    <Compile Include="Items\CustomItemBase.cs" />
+    <Compile Include="Items\CustomItemHandler.cs" />
+    <Compile Include="Items\CustomItemHandlerBase.cs" />
+    <Compile Include="Items\CustomItemOverrides.cs" />
+    <Compile Include="Items\CustomPickupHandler.cs" />
+    <Compile Include="Items\CustomPickupHandlerBase.cs" />
+    <Compile Include="Items\Firearms\CustomFirearm.cs" />
+    <Compile Include="Items\Firearms\CustomFirearmItemHandler.cs" />
+    <Compile Include="Items\Firearms\CustomFirearmPickupHandler.cs" />
+    <Compile Include="Items\Firearms\CustomFirearmProperties.cs" />
+    <Compile Include="Items\Firearms\FirearmHelper.cs" />
     <Compile Include="Directories.cs" />
-    <Compile Include="EasyComponents\EasyComponent.cs" />
-    <Compile Include="EasyComponents\EasyComponentFlags.cs" />
-    <Compile Include="EasyComponents\EasyComponentManager.cs" />
-    <Compile Include="EasyComponents\RangedTickRateEasyComponent.cs" />
     <Compile Include="Events\EventStatistics.cs" />
     <Compile Include="Events\EventUtils.cs" />
+    <Compile Include="Generation\UniqueIdGeneration.cs" />
     <Compile Include="Guard\ServerGuard.cs" />
     <Compile Include="Guard\ServerGuardClient.cs" />
     <Compile Include="Guard\Steam\SteamClient.cs" />
     <Compile Include="Guard\Vpn\VpnClient.cs" />
     <Compile Include="Guard\Vpn\VpnResponse.cs" />
-    <Compile Include="Hints\HintQueue.cs" />
+    <Compile Include="Http\Api\Round\RoundApi.cs" />
+    <Compile Include="Http\Api\Server\ServerApi.cs" />
+    <Compile Include="Http\Api\Server\ServerStatusId.cs" />
+    <Compile Include="Http\Api\Server\ServerStatusObject.cs" />
+    <Compile Include="Http\Api\Staff\StaffApi.cs" />
+    <Compile Include="Http\Server\Authentification\HttpAuthentificationKey.cs" />
+    <Compile Include="Http\Server\Authentification\HttpAuthentificationResult.cs" />
+    <Compile Include="Http\Server\Authentification\HttpAuthentificator.cs" />
+    <Compile Include="Http\Server\HttpController.cs" />
+    <Compile Include="Extensions\HttpExtensions.cs" />
+    <Compile Include="Http\Server\Responses\ResponseData.cs" />
+    <Compile Include="Logging\Logger.cs" />
+    <Compile Include="Logging\LoggingFactory.cs" />
+    <Compile Include="Messages\BroadcastMessage.cs" />
+    <Compile Include="Messages\HintMessage.cs" />
+    <Compile Include="Messages\MessageBase.cs" />
+    <Compile Include="Scheduling\Execution\ExecutionData.cs" />
+    <Compile Include="Scheduling\Execution\ExecutionHandler.cs" />
+    <Compile Include="Scheduling\Execution\ExecutionResult.cs" />
+    <Compile Include="Scheduling\Execution\ExecutionThread.cs" />
+    <Compile Include="Scheduling\Execution\Handlers\NewExecutionHandler.cs" />
+    <Compile Include="Scheduling\Execution\Handlers\SideExecutionHandler.cs" />
+    <Compile Include="Scheduling\Execution\Handlers\UnityExecutionHandler.cs" />
+    <Compile Include="Scheduling\MessageScheduler.cs" />
+    <Compile Include="Scheduling\Message\MessageSchedulerData.cs" />
+    <Compile Include="Scheduling\UpdateScheduler.cs" />
+    <Compile Include="Scheduling\Update\UpdateAttribute.cs" />
+    <Compile Include="Scheduling\Update\UpdateSchedulerData.cs" />
+    <Compile Include="Scheduling\Update\UpdateSchedulerType.cs" />
     <Compile Include="Settings\EventSettings.cs" />
     <Compile Include="Settings\GuardSettings.cs" />
     <Compile Include="Staff\StaffActivity.cs" />
     <Compile Include="Staff\StaffActivityData.cs" />
-    <Compile Include="Threading\ThreadHandler.cs" />
-    <Compile Include="Threading\ThreadScheduler.cs" />
-    <Compile Include="Update\UpdateHandler.cs" />
+    <Compile Include="Scheduling\ExecutionScheduler.cs" />
+    <Compile Include="Timing\ThreadSafeSynchronizer.cs" />
+    <Compile Include="Timing\ThreadSafeTimer.cs" />
     <Compile Include="Extensions\ColorExtensions.cs" />
     <Compile Include="Door.cs" />
     <Compile Include="Events\EventAttribute.cs" />
     <Compile Include="Events\EventRegistry.cs" />
     <Compile Include="Events\EventRegistryData.cs" />
-    <Compile Include="Events\UpdateEventAttribute.cs" />
     <Compile Include="Extensions\ItemExtensions.cs" />
-    <Compile Include="Health\CustomHealthFlags.cs" />
-    <Compile Include="Hints\HintInfo.cs" />
+    <Compile Include="Custom\Stats\Health\CustomHealthFlags.cs" />
     <Compile Include="Http\HttpDispatch.cs" />
     <Compile Include="Http\HttpDispatchData.cs" />
     <Compile Include="Hub.cs" />
@@ -216,29 +349,27 @@
     <Compile Include="Features\FLog.cs" />
     <Compile Include="Features\IFeature.cs" />
     <Compile Include="Calls.cs" />
-    <Compile Include="Colors\ColorValues.cs" />
-    <Compile Include="Health\CustomHealthStat.cs" />
+    <Compile Include="Constants\Colors.cs" />
+    <Compile Include="Custom\Stats\Health\CustomHealthStat.cs" />
     <Compile Include="Input\IInputHandler.cs" />
     <Compile Include="Input\InputManager.cs" />
     <Compile Include="Input\InputBinding.cs" />
-    <Compile Include="Invisibility\InvisibilityControl.cs" />
     <Compile Include="Mirror.cs" />
-    <Compile Include="Parsers\PlayerDataRecordParser.cs" />
-    <Compile Include="Patches\NextRoundActionPatch.cs" />
+    <Compile Include="Custom\Parsers\PlayerDataRecordParser.cs" />
+    <Compile Include="Custom\Patches\Features\NextRoundActionPatch.cs" />
     <Compile Include="PlayerData\PlayerDataCache.cs" />
     <Compile Include="PlayerData\PlayerDataRecord.cs" />
     <Compile Include="PlayerData\PlayerDataRecorder.cs" />
     <Compile Include="Prefabs\PrefabHelper.cs" />
-    <Compile Include="Prefabs\PrefabName.cs" />
-    <Compile Include="RemoteAdmin\RemoteAdminIconType.cs" />
-    <Compile Include="Round\RoundHelper.cs" />
-    <Compile Include="Round\RoundState.cs" />
-    <Compile Include="Round\RoundStateChangedAttribute.cs" />
+    <Compile Include="Enums\PrefabName.cs" />
+    <Compile Include="Enums\RemoteAdminIconType.cs" />
+    <Compile Include="RoundHelper.cs" />
+    <Compile Include="Enums\RoundState.cs" />
+    <Compile Include="Attributes\RoundStateChangedAttribute.cs" />
     <Compile Include="Rules\RuleData.cs" />
     <Compile Include="Rules\RuleSystem.cs" />
     <Compile Include="Settings\AudioSettings.cs" />
     <Compile Include="Settings\HttpSettings.cs" />
-    <Compile Include="Settings\UptimeSettings.cs" />
     <Compile Include="Settings\VoiceSettings.cs" />
     <Compile Include="Settings\WarnSettings.cs" />
     <Compile Include="Snapshots\Capture\RoleDataCapture.cs" />
@@ -267,16 +398,9 @@
     <Compile Include="Staff\StaffWriter.cs" />
     <Compile Include="Tokens\TokenData.cs" />
     <Compile Include="Tokens\TokenParser.cs" />
-    <Compile Include="Units\UnitHelper.cs" />
-    <Compile Include="Update\UpdateHandlerData.cs" />
-    <Compile Include="Update\UpdateHandlerType.cs" />
-    <Compile Include="Update\UpdateIgnoreUnityWarningsAttribute.cs" />
-    <Compile Include="Update\UpdateSynchronizer.cs" />
-    <Compile Include="Uptime\BetterUptimeClient.cs" />
-    <Compile Include="UserId\UserIdValue.cs" />
-    <Compile Include="UserId\UserIdHelper.cs" />
-    <Compile Include="UserId\UserIdType.cs" />
-    <Compile Include="IdCache\IdGenerator.cs" />
+    <Compile Include="UnitHelper.cs" />
+    <Compile Include="UserIdValue.cs" />
+    <Compile Include="Enums\UserIdType.cs" />
     <Compile Include="Logging\LogParameter.cs" />
     <Compile Include="Logging\LoggingProxy.cs" />
     <Compile Include="Npc\NpcPlayer.cs" />
@@ -314,7 +438,10 @@
     <Compile Include="Warns\WarnSystem.cs" />
     <Compile Include="World.cs" />
   </ItemGroup>
-  <ItemGroup />
+  <ItemGroup>
+    <Folder Include="Commands\" />
+    <Folder Include="Components\" />
+  </ItemGroup>
   <ItemGroup>
     <None Include="app.config" />
     <None Include="packages.config" />

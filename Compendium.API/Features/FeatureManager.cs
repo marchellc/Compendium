@@ -1,9 +1,9 @@
 ﻿using BetterCommands;
 using BetterCommands.Management;
 
-using Compendium.Colors;
+using Compendium.Constants;
 using Compendium.Events;
-using Compendium.Round;
+using Compendium;
 
 using GameCore;
 
@@ -21,6 +21,9 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Reflection;
+using Compendium.Attributes;
+using Compendium.Scheduling.Update;
+using Compendium.Enums;
 
 namespace Compendium.Features
 {
@@ -77,7 +80,9 @@ namespace Compendium.Features
                             _features.Add(instance);
 
                             Singleton.Set(instance);
-                            RoundHelper.ScanAssemblyForOnChanged(assembly);
+
+                            AttributeRegistry<RoundStateChangedAttribute>.Register(assembly);
+                            AttributeRegistry<UpdateAttribute>.Register(assembly);
 
                             Plugin.Info($"Instantiated external feature: {type.FullName}");
                         }
@@ -353,7 +358,7 @@ namespace Compendium.Features
             });
         }
 
-        [UpdateEvent]
+        [Update(Type = UpdateSchedulerType.UnityThread)]
         private static void OnUpdate()
         {
             _features.ForEach(feature =>
@@ -457,7 +462,7 @@ namespace Compendium.Features
             _features.For((i, feature) =>
             {
                 var assembly = feature.GetType().Assembly;
-                sb.AppendLine($"<b>[{i + 1}] </b> <color={ColorValues.LightGreen}>{feature?.Name ?? "UNKNOWN NAME"}</color> v{assembly.GetName().Version} [{(feature.IsEnabled ? $"<color={ColorValues.Green}>ENABLED</color>" : $"<color={ColorValues.Red}>DISABLED</color>")}]{(feature.IsPatch ? " <i>(contains patches)</i>" : "")}");
+                sb.AppendLine($"<b>[{i + 1}] </b> {Colors.LightGreen(feature?.Name ?? "UNKNOWN NAME")} v{assembly.GetName().Version} [{(feature.IsEnabled ? Colors.Green("ENABLED") : Colors.Red("DISABLED"))}]{(feature.IsPatch ? " <i>(contains patches)</i>" : "")}");
             });
 
             return StringBuilderPool.Pool.PushReturn(sb);

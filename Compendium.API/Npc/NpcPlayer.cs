@@ -1,5 +1,4 @@
-﻿using Compendium.Invisibility;
-using Compendium.Npc.Targeting;
+﻿using Compendium.Npc.Targeting;
 
 using helpers;
 using helpers.Pooling;

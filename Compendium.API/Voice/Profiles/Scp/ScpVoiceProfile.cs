@@ -1,9 +1,8 @@
 ﻿using BetterCommands;
 
-using Compendium.Colors;
-using Compendium.Events;
 using Compendium.Extensions;
 using Compendium.Input;
+using Compendium.Constants;
 
 using helpers.Attributes;
 using helpers.Extensions;
@@ -46,7 +45,7 @@ namespace Compendium.Voice.Profiles.Scp
         public void OnSwitchUsed()
         {
             Flag = NextFlag;
-            Owner.Broadcast($"\n\n<b><color={ColorValues.LightGreen}>Voice přepnut na {TypeAndColor()} chat</color></b>", 3, true);
+            Owner.Broadcast(Colors.LightGreen($"Voice přepnut na {TypeAndColor()} chat</b>"), 3, true);
         }
 
         public override void Disable()
@@ -161,21 +160,21 @@ namespace Compendium.Voice.Profiles.Scp
             }
         }
 
-        private string TypeAndColor()
+        public string TypeAndColor()
         {
             switch (Flag)
             {
                 case ScpVoiceFlag.ScpChatOnly:
-                    return $"<color={ColorValues.Red}>SCP</color>";
+                    return Colors.Red("SCP");
 
                 case ScpVoiceFlag.ProximityChatOnly:
-                    return $"<color={ColorValues.Green}>Proximity</color>";
+                    return Colors.Green("Proximity");
 
                 case ScpVoiceFlag.ProximityAndScpChat:
-                    return $"<color={ColorValues.Red}>SCP</color> a <color={ColorValues.Green}>Proximity</color>";
+                    return $"{Colors.Red("SCP")} a {Colors.Green("Proximity")}";
 
                 default:
-                    return $"<color={ColorValues.Red}>UNKNOWN</color>";
+                    return "";
             }
         }
 

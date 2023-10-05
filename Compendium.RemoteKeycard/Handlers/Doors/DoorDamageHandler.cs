@@ -1,6 +1,7 @@
-﻿using Compendium.Events;
+﻿using Compendium.Enums;
+using Compendium.Attributes;
 using Compendium.RemoteKeycard.Enums;
-using Compendium.Round;
+using Compendium;
 
 using helpers;
 using helpers.Configuration;
@@ -12,6 +13,7 @@ using System;
 using System.Collections.Generic;
 
 using UnityEngine;
+using Compendium.Scheduling.Update;
 
 namespace Compendium.RemoteKeycard.Handlers.Doors
 {
@@ -107,9 +109,9 @@ namespace Compendium.RemoteKeycard.Handlers.Doors
                 }
                 else
                 {
-                    if (Zombies.InteractionHint != null && Zombies.InteractionHint.IsValid())
-                        player.Broadcast(Zombies.InteractionHint.Message.Replace("%hp%", Mathf.RoundToInt(zombieStatus.RemainingHealth).ToString())
-                                                                        .Replace("%damage%", Mathf.RoundToInt(zombieStatus.Damage).ToString()),
+                    if (Zombies.InteractionHint != null && Zombies.InteractionHint.IsValid)
+                        player.Broadcast(Zombies.InteractionHint.Value.Replace("%hp%", Mathf.RoundToInt(zombieStatus.RemainingHealth).ToString())
+                                                                      .Replace("%damage%", Mathf.RoundToInt(zombieStatus.Damage).ToString()),
                                     (int)Zombies.InteractionHint.Duration);
                 }
             }
@@ -145,7 +147,7 @@ namespace Compendium.RemoteKeycard.Handlers.Doors
             if (!IsEnabled)
                 return;
 
-            if (DoorHandler.FailureHint != null && DoorHandler.FailureHint.IsValid())
+            if (DoorHandler.FailureHint != null && DoorHandler.FailureHint.IsValid)
                 DoorHandler.FailureHint.Send(player);
         }
 
@@ -206,7 +208,7 @@ namespace Compendium.RemoteKeycard.Handlers.Doors
             });
         }
 
-        [UpdateEvent(IsMainThread = true, TickRate = 100, Type = Update.UpdateHandlerType.Engine)]
+        [Update(Delay = 100, Type = UpdateSchedulerType.UnityThread)]
         private static void UpdateZombieProgress()
         {
             _zombies.PoolableModifyAct((door, dict) =>

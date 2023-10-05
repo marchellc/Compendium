@@ -1,5 +1,6 @@
-﻿using Compendium.Round;
-
+﻿using Compendium;
+using Compendium.Attributes;
+using Compendium.Enums;
 using helpers;
 using helpers.Patching;
 

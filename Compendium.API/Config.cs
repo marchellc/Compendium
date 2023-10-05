@@ -21,9 +21,6 @@ namespace Compendium
         [Description("Settings for Compendium's warn system.")]
         public WarnSettings WarnSettings { get; set; } = new WarnSettings();
 
-        [Description("Settings for the Better Uptime client.")]
-        public UptimeSettings BetterUptimeSettings { get; set; } = new UptimeSettings();
-
         [Description("Settings for the server guard client.")]
         public GuardSettings GuardSettings { get; set; } = new GuardSettings();
     }

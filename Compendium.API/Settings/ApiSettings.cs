@@ -1,4 +1,4 @@
-﻿using Compendium.Colors;
+﻿using Compendium.Constants;
 
 using System.Collections.Generic;
 using System.ComponentModel;
@@ -13,9 +13,6 @@ namespace Compendium.Settings
         [Description("Whether or not to consider everyone with access to the Remote Admin as a staff member. This may be crucial for some features.")]
         public bool ConsiderRemoteAdminAccessAsStaff { get; set; } = false;
 
-        [Description("Whether or not to use a safe exception handler.")]
-        public bool UseExceptionHandler { get; set; } = true;
-
         [Description("An alternative server name to be used by some features.")]
         public string AlternativeServerName { get; set; } = "none";
 
@@ -27,11 +24,14 @@ namespace Compendium.Settings
             "config"
         };
 
+        [Description("A list of features to use per-server directories.")]
+        public List<string> InstanceDirectories { get; set; } = new List<string>();
+
         [Description("A list of paired announcementss")]
         public Dictionary<ServerStatic.NextRoundAction, string> ServerActionAnnouncements { get; set; } = new Dictionary<ServerStatic.NextRoundAction, string>()
         {
-            [ServerStatic.NextRoundAction.Restart] = $"<b><color={ColorValues.LightGreen}>The server is going to restart <color={ColorValues.Red}>at the end of the round</color>!</color></b>",
-            [ServerStatic.NextRoundAction.Shutdown] = $"<b><color={ColorValues.LightGreen}>The server is going to shut down <color={ColorValues.Red}>at the end of the round</color>!</color></b>"
+            [ServerStatic.NextRoundAction.Restart] = Colors.LightGreen($"<b>The server is going to restart {Colors.Red("at the end of the round")}!</b>"),
+            [ServerStatic.NextRoundAction.Shutdown] = Colors.LightGreen($"<b>The server is going to shut down {Colors.Red("at the end of the round")}!</b>")
         };
 
         [Description("Settings for the event system.")]

@@ -1,6 +1,7 @@
 ﻿using Compendium.Extensions;
 using Compendium.Events;
-using Compendium.Round;
+using Compendium.Attributes;
+using Compendium.Enums;
 
 using helpers;
 using helpers.Configuration;

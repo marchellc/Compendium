@@ -1,10 +1,12 @@
-﻿using Compendium.Colors;
+﻿using Compendium.Constants;
 using Compendium.Events;
 using Compendium.Extensions;
 using Compendium.Features;
 using Compendium.PlayerData;
-using Compendium.Round;
-using Compendium.UserId;
+using Compendium.Enums;
+using Compendium.Attributes;
+using Compendium;
+
 using helpers;
 using helpers.Extensions;
 using helpers.Pooling.Pools;
@@ -355,13 +357,13 @@ namespace Compendium.Webhooks
             {
                 Hub.Hubs.ForEach(h =>
                 {
-                    if (!h.serverRoles.RemoteAdmin)
+                    if (!h.IsStaff(false))
                         return;
 
                     h.Hint(
-                        $"<b><color={ColorValues.Red}>[REPORT]</color></b>" +
-                        $"Hráč <b><color={ColorValues.Green}>{ev.Player.Nickname}</color></b> nahlásil hráče <b><color={ColorValues.Green}>{ev.Target.Nickname}</color></b> za:\n" +
-                        $"<b><color={ColorValues.LightGreen}>{ev.Reason}</color></b>",
+                        $"<b><color={Colors.RedValue}>[REPORT]</color></b>" +
+                        $"Hráč <b><color={Colors.GreenValue}>{ev.Player.Nickname}</color></b> nahlásil hráče <b><color={Colors.GreenValue}>{ev.Target.Nickname}</color></b> za:\n" +
+                        $"<b><color={Colors.LightGreenValue}>{ev.Reason}</color></b>",
                         10f);
                 });
             }
@@ -436,13 +438,13 @@ namespace Compendium.Webhooks
             {
                 Hub.Hubs.ForEach(h =>
                 {
-                    if (!h.serverRoles.RemoteAdmin)
+                    if (!h.IsStaff())
                         return;
 
                     h.Hint(
-                        $"<b><color={ColorValues.Red}>[CHEATER REPORT]</color></b>" +
-                        $"Hráč <b><color={ColorValues.Green}>{ev.Player.Nickname}</color></b> nahlásil hráče <b><color={ColorValues.Green}>{ev.Target.Nickname}</color></b> za:\n" +
-                        $"<b><color={ColorValues.LightGreen}>{ev.Reason}</color></b>",
+                        $"<b><color={Colors.RedValue}>[CHEATER REPORT]</color></b>" +
+                        $"Hráč <b><color={Colors.GreenValue}>{ev.Player.Nickname}</color></b> nahlásil hráče <b><color={Colors.GreenValue}>{ev.Target.Nickname}</color></b> za:\n" +
+                        $"<b><color={Colors.LightGreenValue}>{ev.Reason}</color></b>",
                         10f);
                 });
             }

@@ -1,5 +1,5 @@
 ﻿using Compendium.Events;
-
+using Compendium.Scheduling.Update;
 using helpers;
 using helpers.Attributes;
 using helpers.Extensions;
@@ -140,7 +140,7 @@ namespace Compendium.Http
             httpDispatchData.OnRequeued();
         }
 
-        [UpdateEvent(TickRate = 100)]
+        [Update(Type = UpdateSchedulerType.SideThread)]
         private static async void Update()
         {
             if (_dispatchQueue.TryDequeue(out var data))

@@ -1,5 +1,5 @@
-﻿using Compendium.Colors;
-using Compendium.Hints;
+﻿using Compendium.Constants;
+using Compendium.Messages;
 using Compendium.RemoteKeycard.Enums;
 
 using System.Collections.Generic;
@@ -26,8 +26,8 @@ namespace Compendium.RemoteKeycard.Handlers.Doors
         public float RegenHealth { get; set; } = 5f;
         public float RegenSpeed { get; set; } = 1500f;
 
-        public HintInfo InteractionHint { get; set; } = HintInfo.Get(
-            $"<b><color={ColorValues.LightGreen}>Tyto dveře mají ještě <color={ColorValues.Red}>%hp%</color> HP!<b></color>\n" +
-            $"<i><color={ColorValues.Green}>Tip:</color> sežeň si pár dalších zombie pro větší damage! (aktuální damage: %damage% HP / hit)</color></i>", 5f);
+        public HintMessage InteractionHint { get; set; } = HintMessage.Create(
+            $"<b><color={Colors.LightGreenValue}>Tyto dveře mají ještě <color={Colors.RedValue}>%hp%</color> HP!<b></color>\n" +
+            $"<i><color={Colors.GreenValue}>Tip:</color> sežeň si pár dalších zombie pro větší damage! (aktuální damage: %damage% HP / hit)</color></i>", 5f);
     }
 }

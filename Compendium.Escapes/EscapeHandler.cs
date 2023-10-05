@@ -1,6 +1,4 @@
-﻿using Compendium.Extensions;
-using Compendium.Update;
-using Compendium.Features;
+﻿using Compendium.Scheduling.Update;
 
 using helpers;
 using helpers.Configuration;
@@ -56,11 +54,7 @@ namespace Compendium.Escapes
             ItemType.KeycardFacilityManager
         };
 
-        static EscapeHandler()
-        {
-            UpdateSynchronizer.OnUpdate += OnUpdate;
-        }
-
+        [Update(Type = UpdateSchedulerType.UnityThread,  Delay = 5000)]
         private static void OnUpdate()
         {
             Hub.Hubs.For((_, hub) =>

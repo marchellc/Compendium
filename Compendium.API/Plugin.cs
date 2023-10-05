@@ -1,7 +1,6 @@
 ﻿using Compendium.Events;
 using Compendium.Logging;
-using Compendium.Parsers;
-using Compendium.Round;
+using Compendium.Custom.Parsers;
 using Compendium.Features;
 
 using helpers;
@@ -21,6 +20,8 @@ using System.Reflection;
 using Utils.NonAllocLINQ;
 
 using Log = PluginAPI.Core.Log;
+using Compendium.Attributes;
+using Compendium.Scheduling.Update;
 
 namespace Compendium
 {
@@ -37,7 +38,7 @@ namespace Compendium
 
         [PluginEntryPoint(
             "Compendium API",
-            "3.4.1",
+            "3.6.0",
             "A huge API for each Compendium component.",
             "marchellc_")]
         [PluginPriority(PluginAPI.Enums.LoadPriority.Lowest)]
@@ -66,7 +67,9 @@ namespace Compendium
                     PatchManager.PatchAssemblies(exec);
                     EventRegistry.RegisterEvents(exec);
                     AttributeLoader.ExecuteLoadAttributes(exec);
-                    RoundHelper.ScanAssemblyForOnChanged(exec);
+
+                    AttributeRegistry<UpdateAttribute>.Register();
+                    AttributeRegistry<RoundStateChangedAttribute>.Register();
 
                     helpers.Log.AddLogger(new helpers.Logging.Loggers.FileLogger(helpers.Logging.Loggers.FileLoggerMode.AppendToFile, 0, $"Server {ServerStatic.ServerPort}.txt"));
 

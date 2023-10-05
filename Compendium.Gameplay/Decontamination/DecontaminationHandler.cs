@@ -23,7 +23,7 @@ namespace Compendium.Gameplay.Decontamination
                 return true;
 
             if (LiftLockdownDelay > 0)
-                Calls.Delay(LiftLockdownDelay * 1000, () => DoLiftLockdown(__instance));
+                Calls.Delay(LiftLockdownDelay, () => DoLiftLockdown(__instance));
             else
                 DoLiftLockdown(__instance);
 
@@ -40,7 +40,7 @@ namespace Compendium.Gameplay.Decontamination
                 {
                     if (liftDoor.Rooms.Length != 0 && liftDoor.Rooms[0].Zone is MapGeneration.FacilityZone.LightContainment)
                     {
-                        liftDoor.NetworkActiveLocks |= 16;
+                        liftDoor.Lock(DoorLockReason.DecontLockdown);
 
                         if (!door.TargetState && LiftSendDown && !ElevatorManager.TrySetDestination(liftDoor.Group, 1))
                             flag = true;

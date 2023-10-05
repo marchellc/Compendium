@@ -2,10 +2,10 @@
 
 using Compendium.Events;
 using Compendium.Extensions;
-using Compendium.Invisibility;
 using Compendium.Npc.Targeting;
 using Compendium.Prefabs;
-using Compendium.Round;
+using Compendium.Enums;
+using Compendium.Attributes;
 
 using helpers;
 using helpers.Patching;
