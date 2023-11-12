@@ -18,6 +18,7 @@ using Mirror;
 
 using PlayerRoles.PlayableScps.Scp079;
 using PlayerRoles.PlayableScps.Scp079.Cameras;
+using PlayerRoles.Ragdolls;
 
 using System.Collections.Generic;
 using System.Linq;

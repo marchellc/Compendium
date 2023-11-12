@@ -19,6 +19,8 @@ using PlayerRoles.FirstPersonControl;
 
 using PluginAPI.Events;
 
+using CentralAuth;
+
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -297,7 +299,7 @@ namespace Compendium.Npc
             }
         }
 
-        [Patch(typeof(CharacterClassManager), nameof(CharacterClassManager.InstanceMode), PatchType.Transpiler, PatchMethodType.PropertySetter)]
+        [Patch(typeof(PlayerAuthenticationManager), nameof(PlayerAuthenticationManager.InstanceMode), PatchType.Transpiler, PatchMethodType.PropertySetter)]
         private static IEnumerable<CodeInstruction> InstanceModeSetterPatch(IEnumerable<CodeInstruction> instructions, ILGenerator generator)
         {
             var newInstructions = ListPool<CodeInstruction>.Shared.Rent(instructions);

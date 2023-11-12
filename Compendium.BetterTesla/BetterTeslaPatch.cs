@@ -49,7 +49,7 @@ namespace Compendium.BetterTesla
 
                         foreach (var hub in ReferenceHub.AllHubs)
                         {
-                            if (hub.Mode != ClientInstanceMode.ReadyClient)
+                            if (hub.Mode != CentralAuth.ClientInstanceMode.ReadyClient)
                                 continue;
 
                             if (!hub.IsAlive())

@@ -35,13 +35,13 @@ namespace Compendium.Voice.States
                         return;
                     }
 
-                    if (GlobalVoiceFlag is GlobalVoiceFlag.StaffOnly && packet.Speaker.serverRoles.Staff)
+                    if (GlobalVoiceFlag is GlobalVoiceFlag.StaffOnly && packet.Speaker.IsStaff())
                     {
                         packet.Destinations[receiver] = VoiceChatChannel.RoundSummary;
                         return;
                     }
 
-                    if (GlobalVoiceFlag.HasFlagFast(GlobalVoiceFlag.PlayerVoice) && !packet.Speaker.serverRoles.Staff && !receiver.serverRoles.Staff)
+                    if (GlobalVoiceFlag.HasFlagFast(GlobalVoiceFlag.PlayerVoice) && !packet.Speaker.IsStaff() && !receiver.IsStaff())
                     {
                         packet.Destinations[receiver] = VoiceChatChannel.RoundSummary;
                         return;

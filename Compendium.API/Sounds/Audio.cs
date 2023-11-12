@@ -6,7 +6,6 @@ using Compendium.Enums;
 
 using helpers.Attributes;
 using helpers;
-using helpers.IO.Storage;
 using helpers.Pooling;
 
 using System;
@@ -21,6 +20,7 @@ using Utils.NonAllocLINQ;
 using VoiceChat;
 
 using Xabe.FFmpeg;
+using Compendium.IO.Saving;
 
 namespace Compendium.Sounds
 {
@@ -29,21 +29,19 @@ namespace Compendium.Sounds
         internal static readonly HashSet<AudioPlayer> _activePlayers = new HashSet<AudioPlayer>();
         internal static readonly Dictionary<ReferenceHub, AudioPlayer> _ownedPlayers = new Dictionary<ReferenceHub, AudioPlayer>();
 
-        internal static SingleFileStorage<Dictionary<string, HashSet<string>>> _mutes;
+        internal static SaveFile<SimpleSaveData<Dictionary<string, HashSet<string>>>> _mutes;
 
         public static Dictionary<string, HashSet<string>> Mutes
         {
             get
             {
-                if (!_mutes.Data.Any())
+                if (_mutes.Data.Value is null)
                 {
-                    _mutes.Append(new Dictionary<string, HashSet<string>>());
+                    _mutes.Data.Value = new Dictionary<string, HashSet<string>>();
                     _mutes.Save();
-
-                    return _mutes.Data.First();
                 }
-                else
-                    return _mutes.Data.First();
+
+                return _mutes.Data.Value;
             }
         }
 
@@ -53,15 +51,11 @@ namespace Compendium.Sounds
         {
             if (_mutes != null)
             {
-                _mutes.Reload();
+                _mutes.Load();
                 return;
             }
 
-            _mutes = new SingleFileStorage<Dictionary<string, HashSet<string>>>($"{Directories.ThisData}/SavedAudioMutes");
-            _mutes.Load();
-
-            if (!_mutes.Data.Any())
-                _mutes.Add(new Dictionary<string, HashSet<string>>());
+            _mutes = new SaveFile<SimpleSaveData<Dictionary<string, HashSet<string>>>>(Directories.GetDataPath("SavedAudioMutes", "audioMutes"));
 
             FFmpeg.SetExecutablesPath(AudioStore.DirectoryPath);
         }

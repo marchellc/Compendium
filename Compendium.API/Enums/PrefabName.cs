@@ -13,6 +13,9 @@
         BinaryTarget,
 
         Tantrum,
+        BrownCandyTantrum,
+
+        PrismaticCloud,
 
         PrimitiveObject,
         LightSource,
@@ -25,6 +28,7 @@
         Radio,
         Coin,
         Flashlight,
+        Lantern,
 
         Ammo12ga,
         Ammo44cal,
@@ -102,6 +106,7 @@
         Scp173Ragdoll,
         Scp096Ragdoll,
         Scp939Ragdoll,
+        Scp3114Ragdoll,
         TutorialRagdoll
     }
 }

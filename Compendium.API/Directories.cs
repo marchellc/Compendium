@@ -1,4 +1,5 @@
-﻿using PluginAPI.Helpers;
+﻿using Compendium.Spawning;
+using PluginAPI.Helpers;
 
 using System.IO;
 
@@ -62,6 +63,8 @@ namespace Compendium
 
             if (!Directory.Exists(ThisFeatures))
                 Directory.CreateDirectory(ThisFeatures);
+
+            SpawnConfig.Load();
         }
     }
 }

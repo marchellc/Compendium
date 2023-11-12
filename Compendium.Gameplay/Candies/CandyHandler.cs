@@ -11,16 +11,23 @@ namespace Compendium.Gameplay.Candies
 {
     public static class CandyHandler
     {
+        /*
         [Config(Name = "Candy Chances", Description = "A list of candies and their chances to be picked.")]
         public static Dictionary<CandyKindID, int> Chances { get; set; } = new Dictionary<CandyKindID, int>()
         {
-            [CandyKindID.Blue] = 16,
-            [CandyKindID.Red] = 16,
-            [CandyKindID.Yellow] = 16,
-            [CandyKindID.Green] = 16,
-            [CandyKindID.Pink] = 4,
-            [CandyKindID.Rainbow] = 16,
-            [CandyKindID.Purple] = 16
+            [CandyKindID.Blue] = ,
+            [CandyKindID.Red] = ,
+            [CandyKindID.Yellow] = ,
+            [CandyKindID.Green] = ,
+            [CandyKindID.Pink] = ,
+            [CandyKindID.Rainbow] = ,
+            [CandyKindID.Purple] = ,
+            [CandyKindID.Gray] = ,
+            [CandyKindID.White] = ,
+            [CandyKindID.Black] = ,
+            [CandyKindID.Brown] = ,
+            [CandyKindID.Evil] = ,
+            [CandyKindID.Orange] = 
         };
 
         [Patch(typeof(Scp330Candies), nameof(Scp330Candies.GetRandom), PatchType.Prefix, "Candy Patch")]
@@ -29,5 +36,6 @@ namespace Compendium.Gameplay.Candies
             __result = WeightedRandomGeneration.Default.PickObject(pair => pair.Value, Chances.ToArray()).Key;
             return false;
         }
+        */
     }
 }

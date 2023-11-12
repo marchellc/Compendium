@@ -22,6 +22,7 @@ using helpers;
 
 using Compendium.Npc;
 using helpers.Random;
+using CentralAuth;
 
 namespace Compendium.Sounds
 {
@@ -125,8 +126,8 @@ namespace Compendium.Sounds
 
             if (clear)
             {
-                _dataQueue.Clear();
-                _queryQueue.Clear();
+                Collections.Clear(_dataQueue);
+                Collections.Clear(_queryQueue);
             }
 
             ShouldStopTrack = true;
@@ -258,10 +259,10 @@ namespace Compendium.Sounds
             _buffer.Clear();
             _buffer = null;
 
-            _queryQueue.Clear();
-            _queryQueue = null;
+            Collections.Clear(_queryQueue);
+            Collections.Clear(_dataQueue);
 
-            _dataQueue.Clear();
+            _queryQueue = null;
             _dataQueue = null;
 
             _whitelist.Clear();

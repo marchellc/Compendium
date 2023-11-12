@@ -31,7 +31,7 @@ namespace Compendium
 
                 new Thread(() =>
                 {
-                    foreach (var method in typeof(NetworkWriterExtensions).GetMethods().Where(x => !x.IsGenericMethod && (x.GetParameters()?.Length == 2)))
+                    foreach (var method in typeof(NetworkWriterExtensions).GetMethods().Where(x => !x.IsGenericMethod && x.GetCustomAttribute(typeof(ObsoleteAttribute)) == null && (x.GetParameters()?.Length == 2)))
                     {
                         var paramType = method.GetParameters().First(x => x.ParameterType != typeof(NetworkWriter)).ParameterType;
                         _writers[paramType] = method;
@@ -157,7 +157,7 @@ namespace Compendium
             };
 
             if (target.connectionToClient != null)
-                target.connectionToClient.BufferRpc(msg, 0);
+                target.connectionToClient.Send(msg);
             else
                 Plugin.Warn($"Failed to send fake RPC to {target.GetLogName(true)}: target's client connection is null!");
 

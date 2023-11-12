@@ -23,5 +23,8 @@ namespace Compendium
 
         [Description("Settings for the server guard client.")]
         public GuardSettings GuardSettings { get; set; } = new GuardSettings();
+
+        [Description("Settings for the level manager.")]
+        public LevelSettings LevelSettings { get; set; } = new LevelSettings();
     }
 }

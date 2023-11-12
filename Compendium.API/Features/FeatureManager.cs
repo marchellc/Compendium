@@ -21,9 +21,10 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Reflection;
+
 using Compendium.Attributes;
-using Compendium.Scheduling.Update;
 using Compendium.Enums;
+using Compendium.Updating;
 
 namespace Compendium.Features
 {
@@ -40,26 +41,6 @@ namespace Compendium.Features
         {
             Unload();
 
-            foreach (var type in Assembly
-                .GetExecutingAssembly()
-                .GetTypes())
-            {
-                if (type == typeof(FeatureBase) || type == typeof(ConfigFeatureBase))
-                    continue;
-
-                if (Reflection.HasInterface<IFeature>(type)
-                     && !_knownFeatures.Any(t => t.FullName == type.FullName)
-                      && !_features.Any(t => t.GetType().FullName == type.FullName))
-                {
-                    _knownFeatures.Add(type);
-
-                    var instance = Reflection.Instantiate<IFeature>(type);
-
-                    _features.Add(instance);
-                    Singleton.Set(instance);
-                }
-            }
-
             foreach (var file in Directory.GetFiles(Directories.ThisFeatures, "*.dll"))
             {
                 try
@@ -69,35 +50,33 @@ namespace Compendium.Features
 
                     foreach (var type in assembly.GetTypes())
                     {
-                        if (Reflection.HasInterface<IFeature>(type)
-                             && !_knownFeatures.Any(t => t.FullName == type.FullName)
-                              && !_features.Any(t => t.GetType().FullName == type.FullName))
+                        if (!Reflection.HasInterface<IFeature>(type))
+                            continue;
+
+                        if (_knownFeatures.Contains(type))
                         {
-                            _knownFeatures.Add(type);
-
-                            var instance = Reflection.Instantiate<IFeature>(type);
-
-                            _features.Add(instance);
-
-                            Singleton.Set(instance);
-
-                            AttributeRegistry<RoundStateChangedAttribute>.Register(assembly);
-                            AttributeRegistry<UpdateAttribute>.Register(assembly);
-
-                            Plugin.Info($"Instantiated external feature: {type.FullName}");
+                            Plugin.Warn($"Feature '{type.FullName}' is already loaded.");
+                            continue;
                         }
+
+                        if (_features.Any(f => f.GetType() == type))
+                        {
+                            Plugin.Warn($"Feature '{type.FullName}' is already enabled.");
+                            continue;
+                        }
+
+                        _knownFeatures.Add(type);
+                        _features.Add(Reflection.Instantiate<IFeature>(type));
                     }
                 }
                 catch (Exception ex)
                 {
                     Plugin.Error($"Failed to load file: {file}");
                     Plugin.Error(ex);
-
-                    continue;
                 }
             }
 
-            Plugin.Info($"Loaded {_features.Count} features!");
+            Plugin.Info($"Found {_features.Count} features!");
 
             Load();
         }
@@ -163,6 +142,8 @@ namespace Compendium.Features
             {
                 if (!Plugin.Config.FeatureSettings.Disabled.Contains(feature.Name))
                 {
+                    Singleton.Set(feature);
+
                     var assembly = feature.GetType().Assembly;
 
                     feature.Load();
@@ -174,6 +155,12 @@ namespace Compendium.Features
 
                     EventRegistry.RegisterEvents(assembly);
                     CommandManager.Register(assembly);
+
+                    UpdateHandler.Register(assembly);
+
+                    AttributeRegistry<RoundStateChangedAttribute>.Register(assembly);
+
+                    Plugin.Info($"Loaded feature '{feature.Name}'");
                 }
             }
             catch (Exception ex)
@@ -212,6 +199,10 @@ namespace Compendium.Features
             {
                 var assembly = feature.GetType().Assembly;
 
+                AttributeRegistry<RoundStateChangedAttribute>.Unregister(assembly);
+
+                UpdateHandler.Unregister(assembly);
+
                 AttributeLoader.ExecuteUnloadAttributes(assembly);
 
                 if (feature.IsPatch)
@@ -234,7 +225,16 @@ namespace Compendium.Features
                 rList.ForEach(cmd => CommandManager.TryUnregister(cmd.Name, CommandType.GameConsole));
                 rList.ForEach(cmd => CommandManager.TryUnregister(cmd.Name, CommandType.PlayerConsole));
 
+                rList.ReturnList();
+
                 feature.Unload();
+
+                _features.Remove(feature);
+                _knownFeatures.Remove(feature.GetType());
+
+                Singleton.Dispose(feature.GetType());
+
+                Plugin.Info($"Unloaded feature '{feature.Name}'");
             }
             catch (Exception ex)
             {
@@ -242,7 +242,8 @@ namespace Compendium.Features
             }
         }
 
-        public static void Register<TFeature>() where TFeature : IFeature => Register(typeof(TFeature));
+        public static void Register<TFeature>() where TFeature : IFeature 
+            => Register(typeof(TFeature));
 
         public static void Register(Type type)
         {
@@ -253,7 +254,8 @@ namespace Compendium.Features
             }
         }
 
-        public static void Unregister<TFeature>() where TFeature : IFeature => Unregister(typeof(TFeature));
+        public static void Unregister<TFeature>() where TFeature : IFeature 
+            => Unregister(typeof(TFeature));
 
         public static void Unregister(IFeature feature)
         {
@@ -280,9 +282,14 @@ namespace Compendium.Features
             }
         }
 
-        public static IFeature GetFeature(string name) => TryGetFeature(name, out var feature) ? feature : null;
-        public static TFeature GetFeature<TFeature>() where TFeature : IFeature => TryGetFeature<TFeature>(out var feature) ? feature : default;
-        public static IFeature GetFeature(Type type) => TryGetFeature(type, out var feature) ? feature : null;
+        public static IFeature GetFeature(string name) 
+            => TryGetFeature(name, out var feature) ? feature : null;
+
+        public static TFeature GetFeature<TFeature>() where TFeature : IFeature 
+            => TryGetFeature<TFeature>(out var feature) ? feature : default;
+
+        public static IFeature GetFeature(Type type) 
+            => TryGetFeature(type, out var feature) ? feature : null;
 
         public static bool TryGetFeature(string name, out IFeature feature)
         {
@@ -358,7 +365,7 @@ namespace Compendium.Features
             });
         }
 
-        [Update(Type = UpdateSchedulerType.UnityThread)]
+        [Update]
         private static void OnUpdate()
         {
             _features.ForEach(feature =>

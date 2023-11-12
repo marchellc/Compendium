@@ -20,8 +20,9 @@ using System.Reflection;
 using Utils.NonAllocLINQ;
 
 using Log = PluginAPI.Core.Log;
+
 using Compendium.Attributes;
-using Compendium.Scheduling.Update;
+using Compendium.Updating;
 
 namespace Compendium
 {
@@ -38,7 +39,7 @@ namespace Compendium
 
         [PluginEntryPoint(
             "Compendium API",
-            "3.6.0",
+            "3.8.0",
             "A huge API for each Compendium component.",
             "marchellc_")]
         [PluginPriority(PluginAPI.Enums.LoadPriority.Lowest)]
@@ -54,6 +55,7 @@ namespace Compendium
                 helpers.Log.AddLogger<LoggingProxy>();
 
             PlayerDataRecordParser.Load();
+            StaffGroupParser.Load();
             Directories.Load();
 
             Info("Loading ..");
@@ -68,8 +70,9 @@ namespace Compendium
                     EventRegistry.RegisterEvents(exec);
                     AttributeLoader.ExecuteLoadAttributes(exec);
 
-                    AttributeRegistry<UpdateAttribute>.Register();
                     AttributeRegistry<RoundStateChangedAttribute>.Register();
+
+                    UpdateHandler.Register();
 
                     helpers.Log.AddLogger(new helpers.Logging.Loggers.FileLogger(helpers.Logging.Loggers.FileLoggerMode.AppendToFile, 0, $"Server {ServerStatic.ServerPort}.txt"));
 
@@ -93,6 +96,8 @@ namespace Compendium
             EventRegistry.UnregisterEvents(exec);
             AttributeLoader.ExecuteUnloadAttributes(exec);
 
+            UpdateHandler.Unregister();
+
             AssemblyLoader.Plugins.ForEachKey(pl =>
             {
                 if (pl == exec)
@@ -101,6 +106,7 @@ namespace Compendium
                 PatchManager.UnpatchAssemblies(pl);
                 EventRegistry.UnregisterEvents(pl);
                 AttributeLoader.ExecuteUnloadAttributes(pl);
+                UpdateHandler.Unregister(pl);
             });
 
             SaveConfig();

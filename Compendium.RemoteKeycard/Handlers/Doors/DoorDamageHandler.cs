@@ -13,7 +13,8 @@ using System;
 using System.Collections.Generic;
 
 using UnityEngine;
-using Compendium.Scheduling.Update;
+
+using Compendium.Updating;
 
 namespace Compendium.RemoteKeycard.Handlers.Doors
 {
@@ -208,7 +209,7 @@ namespace Compendium.RemoteKeycard.Handlers.Doors
             });
         }
 
-        [Update(Delay = 100, Type = UpdateSchedulerType.UnityThread)]
+        [Update(Delay = 200)]
         private static void UpdateZombieProgress()
         {
             _zombies.PoolableModifyAct((door, dict) =>

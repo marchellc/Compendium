@@ -116,11 +116,76 @@ namespace Compendium.Staff
         {
             Hub.Hubs.ForEach(hub =>
             {
-                if (hub.serverRoles.RaEverywhere || hub.serverRoles.Staff)
+                if (hub.IsNorthwoodModerator() || hub.IsNorthwoodStaff())
                     return;
 
                 SetRole(hub);
             });
+        }
+
+        public static void SetGroups(string userId, string[] groups)
+        {
+            _members[userId] = groups;
+            Save();
+        }
+
+        public static void SetGroup(string userId, string group)
+        {
+            _members[userId] = new string[] { group };
+            Save();
+        }
+
+        public static void RemoveGroup(string userId, string group)
+        {
+            if (!_members.TryGetValue(userId, out var groups))
+                return;
+
+            _members[userId] = groups.Where(g => g != group).ToArray();
+
+            if (_members[userId].Length <= 0)
+                _members.Remove(userId);
+
+            Save();
+        }
+
+        public static void RemoveGroups(string userId, string[] groups)
+        {
+            if (!_members.TryGetValue(userId, out var curGroups))
+                return;
+
+            _members[userId] = curGroups.Where(g => !groups.Contains(g)).ToArray();
+
+            if (_members[userId].Length <= 0)
+                _members.Remove(userId);
+
+            Save();
+        }
+
+        public static void AddGroup(string userId, string group)
+        {
+            if (!_groups.TryGetValue(group, out var groupValue))
+                return;
+
+            if (_members.TryGetValue(userId, out var groups))
+            {
+                if (group.Contains(groupValue.Key))
+                    return;
+
+                _members[userId] = groups.Concat(new string[] { groupValue.Key }).ToArray();
+
+                Save();
+            }
+            else
+            {
+                _members[userId] = new string[] { groupValue.Key };
+                Save();
+            }
+        }
+
+        public static void RemoveMember(string userId)
+        {
+            if (_members.Remove(userId))
+                Save();
         }
 
         [RoundStateChanged(RoundState.WaitingForPlayers)]
@@ -219,7 +284,7 @@ namespace Compendium.Staff
                 _groupsById[groupId] = ogGroup;
 
                 ServerStatic.PermissionsHandler._groups[groupId] = ogGroup;
-                ServerStatic.PermissionsHandler._members[target.characterClassManager.UserId] = groupId;
+                ServerStatic.PermissionsHandler._members[target.UserId()] = groupId;
 
                 target.serverRoles.RefreshPermissions();
                 target.queryProcessor.GameplayData = PermissionsHandler.IsPermitted(ogGroup.Permissions, PlayerPermissions.GameplayData);

@@ -29,11 +29,11 @@ namespace Compendium.Voice.States.StaffVoice
 
                 if (Flag is StaffVoiceFlag.StaffOnly)
                 {
-                    if (!packet.Speaker.serverRoles.Staff)
+                    if (!packet.Speaker.IsStaff())
                     {
                         if (Flag.HasFlagFast(StaffVoiceFlag.PlayersHearPlayers))
                         {
-                            if (receiver.serverRoles.Staff)
+                            if (receiver.IsStaff())
                             {
                                 packet.Destinations[receiver] = VoiceChatChannel.None;
                             }
@@ -41,13 +41,13 @@ namespace Compendium.Voice.States.StaffVoice
                     } 
                     else
                     {
-                        if (Flag.HasFlagFast(StaffVoiceFlag.PlayersHearStaff) && !receiver.serverRoles.Staff)
+                        if (Flag.HasFlagFast(StaffVoiceFlag.PlayersHearStaff) && !receiver.IsStaff())
                         {
                             packet.Destinations[receiver] = VoiceChatChannel.RoundSummary;
                         }
                         else
                         {
-                            if (receiver.serverRoles.Staff)
+                            if (receiver.IsStaff())
                             {
                                 packet.Destinations[receiver] = VoiceChatChannel.RoundSummary;
                             }

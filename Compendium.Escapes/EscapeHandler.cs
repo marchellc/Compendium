@@ -1,4 +1,4 @@
-﻿using Compendium.Scheduling.Update;
+﻿using Compendium.Updating;
 
 using helpers;
 using helpers.Configuration;
@@ -11,7 +11,7 @@ using InventorySystem.Items;
 using Mirror;
 
 using PlayerRoles;
-
+using PluginAPI.Core;
 using PluginAPI.Events;
 
 using System.Collections.Generic;
@@ -54,9 +54,12 @@ namespace Compendium.Escapes
             ItemType.KeycardFacilityManager
         };
 
-        [Update(Type = UpdateSchedulerType.UnityThread,  Delay = 5000)]
+        [Update(Delay = 500)]
         private static void OnUpdate()
         {
+            if (Round.Duration.TotalSeconds < 15)
+                return;
+
             Hub.Hubs.For((_, hub) =>
             {
                 if (!hub.IsPlayer() || !hub.IsAlive())

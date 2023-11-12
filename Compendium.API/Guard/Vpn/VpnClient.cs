@@ -21,8 +21,6 @@ namespace Compendium.Guard.Vpn
             {
                 try
                 {
-                    Plugin.Debug(data.Response);
-
                     var response = JsonSerializer.Deserialize<VpnResponse>(data.Response);
                     var id = hub.UserId();
                     var ip = response.Ip;
@@ -34,9 +32,10 @@ namespace Compendium.Guard.Vpn
                     }
 
                     if (response.BlockLevel == 1 || (response.BlockLevel == 2 && Plugin.Config.GuardSettings.VpnStrictMode))
+                    {
                         hub.Kick(Plugin.Config.GuardSettings.VpnKickMessage);
-
-                    ServerGuard.Flag(id, ip);
+                        ServerGuard.Flag(id, ip);
+                    }
                 }
                 catch (Exception ex)
                 {

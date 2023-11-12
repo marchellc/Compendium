@@ -1,5 +1,4 @@
-﻿using Compendium.HttpServer;
-using Compendium.Logging;
+﻿using Compendium.Logging;
 
 using Grapevine;
 
@@ -18,7 +17,7 @@ using System.Threading.Tasks;
 
 using LogLevel = Microsoft.Extensions.Logging.LogLevel;
 
-namespace Compendium.HttpServr
+namespace Compendium.HttpServer
 {
     public static class HttpController
     {

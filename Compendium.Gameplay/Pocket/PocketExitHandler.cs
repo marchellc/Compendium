@@ -2,13 +2,13 @@
 using Compendium.Messages;
 using Compendium.Staff;
 using Compendium.Events;
-using Compendium;
 using Compendium.Attributes;
 using Compendium.Enums;
 
 using helpers.Configuration;
 using helpers.Patching;
 using helpers.Random;
+using helpers.Extensions;
 using helpers;
 
 using PlayerRoles.FirstPersonControl;
@@ -25,6 +25,7 @@ using UnityEngine;
 using CustomPlayerEffects;
 
 using PlayerStatsSystem;
+
 using MapGeneration;
 
 namespace Compendium.Gameplay.Pocket
@@ -39,6 +40,9 @@ namespace Compendium.Gameplay.Pocket
 
         [Config(Name = "Escaped Hint", Description = "The hint to display if a player succesfully escapes.")]
         public static HintMessage EscapeSuccessHint { get; set; } = HintMessage.Create($"<b><color={Colors.LightGreenValue}><color={Colors.GreenValue}>Povedlo</color> se ti utéct! Dobrá práce.</color></b>", 5);
+
+        [Config(Name = "Escaped Player Hint", Description = "The hint to display to all SCP-106 players when a player escapes.")]
+        public static HintMessage EscapedScpHint { get; set; } = HintMessage.Create($"<b><color={Colors.GreenValue}>Hráči <color={Colors.RedValue}>%player%</color> (<color={Colors.LightGreenValue}>%role%</color>)se povedlo utéct z dimenze! Nyní se nacházejí v %zone%.</color></b>", 10);
 
         [Config(Name = "Exit Count", Description = "The amount of exits that are always correct.")]
         public static int AlwaysExitCount { get; set; } = 1;
@@ -167,6 +171,13 @@ namespace Compendium.Gameplay.Pocket
             if (EscapeSuccessHint != null && EscapeSuccessHint.IsValid)
                 EscapeSuccessHint.Send(hub);
 
+            if (EscapedScpHint != null && EscapedScpHint.IsValid)
+                Hub.ForEach(h => h.Hint(EscapedScpHint.Value
+                    .Replace("%player%", h.Nick())
+                    .Replace("%role%", h.RoleId().ToString().SpaceByPascalCase()
+                    .Replace("%zone%", h.Zone().ToString().SpaceByPascalCase()
+                    .Replace("%room%", h.RoomId().ToString().SpaceByPascalCase()))), (float)EscapedScpHint.Duration), PlayerRoles.RoleTypeId.Scp106);
+
             if (RegenerateAfterEscapes > 0 && _totalEscapes >= RegenerateAfterEscapes)
             {
                 ImageGenerator.pocketDimensionGenerator?.GenerateRandom();
@@ -184,14 +195,10 @@ namespace Compendium.Gameplay.Pocket
 
         [Event]
         private static void OnPlayerLeft(PlayerLeftEvent ev)
-        {
-            _escapedTimes.Remove(ev.Player.ReferenceHub);
-        }
+            => _escapedTimes.Remove(ev.Player.ReferenceHub);
 
         [RoundStateChanged(RoundState.Restarting)]
         private static void OnRoundRestart()
-        {
-            _escapedTimes.Clear();
-        }
+            => _escapedTimes.Clear();
     }
 }

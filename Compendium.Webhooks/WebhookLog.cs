@@ -15,6 +15,13 @@
 
         Warn,
 
-        Event
+        Event,
+
+        RaCommands,
+        GameCommands,
+        ConsoleCommands,
+
+        HandledExceptions,
+        UnhandledExceptions,
     }
 }

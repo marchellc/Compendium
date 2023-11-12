@@ -65,7 +65,9 @@ namespace Compendium.Attributes
                 && !TryGetAttribute(type, out _))
             {
                 var attr = new AttributeData<TAttribute>(type, typeAttribute, GenerateData(type, null, typeAttribute));
+
                 _list.Add(attr);
+
                 AttributeRegistryEvents.FireAdded(typeAttribute, type, null, handle);
             }
 

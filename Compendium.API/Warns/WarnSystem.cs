@@ -1,11 +1,13 @@
 ﻿using BetterCommands;
 
+using Compendium.Generation;
+using Compendium.Constants;
 using Compendium.PlayerData;
+using Compendium.IO.Saving;
 
 using helpers.Attributes;
 using helpers.Events;
 using helpers.Extensions;
-using helpers.IO.Storage;
 using helpers.Pooling.Pools;
 using helpers.Time;
 using helpers;
@@ -14,16 +16,14 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
-using Compendium.Generation;
-using Compendium.Constants;
 
 namespace Compendium.Warns
 {
     public static class WarnSystem
     {
-        private static SingleFileStorage<WarnData> _warnStorage;
+        private static SaveFile<CollectionSaveData<WarnData>> _warnStorage;
 
-        public static IReadOnlyCollection<WarnData> Warns => _warnStorage.Data;
+        public static IReadOnlyCollection<WarnData> Warns => _warnStorage.Data.Value;
 
         public static EventProvider OnWarnIssued { get; } = new EventProvider();
         public static EventProvider OnWarnRemoved { get; } = new EventProvider();
@@ -34,12 +34,11 @@ namespace Compendium.Warns
         {
             if (_warnStorage != null)
             {
-                _warnStorage.Reload();
+                _warnStorage.Load();
                 return;
             }
 
-            _warnStorage = new SingleFileStorage<WarnData>($"{Directories.ThisData}/SavedWarns");
-            _warnStorage.Load();
+            _warnStorage ??= new SaveFile<CollectionSaveData<WarnData>>(Directories.GetDataPath("SavedWarns", "warns"));
 
             Plugin.Info($"Warn System loaded.");
         }
@@ -101,7 +100,9 @@ namespace Compendium.Warns
                 return false;
             }
 
-            toRemove.ForEach(w => _warnStorage.Remove(w));
+            toRemove.ForEach(w => _warnStorage.Data.Remove(w));
+
+            _warnStorage.Save();
 
             ListPool<WarnData>.Pool.Push(toRemove);
             return true;
@@ -121,7 +122,9 @@ namespace Compendium.Warns
                 Reason = reason
             };
 
-            _warnStorage.Add(warn);
+            _warnStorage.Data.Add(warn);
+            _warnStorage.Save();
+
             OnWarnIssued.Invoke(warn, issuer, target);
 
             if (Plugin.Config.WarnSettings.Announce)

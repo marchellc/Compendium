@@ -1,7 +1,6 @@
 ﻿using BetterCommands;
 
 using Compendium.PlayerData;
-using Compendium;
 
 using helpers;
 using helpers.Time;
@@ -9,6 +8,8 @@ using helpers.Time;
 using System;
 using System.Linq;
 using System.Net;
+
+using Compendium.Mutes;
 
 namespace Compendium.Custom.Commands
 {
@@ -213,6 +214,75 @@ namespace Compendium.Custom.Commands
 
                 return sb.ReturnStringBuilderValue();
             }
+        }
+
+        [Command("tmute", CommandType.RemoteAdmin, CommandType.GameConsole)]
+        [Description("Issues a temporary mute.")]
+        public static string TemporaryMuteCommand(ReferenceHub sender, ReferenceHub target, string duration, string reason)
+        {
+            if (!TimeUtils.TryParseTime(duration, out var time))
+                return "Failed to parse duration.";
+
+            if (!MuteManager.Issue(sender, target, reason, time))
+                return "Failed to issue temporary mute.";
+
+            return $"Issued a temporary mute to '{target.Nick()}' for '{reason}' (expires in {time.UserFriendlySpan()})";
+        }
+
+        [Command("tomute", CommandType.RemoteAdmin, CommandType.GameConsole)]
+        [Description("Issues a temporary offline mute.")]
+        public static string TemporaryOfflineMuteCommand(ReferenceHub sender, PlayerDataRecord target, string duration, string reason)
+        {
+            if (!TimeUtils.TryParseTime(duration, out var time))
+                return "Failed to parse duration.";
+
+            if (!MuteManager.Issue(sender, target, reason, time))
+                return "Failed to issue temporary mute.";
+
+            return $"Issued a temporary mute to '{target.NameTracking.LastValue}' for '{reason}' (expires in {time.UserFriendlySpan()})";
+        }
+
+        [Command("mutes", CommandType.RemoteAdmin, CommandType.GameConsole)]
+        [Description("Displays a list of active temporary mutes.")]
+        public static string MutesCommand(ReferenceHub sender, PlayerDataRecord target)
+        {
+            var mutes = MuteManager.Query(target);
+
+            if (mutes.Length <= 0)
+                return $"{target.NameTracking.LastValue} does not have any active temporary mutes.";
+
+            return $"Active mutes ({mutes.Length}):\n" +
+                $"{string.Join("\n", mutes.Select(m => $"[{m.Id}]: Issued by {(PlayerDataRecorder.TryQuery(m.IssuerId, false, out var record) && record.NameTracking.LastValue != null ? $"{record.NameTracking.LastValue} ({record.UserId})" : $"{m.IssuerId}")} for '{m.Reason}' (expires at: {new DateTime(m.ExpiresAt).ToString("G")})"))}";
+        }
+
+        [Command("rmute", CommandType.RemoteAdmin, CommandType.GameConsole)]
+        [Description("Removes a mute using it's ID.")]
+        public static string RemoveMuteCommand(ReferenceHub sender, string muteId)
+        {
+            var mute = MuteManager.Query(muteId);
+
+            if (mute is null)
+                return "Failed to find a mute with that ID";
+
+            if (!MuteManager.Remove(mute))
+                return "Failed to remove that mute.";
+
+            return "Mute removed.";
+        }
+
+        [Command("rmutes", CommandType.RemoteAdmin, CommandType.GameConsole)]
+        [Description("Removes all mutes for a specified player.")]
+        public static string RemoveMutesCommand(ReferenceHub sender, PlayerDataRecord target)
+        {
+            var mutes = MuteManager.Query(target);
+
+            if (mutes.Length <= 0)
+                return $"Player '{target.NameTracking.LastValue}' doesn't have any active mutes.";
+
+            for (int i = 0; i < mutes.Length; i++)
+                MuteManager.Remove(mutes[i]);
+
+            return $"Removed {mutes.Length} mute(s).";
         }
     }
 }

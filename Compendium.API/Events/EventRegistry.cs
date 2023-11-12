@@ -1,7 +1,9 @@
 ﻿using BetterCommands;
+
 using Compendium.Attributes;
 using Compendium.Comparison;
 using Compendium.Enums;
+using Compendium.Value;
 using helpers;
 using helpers.Attributes;
 using helpers.Dynamic;
@@ -37,14 +39,73 @@ namespace Compendium.Events
         [Load]
         private static void Initialize()
         {
-            EventBridge.OnExecuting = OnExecutingEvent;
+            EventManager.Proxy = Proxy;
+            Plugin.Debug($"Initialized event proxy.");
         }
 
         [Unload]
         private static void Unload()
         {
-            EventBridge.OnExecuting = null;
+            EventManager.Proxy = null;
+
             _registry.Clear();
+        }
+
+        private static object Proxy(object arg1, Type type, Event @event, IEventArguments arguments)
+        {
+            try
+            {
+                if (!_registry.Any(ev => ev.Type == arguments.BaseType))
+                    return true;
+
+                _everExecuted = true;
+
+                var startTime = DateTime.Now;
+                var list = _registry.Where(x => x.Type == arguments.BaseType);
+                var result = true;
+                var isAllowed = new ValueReference(arg1, type);
+
+                foreach (var ev in list)
+                {
+                    var startEv = DateTime.Now;
+
+                    EventUtils.TryInvoke(ev, arguments, isAllowed, out result);
+
+                    if (RecordEvents.Contains(ev.Type))
+                    {
+                        var endEv = DateTime.Now;
+                        var durationEv = TimeSpan.FromTicks((endEv - startEv).Ticks);
+
+                        ev.Stats.Record(durationEv.TotalMilliseconds);
+
+                        if (LogHandlers)
+                            Plugin.Debug($"Finished executing '{ev.Type}' handler '{ev.Target.Method.ToLogName()}' in {durationEv.TotalMilliseconds} ms");
+                    }
+                }
+
+                if (isAllowed.Value is null)
+                    isAllowed.Value = result;
+
+                if (!LogExecutionTime)
+                    return result;
+
+                var endTime = DateTime.Now;
+                var duration = TimeSpan.FromTicks((endTime - startTime).Ticks);
+
+                Plugin.Debug($"Total Event Execution of {arguments.BaseType} took {duration.TotalMilliseconds} ms.");
+
+                if (arg1 != null && isAllowed.Value != null && arg1.GetType() == isAllowed.Value.GetType())
+                    return isAllowed.Value;
+
+                return arg1;
+            }
+            catch (Exception ex)
+            {
+                Plugin.Error($"Caught an exception while executing event '{arguments.BaseType}'");
+                Plugin.Error(ex);
+            }
+
+            return arg1;
         }
 
         public static void RegisterEvents(object instance)
@@ -117,58 +178,6 @@ namespace Compendium.Events
                         && NullableObjectComparison.Compare(ev.Target.Target, instance)) > 0;
         }
 
-        private static bool OnExecutingEvent(IEventArguments args, Event evInfo, ValueReference isAllowed)
-        {
-            try
-            {
-                if (!_registry.Any(ev => ev.Type == args.BaseType))
-                    return true;
-
-                _everExecuted = true;
-
-                var startTime = DateTime.Now;
-                var list = _registry.Where(x => x.Type == args.BaseType);
-                var result = true;
-
-                foreach (var ev in list)
-                {
-                    var startEv = DateTime.Now;
-
-                    EventUtils.TryInvoke(ev, args, isAllowed, out result);
-
-                    if (RecordEvents.Contains(ev.Type))
-                    {
-                        var endEv = DateTime.Now;
-                        var durationEv = TimeSpan.FromTicks((endEv - startEv).Ticks);
-
-                        ev.Stats.Record(durationEv.TotalMilliseconds);
-
-                        if (LogHandlers)
-                            Plugin.Debug($"Finished executing '{ev.Type}' handler '{ev.Target.Method.ToLogName()}' in {durationEv.TotalMilliseconds} ms");
-                    }
-                }
-
-                if (isAllowed.Value is null)
-                    isAllowed.Value = result;
-
-                if (!LogExecutionTime)
-                    return result;
-
-                var endTime = DateTime.Now;
-                var duration = TimeSpan.FromTicks((endTime - startTime).Ticks);
-
-                Plugin.Debug($"Total Event Execution of {args.BaseType} took {duration.TotalMilliseconds} ms.");
-                return result;
-            }
-            catch (Exception ex)
-            {
-                Plugin.Error($"Caught an exception while executing event '{args.BaseType}'");
-                Plugin.Error(ex);
-            }
-
-            return true;
-        }
-
         [RoundStateChanged(RoundState.WaitingForPlayers)]
         private static void OnWaiting()
         {
@@ -220,7 +229,10 @@ namespace Compendium.Events
 
                 dict.ReturnDictionary();
 
-                Plugin.Info(sb.ReturnStringBuilderValue());
+                var str = sb.ReturnStringBuilderValue();
+
+                if (!string.IsNullOrWhiteSpace(str))
+                    Plugin.Info(str);
 
                 _registry.For((_, ev) => ev.Stats?.Reset());
             }

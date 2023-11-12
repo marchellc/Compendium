@@ -3,8 +3,6 @@ using Compendium.Events;
 using Compendium.Extensions;
 using Compendium.Features;
 using Compendium.PlayerData;
-using Compendium.Enums;
-using Compendium.Attributes;
 using Compendium;
 
 using helpers;
@@ -21,21 +19,65 @@ using System.Linq;
 
 using UnityEngine;
 
+using PluginAPI.Core;
+
+using Compendium.Staff;
+
+using System.Collections.Generic;
+
 namespace Compendium.Webhooks
 {
     public class WebhookFeature : ConfigFeatureBase
     {
+        private static List<Exception> _loggedFirstChanceExceptions = new List<Exception>();
+
         public override string Name => "Webhooks";
         public override bool IsPatch => true;
 
         public override bool CanBeShared => false;
 
+        public static string[] ExceptionSeparator = new string[] { "at" };
+
         public override void Load()
         {
             base.Load();
 
-            Reflection.TryAddHandler<Action<ReferenceHub, DamageHandlerBase>>(typeof(PlayerStats), "OnAnyPlayerDamaged", OnDamage);
-            Reflection.TryAddHandler<Action<ReferenceHub, DamageHandlerBase>>(typeof(PlayerStats), "OnAnyPlayerDied", OnDeath);
+            PlayerStats.OnAnyPlayerDamaged += OnDamage;
+            PlayerStats.OnAnyPlayerDied += OnDeath;
+
+            AppDomain.CurrentDomain.UnhandledException += (_, ev) =>
+            {
+                if (ev.ExceptionObject is null || ev.ExceptionObject is not Exception ex)
+                    return;
+
+                if (_loggedFirstChanceExceptions.Contains(ex))
+                    return;
+
+                var embed = new Discord.DiscordEmbed();
+                var typeField = new Discord.DiscordEmbedField();
+                var methodField = new Discord.DiscordEmbedField();
+                var excField = new Discord.DiscordEmbedField();
+
+                methodField.WithName("❓ Method");
+                methodField.WithValue($"```csharp\n{ex.StackTrace.Split(ExceptionSeparator, StringSplitOptions.RemoveEmptyEntries).FirstOrDefault() ?? "Unknown"}\n```", false);
+
+                excField.WithName("🗒️ Message");
+                excField.WithValue($"```{ex.Message}```", false);
+
+                typeField.WithName("❓ Type");
+                typeField.WithValue(ex.GetType().Name, false);
+
+                embed.WithAuthor($"⛔ Caught an unhandled exception");
+                embed.WithColor(System.Drawing.Color.Red);
+                embed.WithFields(typeField, methodField, excField);
+                embed.WithFooter($"🕗 {DateTime.Now.ToString("G")}");
+
+                foreach (var w in WebhookHandler.Webhooks)
+                {
+                    if (w.Type is WebhookLog.UnhandledExceptions)
+                        w.Send(null, embed);
+                }
+            };
         }
 
         public static void SendEvent(string msg, WebhookEventLog eventLog)
@@ -361,7 +403,7 @@ namespace Compendium.Webhooks
                         return;
 
                     h.Hint(
-                        $"<b><color={Colors.RedValue}>[REPORT]</color></b>" +
+                        $"<b><color={Colors.RedValue}>[REPORT]</color></b>\n" +
                         $"Hráč <b><color={Colors.GreenValue}>{ev.Player.Nickname}</color></b> nahlásil hráče <b><color={Colors.GreenValue}>{ev.Target.Nickname}</color></b> za:\n" +
                         $"<b><color={Colors.LightGreenValue}>{ev.Reason}</color></b>",
                         10f);
@@ -442,7 +484,7 @@ namespace Compendium.Webhooks
                         return;
 
                     h.Hint(
-                        $"<b><color={Colors.RedValue}>[CHEATER REPORT]</color></b>" +
+                        $"<b><color={Colors.RedValue}>[CHEATER REPORT]</color></b>\n" +
                         $"Hráč <b><color={Colors.GreenValue}>{ev.Player.Nickname}</color></b> nahlásil hráče <b><color={Colors.GreenValue}>{ev.Target.Nickname}</color></b> za:\n" +
                         $"<b><color={Colors.LightGreenValue}>{ev.Reason}</color></b>",
                         10f);
@@ -510,6 +552,125 @@ namespace Compendium.Webhooks
                     webhook.Send(null, embed);
                 }
             }
+        }
+
+        [Event]
+        private static void OnPlayerCommand(PlayerGameConsoleCommandExecutedEvent ev)
+        {
+            ReferenceHub sender = null;
+
+            if (ev.Player is null)
+                sender = ReferenceHub.HostHub;
+            else
+                sender = ev.Player.ReferenceHub;
+
+            if (sender is null)
+                return;
+
+            var senderField = new Discord.DiscordEmbedField();
+            var commandField = new Discord.DiscordEmbedField();
+            var resultField = new Discord.DiscordEmbedField();
+            var author = new Discord.DiscordEmbedAuthor();
+            var embed = new Discord.DiscordEmbed();
+            var hasGroup = StaffHandler.Members.TryGetValue(sender.UserId(), out var groupKeys) && groupKeys != null && groupKeys.Length > 0;
+            var groups = hasGroup ? groupKeys.Select(g => StaffHandler.Groups.TryGetValue(g, out var gr) ? gr : null).Where(g => g != null).OrderBy(c => c.Permissions.Count).ToArray() : Array.Empty<StaffGroup>();
+
+            author.WithName(World.CurrentClearOrAlternativeServerName);
+
+            senderField.WithName("❓ Sender");
+            senderField.WithValue($"**{sender.Nick()}** ({sender.ParsedUserId().ClearId}){(groups.Length > 0 ? $" ({string.Join(" | ", groups.Select(g => g.Text))}" : "")})", false);
+
+            commandField.WithName("🗒️ Command");
+            commandField.WithValue($"```{ev.Command} '{string.Join(" ", ev.Arguments)}'```", false);
+
+            resultField.WithName("➡️ Response");
+            resultField.WithValue($"```{ev.Response.Remove($"{ev.Command.ToUpperInvariant()}#")}```", false);
+
+            embed.WithTitle($"{(ev.Result ? "✅" : "⛔")} Player Console Command Executed");
+            embed.WithAuthor(author);
+            embed.WithFields(senderField, commandField, resultField);
+            embed.WithColor(ev.Result ? System.Drawing.Color.Green : System.Drawing.Color.Red);
+            embed.WithFooter($"🕗 {DateTime.Now.ToString("G")}");
+
+            foreach (var webhook in WebhookHandler.Webhooks)
+            {
+                if (webhook.Type is WebhookLog.GameCommands)
+                    webhook.Send(null, embed);
+            }
+        }
+
+        [Event]
+        private static void OnConsoleCommmand(ConsoleCommandExecutedEvent ev)
+        {
+            var commandField = new Discord.DiscordEmbedField();
+            var resultField = new Discord.DiscordEmbedField();
+            var author = new Discord.DiscordEmbedAuthor();
+            var embed = new Discord.DiscordEmbed();
+
+            author.WithName(World.CurrentClearOrAlternativeServerName);
+
+            commandField.WithName("🗒️ Command");
+            commandField.WithValue($"```{ev.Command} '{string.Join(" ", ev.Arguments)}'```", false);
+
+            resultField.WithName("➡️ Response");
+            resultField.WithValue($"```{ev.Response.Remove($"{ev.Command.ToUpperInvariant()}#")}```", false);
+
+            embed.WithTitle($"{(ev.Result ? "✅" : "⛔")} Console Command Executed");
+            embed.WithAuthor(author);
+            embed.WithFields(commandField, resultField);
+            embed.WithColor(ev.Result ? System.Drawing.Color.Green : System.Drawing.Color.Red);
+            embed.WithFooter($"🕗 {DateTime.Now.ToString("G")}");
+
+            foreach (var webhook in WebhookHandler.Webhooks)
+            {
+                if (webhook.Type is WebhookLog.ConsoleCommands)
+                    webhook.Send(null, embed);
+            }
+        }
+
+        [Event]
+        private static void OnRemoteCommand(RemoteAdminCommandExecutedEvent ev)
+        {
+            ReferenceHub sender = null;
+
+            if (!Player.TryGet(ev.Sender, out var player))
+                sender = ReferenceHub.HostHub;
+            else
+                sender = player.ReferenceHub;
+
+            if (sender is null)
+                return;
+
+            var senderField = new Discord.DiscordEmbedField();
+            var commandField = new Discord.DiscordEmbedField();
+            var resultField = new Discord.DiscordEmbedField();
+            var author = new Discord.DiscordEmbedAuthor();
+            var embed = new Discord.DiscordEmbed();
+            var hasGroup = StaffHandler.Members.TryGetValue(sender.UserId(), out var groupKeys) && groupKeys != null && groupKeys.Length > 0;
+            var groups = hasGroup ? groupKeys.Select(g => StaffHandler.Groups.TryGetValue(g, out var gr) ? gr : null).Where(g => g != null).OrderBy(c => c.Permissions.Count).ToArray() : Array.Empty<StaffGroup>();
+
+            author.WithName(World.CurrentClearOrAlternativeServerName);
+
+            senderField.WithName("❓ Sender");
+            senderField.WithValue($"**{sender.Nick()}** ({sender.ParsedUserId().ClearId}){(groups.Length > 0 ? $" ({string.Join(" | ", groups.Select(g => g.Text))}" : "")})", false);
+
+            commandField.WithName("🗒️ Command");
+            commandField.WithValue($"```{ev.Command} '{string.Join(" ", ev.Arguments)}'```", false);
+
+            resultField.WithName("➡️ Response");
+            resultField.WithValue($"```{ev.Response.Remove($"{ev.Command.ToUpperInvariant()}#")}```", false);
+
+            embed.WithTitle($"{(ev.Result ? "✅" : "⛔")} Remote Admin Command Executed");
+            embed.WithAuthor(author);
+            embed.WithFields(senderField, commandField, resultField);
+            embed.WithColor(ev.Result ? System.Drawing.Color.Green : System.Drawing.Color.Red);
+            embed.WithFooter($"🕗 {DateTime.Now.ToString("G")}");
+
+            foreach (var webhook in WebhookHandler.Webhooks)
+            {
+                if (webhook.Type is WebhookLog.RaCommands)
+                    webhook.Send(null, embed);
+            }    
         }
     }
 }

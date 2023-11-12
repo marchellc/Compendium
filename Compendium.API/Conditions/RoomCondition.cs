@@ -1,6 +1,6 @@
 ﻿using MapGeneration;
 
-namespace Compendium.Conditions.Player
+namespace Compendium.Conditions
 {
     public class RoomCondition : Condition
     {

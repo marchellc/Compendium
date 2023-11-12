@@ -78,7 +78,7 @@ namespace Compendium.Npc
         public virtual bool ShowInPlayerList { get; set; }
 
         public virtual string Nick { get => Hub.nicknameSync.MyNick; set => Hub.nicknameSync.MyNick = value; }
-        public virtual string UserId { get => Hub.characterClassManager._privUserId; set => Hub.characterClassManager._privUserId = value; }
+        public virtual string UserId { get => Hub.authManager.NetworkSyncedUserId; set => Hub.authManager.NetworkSyncedUserId = value; }
         public virtual string CustomId { get; set; }
 
         public virtual int Id { get => Hub._playerId.Value; set => Hub.Network_playerId = new RecyclablePlayerId(value); }
@@ -197,8 +197,8 @@ namespace Compendium.Npc
                 {
                     NetworkServer.AddPlayerForConnection(Connection = new NpcConnection(Id), Hub.gameObject);
 
-                    Hub.characterClassManager._privUserId = "npc@server";
-                    Hub.characterClassManager._targetInstanceMode = ClientInstanceMode.DedicatedServer;
+                    Hub.authManager.NetworkSyncedUserId = "npc@server";
+                    Hub.authManager._targetInstanceMode = CentralAuth.ClientInstanceMode.DedicatedServer;
 
                     try
                     {

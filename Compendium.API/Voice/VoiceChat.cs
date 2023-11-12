@@ -6,7 +6,6 @@ using Compendium.Voice.Pools;
 using Compendium.Voice.Prefabs.Scp;
 using Compendium.Attributes;
 using Compendium.Constants;
-using Compendium.Scheduling.Update;
 using Compendium.Enums;
 
 using helpers.Attributes;
@@ -26,6 +25,8 @@ using Utils.NonAllocLINQ;
 
 using VoiceChat;
 using VoiceChat.Networking;
+
+using Compendium.Updating;
 
 namespace Compendium.Voice
 {
@@ -195,7 +196,7 @@ namespace Compendium.Voice
             });
         }
 
-        [Update(Type = UpdateSchedulerType.UnityThread)]
+        [Update(PauseWaiting = false)]
         private static void OnUpdate()
         {
             foreach (var hub in Hub.Hubs)

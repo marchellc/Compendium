@@ -11,6 +11,7 @@ using PlayerRoles;
 using System.Linq;
 
 using UnityEngine;
+using CentralAuth;
 
 namespace Compendium.BetterTesla
 {

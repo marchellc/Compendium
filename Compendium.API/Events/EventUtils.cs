@@ -1,4 +1,5 @@
-﻿using helpers;
+﻿using Compendium.Value;
+using helpers;
 using helpers.Dynamic;
 using helpers.Extensions;
 

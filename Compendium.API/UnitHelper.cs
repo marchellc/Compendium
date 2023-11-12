@@ -11,6 +11,7 @@ using Mirror;
 using PlayerRoles.FirstPersonControl;
 
 using RelativePositioning;
+using CentralAuth;
 
 namespace Compendium
 {
@@ -100,7 +101,8 @@ namespace Compendium
             if (!role.UsesUnitNames)
                 return false;
 
-            unitName = role.UnitName;
+            unitName = UnitNameMessageHandler.ReceivedNames[role.AssignedSpawnableTeam][role.UnitNameId];
+
             return !string.IsNullOrWhiteSpace(unitName);
         }
 

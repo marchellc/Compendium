@@ -65,6 +65,22 @@ namespace Compendium
         public static bool IsTimed(this DoorVariant door)
             => door is Timed173PryableDoor;
 
+        public static bool IsInteractable(this DoorVariant door)
+        {
+            var lockMode = DoorLockUtils.GetMode((DoorLockReason)door.NetworkActiveLocks);
+
+            if (lockMode is DoorLockMode.FullLock)
+                return false;
+
+            if (door.IsOpened() && !lockMode.HasFlagFast(DoorLockMode.CanClose))
+                return false;
+
+            if (door.IsClosed() && !lockMode.HasFlagFast(DoorLockMode.CanOpen))
+                return false;
+
+            return true;
+        }
+
         public static bool IsBlacklisted(this DoorVariant door, ReferenceHub hub)
             => _plyBlacklist.TryGetValue(door.netId, out var blacklist) && blacklist.Contains(hub.netId);
 
@@ -91,6 +107,12 @@ namespace Compendium
 
         public static void Override(this DoorVariant door, Func<DoorVariant, ReferenceHub, bool> modifier)
             => _customAccessModifiers[door.netId] = modifier;
+
+        public static void RemoveOverride(this DoorVariant door)
+            => _customAccessModifiers.Remove(door.netId);
+
+        public static void ClearOverrides()
+            => _customAccessModifiers.Clear();
 
         public static void ClearCustomPermissions(this DoorVariant door)
             => _customPerms.Remove(door.netId);

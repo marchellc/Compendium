@@ -13,6 +13,9 @@ namespace Compendium.Settings
         [Description("Whether or not to consider everyone with access to the Remote Admin as a staff member. This may be crucial for some features.")]
         public bool ConsiderRemoteAdminAccessAsStaff { get; set; } = false;
 
+        [Description("Whether or not to show debug messages from the Staff Activity handler.")]
+        public bool ShowActivityDebug { get; set; }
+
         [Description("An alternative server name to be used by some features.")]
         public string AlternativeServerName { get; set; } = "none";
 

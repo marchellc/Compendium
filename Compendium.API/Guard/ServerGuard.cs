@@ -3,10 +3,9 @@
 using Compendium.Events;
 using Compendium.Guard.Steam;
 using Compendium.Guard.Vpn;
-using Compendium;
+using Compendium.IO.Saving;
 
 using helpers.Attributes;
-using helpers.IO.Storage;
 
 using PluginAPI.Events;
 
@@ -17,11 +16,8 @@ namespace Compendium.Guard
 {
     public static class ServerGuard
     {
-        private static SingleFileStorage<string> _cleanIdStorage;
-        private static SingleFileStorage<string> _cleanIpStorage;
-
-        private static SingleFileStorage<string> _flaggedIdStorage;
-        private static SingleFileStorage<string> _flaggedIpStorage;
+        public static SaveFile<CollectionSaveData<string>> Flagged;
+        public static SaveFile<CollectionSaveData<string>> Clean;
 
         public static VpnClient Vpn { get; } = new VpnClient();
         public static SteamClient Steam { get; } = new SteamClient();
@@ -32,28 +28,11 @@ namespace Compendium.Guard
         {
             try
             {
-                if (_cleanIdStorage is null)
-                    _cleanIdStorage = new SingleFileStorage<string>($"{Directories.ThisData}/SavedGuardCleanIDs");
-
-                if (_cleanIpStorage is null)
-                    _cleanIpStorage = new SingleFileStorage<string>($"{Directories.ThisData}/SavedGuardCleanIPs");
-
-                if (_flaggedIdStorage is null)
-                    _flaggedIdStorage = new SingleFileStorage<string>($"{Directories.ThisData}/SavedGuardFlaggedIDs");
-
-                if (_flaggedIpStorage is null)
-                    _flaggedIpStorage = new SingleFileStorage<string>($"{Directories.ThisData}/SavedGuardFlaggedIPs");
-
-                _cleanIdStorage.Load();
-                _cleanIpStorage.Load();
-
-                _flaggedIdStorage.Load();
-                _flaggedIpStorage.Load();
+                Flagged = new SaveFile<CollectionSaveData<string>>(Directories.GetDataPath("ServerGuardFlags", "guardFlags"));
+                Clean = new SaveFile<CollectionSaveData<string>>(Directories.GetDataPath("ServerGuardClean", "guardClean"));
 
                 Vpn.Reload();
                 Steam.Reload();
-
-                Plugin.Info($"Server Guard loaded.");
             }
             catch (Exception ex)
             {
@@ -83,10 +62,10 @@ namespace Compendium.Guard
                 return;
             }
 
-            if (_cleanIdStorage.Contains(ev.UserId) || _cleanIpStorage.Contains(ev.IpAddress))
+            if (Clean.Data.Contains(ev.UserId) || Clean.Data.Contains(ev.IpAddress))
                 return;
 
-            if (_flaggedIdStorage.Contains(ev.UserId) || _flaggedIpStorage.Contains(ev.IpAddress))
+            if (Flagged.Data.Contains(ev.UserId) || Flagged.Data.Contains(ev.IpAddress))
             {
                 ev.ConnectionRequest.Result = LiteNetLib.ConnectionRequestResult.RejectForce;
                 ev.ConnectionRequest.RejectForce();
@@ -97,32 +76,74 @@ namespace Compendium.Guard
 
         public static void Flag(string userId, string ip)
         {
-            if (!string.IsNullOrWhiteSpace(userId) && !_flaggedIdStorage.Contains(userId))
-                _flaggedIdStorage.Add(userId);
+            var ipFlag = false;
+            var idFlag = false;
 
-            if (!string.IsNullOrWhiteSpace(ip) && !_flaggedIpStorage.Contains(ip))
-                _flaggedIpStorage.Add(ip);
+            if (!string.IsNullOrWhiteSpace(userId) && Clean.Data.Contains(userId))
+            {
+                Clean.Data.Remove(userId);
+                idFlag = true;
+            }
 
-            if (!string.IsNullOrWhiteSpace(userId) && _cleanIdStorage.Contains(userId))
-                _cleanIdStorage.Remove(userId);
+            if (!string.IsNullOrWhiteSpace(ip) && Clean.Data.Contains(ip))
+            {
+                Clean.Data.Remove(ip);
+                ipFlag = true;
+            }
 
-            if (!string.IsNullOrWhiteSpace(ip) && _cleanIpStorage.Contains(ip))
-                _cleanIpStorage.Remove(ip);
+            if (ipFlag || idFlag)
+                Clean.Save();
+
+            if (!string.IsNullOrWhiteSpace(userId) && !Flagged.Data.Contains(userId))
+            {
+                Flagged.Data.Add(userId);
+                idFlag = true;
+            }
+
+            if (!string.IsNullOrWhiteSpace(ip) && !Flagged.Data.Contains(ip))
+            {
+                Flagged.Data.Add(ip);
+                ipFlag = true;
+            }
+
+            if (ipFlag || idFlag)
+                Flagged.Save();
         }
 
         public static void Safe(string userId, string ip)
         {
-            if (!string.IsNullOrWhiteSpace(userId) && !_cleanIdStorage.Contains(userId))
-                _cleanIdStorage.Add(userId);
+            var ipFlag = false;
+            var idFlag = false;
 
-            if (!string.IsNullOrWhiteSpace(ip) && !_cleanIpStorage.Contains(ip))
-                _cleanIpStorage.Add(ip);
+            if (!string.IsNullOrWhiteSpace(userId) && !Clean.Data.Contains(userId))
+            {
+                Clean.Data.Add(userId);
+                idFlag = true;
+            }
 
-            if (!string.IsNullOrWhiteSpace(userId) && _flaggedIdStorage.Contains(userId))
-                _flaggedIdStorage.Remove(userId);
+            if (!string.IsNullOrWhiteSpace(ip) && !Clean.Data.Contains(ip))
+            {
+                Clean.Data.Add(ip);
+                ipFlag = true;
+            }
 
-            if (!string.IsNullOrWhiteSpace(ip) && _flaggedIpStorage.Contains(ip))
-                _flaggedIpStorage.Remove(ip);
+            if (ipFlag || idFlag)
+                Clean.Save();
+
+            if (!string.IsNullOrWhiteSpace(userId) && Flagged.Data.Contains(userId))
+            {
+                Flagged.Data.Remove(userId);
+                idFlag = true;
+            }
+
+            if (!string.IsNullOrWhiteSpace(ip) && Flagged.Data.Contains(ip))
+            {
+                Flagged.Data.Remove(ip);
+                ipFlag = true;
+            }
+
+            if (ipFlag || idFlag)
+                Flagged.Save();
         }
 
         public static bool IsClean(ReferenceHub hub)
@@ -130,13 +151,10 @@ namespace Compendium.Guard
             if (hub is null)
                 return true;
 
-            if (_cleanIdStorage.Contains(hub.UserId()) || _cleanIpStorage.Contains(hub.Ip()))
-                return true;
-
             if (hub.IsNorthwoodModerator() || hub.IsNorthwoodStaff())
                 return true;
 
-            return false;
+            return Clean.Data.Contains(hub.UserId()) || Clean.Data.Contains(hub.Ip());
         }
 
         [Command("safeid", CommandType.RemoteAdmin, CommandType.GameConsole)]
@@ -146,7 +164,7 @@ namespace Compendium.Guard
             if (!UserIdValue.TryParse(userId, out var uid))
                 return "Invalid User ID.";
 
-            Safe(uid.Value, "");
+            Safe(uid.Value, null);
             return $"Marked user ID '{uid.Value}' as safe.";
         }
 
@@ -158,6 +176,7 @@ namespace Compendium.Guard
                 return "Invalid IP address.";
 
             Safe(null, ip);
+
             return $"Marked IP '{ip}' as safe.";
         }
 
@@ -165,14 +184,15 @@ namespace Compendium.Guard
         [Description("Views all available server guard info on the specified target.")]
         private static string GuardCommand(ReferenceHub sender, string query)
         {
-            bool isFlaggedIp = _flaggedIpStorage.Contains(query);
-            bool isFlaggedId = UserIdValue.TryParse(query, out var uid) && _flaggedIdStorage.Contains(uid.Value);
-            bool isCleanIp = _cleanIpStorage.Contains(query);
-            bool isCleanId = UserIdValue.TryParse(query, out uid) && _cleanIdStorage.Contains(uid.Value);
+            var isFlaggedIp = Flagged.Data.Contains(query);
+            var isFlaggedId = UserIdValue.TryParse(query, out var uid) && Flagged.Data.Contains(uid.Value);
+
+            var isCleanIp = Clean.Data.Contains(query);
+            var isCleanId = UserIdValue.TryParse(query, out uid) && Clean.Data.Contains(uid.Value);
 
             return $"Guard status of '{query}'\n" +
                 $"IP flag: {isFlaggedIp}\n" +
-                $"ID flag: {isFlaggedId}\n" +
+                $"ID flag: {isFlaggedId}\n\n" +
                 $"Clean IP: {isCleanIp}\n" +
                 $"Clean ID: {isCleanId}";
         }

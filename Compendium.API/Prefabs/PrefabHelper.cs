@@ -100,6 +100,11 @@ namespace Compendium.Prefabs
             [PrefabName.PrimitiveObject] = "PrimitiveObjectToy",
             [PrefabName.LightSource] = "LightSourceToy",
 
+            [PrefabName.PrismaticCloud] = "PrismaticCloud",
+            [PrefabName.BrownCandyTantrum] = "TantrumObj (Brown Candy)",
+            [PrefabName.Lantern] = "LanternPickup",
+            [PrefabName.Scp3114Ragdoll] = "Scp3114_Ragdoll",
+
             [PrefabName.Ragdoll1] = "Ragdoll_1",
             [PrefabName.Ragdoll4] = "Ragdoll_4",
             [PrefabName.Ragdoll6] = "Ragdoll_6",

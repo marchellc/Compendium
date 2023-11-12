@@ -1,5 +1,4 @@
-﻿using helpers;
-using helpers.Configuration;
+﻿using helpers.Configuration;
 using helpers.Events;
 
 using System.IO;

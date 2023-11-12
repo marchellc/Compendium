@@ -32,6 +32,7 @@ using LightContainmentZoneDecontamination;
 using RelativePositioning;
 
 using Utils.Networking;
+using System.Linq;
 
 namespace Compendium.RemoteKeycard.Handlers.Doors
 {
@@ -166,6 +167,7 @@ namespace Compendium.RemoteKeycard.Handlers.Doors
             catch (Exception ex)
             {
                 Plugin.Error(ex);
+                return false;
             }
 
             return true;
@@ -190,6 +192,9 @@ namespace Compendium.RemoteKeycard.Handlers.Doors
 
                     if (door != null)
                     {
+                        if (!door.IsInteractable())
+                            return true;
+
                         if (BaseDamage > 0f)
                             DoorDamageHandler.DoDamage(ply, (BaseDamage / ply.DistanceSquared(door)) * 10f, door, DoorDamageSource.Firearm);
 
@@ -204,20 +209,23 @@ namespace Compendium.RemoteKeycard.Handlers.Doors
                         && ElevatorDoor.AllElevatorDoors.TryGetValue(panel.AssignedChamber.AssignedGroup, out var list)
                         && DoorLockUtils.GetMode(panel.AssignedChamber.ActiveLocks) != DoorLockMode.FullLock)
                     {
-                        if (DecontaminationController.Singleton != null && DecontaminationController.Singleton._decontaminationBegun)
+                        if (DecontaminationController.Singleton != null 
+                            && DecontaminationController.Singleton._decontaminationBegun
+                            && list.Any(d => d.IsInZone(MapGeneration.FacilityZone.LightContainment)))
                             return true;
 
                         if (AlphaWarheadController.Detonated)
                             return true;
 
-                        var nextlevel = panel.AssignedChamber.CurrentLevel + 1;
+                        var nextLevel = panel.AssignedChamber.CurrentLevel + 1;
 
-                        if (nextlevel >= list.Count)
-                            nextlevel = 0;
+                        if (nextLevel >= list.Count)
+                            nextLevel = 0;
 
-                        panel.AssignedChamber.TrySetDestination(nextlevel);
+                        panel.AssignedChamber.TrySetDestination(nextLevel);
 
                         NetworkServer.SendToReady(new ElevatorManager.ElevatorSyncMsg(panel.AssignedChamber.AssignedGroup, panel.AssignedChamber.CurrentLevel));
+                        
                         ElevatorManager.SyncedDestinations[panel.AssignedChamber.AssignedGroup] = panel.AssignedChamber.CurrentLevel;
                     }
                 }

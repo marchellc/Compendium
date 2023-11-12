@@ -1,6 +1,7 @@
 ﻿using BetterCommands;
 
 using Compendium.Events;
+using Compendium.IO.Saving;
 
 using GameCore;
 
@@ -8,7 +9,6 @@ using helpers.Attributes;
 using helpers.Events;
 using helpers;
 using helpers.Extensions;
-using helpers.IO.Storage;
 
 using PluginAPI.Core;
 using PluginAPI.Events;
@@ -23,7 +23,7 @@ namespace Compendium.Input
     public static class InputManager
     {
         private static readonly HashSet<IInputHandler> _handlers = new HashSet<IInputHandler>();
-        private static SingleFileStorage<InputBinding> _binds;
+        private static SaveFile<CollectionSaveData<InputBinding>> _binds;
 
         public const string SyncCmdBindingKey = "enable_sync_command_binding";
 
@@ -71,7 +71,7 @@ namespace Compendium.Input
             if (_binds is null)
                 return handler.Key;
 
-            if (_binds.TryFirst<InputBinding>(bind => bind.Id == handler.Id && bind.OwnerId == hub.UniqueId(), out var binding))
+            if (_binds.Data.TryGetFirst<InputBinding>(bind => bind.Id == handler.Id && bind.OwnerId == hub.UniqueId(), out var binding))
                 return binding.Key;
 
             return handler.Key;
@@ -96,12 +96,9 @@ namespace Compendium.Input
             }
 
             if (_binds is null)
-            {
-                _binds = new SingleFileStorage<InputBinding>($"{Directories.ThisData}/SavedPlayerBinds");
-                _binds.Load();
-            }
+                _binds = new SaveFile<CollectionSaveData<InputBinding>>(Directories.GetDataPath("SavedPlayerBinds", "playerBinds"));
             else
-                _binds.Reload();
+                _binds.Load();
         }
 
         private static void SyncPlayer(ReferenceHub hub)
@@ -110,7 +107,7 @@ namespace Compendium.Input
             {
                 var key = KeyFor(hub, handler);
 
-                hub.characterClassManager.TargetChangeCmdBinding(hub.connectionToClient, key, $".input {handler.Id}");
+                hub.characterClassManager.TargetChangeCmdBinding(key, $".input {handler.Id}");
                 hub.Message($"[INPUT - DEBUG] Synchronized key bind: {handler.Id} on key {key}");
 
                 OnKeySynchronized.Invoke(hub, handler, key);
@@ -161,7 +158,7 @@ namespace Compendium.Input
         [Description("Allows you to customize your key binds.")]
         private static string OnRebindCommand(ReferenceHub sender, string actionId, KeyCode newKey)
         {
-            if (_binds.TryFirst<InputBinding>(bind => bind.Id == actionId && bind.OwnerId == sender.UniqueId(), out var binding))
+            if (_binds.Data.TryGetFirst<InputBinding>(bind => bind.Id == actionId && bind.OwnerId == sender.UniqueId(), out var binding))
             {
                 binding.Key = newKey;
 
@@ -173,12 +170,14 @@ namespace Compendium.Input
             }
             else
             {
-                _binds.Add(new InputBinding
+                _binds.Data.Add(new InputBinding
                 {
                     Id = actionId,
                     Key = newKey,
                     OwnerId = sender.UniqueId()
                 });
+
+                _binds.Save();
 
                 SyncPlayer(sender);
 

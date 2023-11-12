@@ -14,6 +14,7 @@ using PlayerRoles.FirstPersonControl;
 using UnityEngine;
 
 using System.Linq;
+using CentralAuth;
 
 namespace Compendium.Fixes.RoleSpawn
 {
@@ -96,8 +97,6 @@ namespace Compendium.Fixes.RoleSpawn
         {
             Calls.Delay(0.4f, () =>
             {
-                hub.Health(hub.MaxHealth());
-
                 if (newRole is null)
                     return;
 

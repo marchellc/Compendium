@@ -262,13 +262,14 @@ namespace Compendium.Webhooks
                 }
             }
 
+            _gens = UnityEngine.Object.FindObjectsOfType<Scp079Generator>();
+
             var script = GameObject.Find("OutsitePanelScript");
 
             if (script is null)
                 return;
 
             _outsite = script.GetComponentInParent<AlphaWarheadOutsitePanel>();
-            _gens = UnityEngine.Object.FindObjectsOfType<Scp079Generator>();
         }
 
         [RoundStateChanged(RoundState.WaitingForPlayers)]
@@ -312,8 +313,8 @@ namespace Compendium.Webhooks
 
             embed.WithColor(System.Drawing.Color.Red);
             embed.WithTitle($"⚠️ {World.CurrentClearOrAlternativeServerName}");
-            embed.WithField("🔗 Udělil", $"**{issuer.NameTracking.LastValue}** *({issuer.Id.Split('@')[0]})*", false);
-            embed.WithField("🔗 Hráč", $"**{target.NameTracking.LastValue}** *({target.Id.Split('@')[0]} | {target.Ip})*", false);
+            embed.WithField("🔗 Udělil", $"**{issuer.NameTracking.LastValue}** *({issuer.UserId.Split('@')[0]})*", false);
+            embed.WithField("🔗 Hráč", $"**{target.NameTracking.LastValue}** *({target.UserId.Split('@')[0]} | {target.Ip})*", false);
             embed.WithField("❓ Důvod", warn.Reason, false);
             embed.WithFooter($"📝 {warn.Id} | 🕒 {warn.IssuedAt.ToString("F")}");
 

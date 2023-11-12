@@ -1,12 +1,12 @@
 ﻿using BetterCommands;
 using BetterCommands.Permissions;
 
+using Compendium.IO.Saving;
+
 using helpers;
 using helpers.Attributes;
-using helpers.IO.Storage;
 using helpers.Random;
 
-using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -15,19 +15,18 @@ namespace Compendium.HttpServer.Authentification
 {
     public static class HttpAuthentificator
     {
-        private static SingleFileStorage<HttpAuthentificationKey> _authedKeys;
+        private static SaveFile<CollectionSaveData<HttpAuthentificationKey>> _authedKeys;
 
         [Load]
         public static void Load()
         {
             if (_authedKeys != null)
             {
-                _authedKeys.Reload();
+                _authedKeys.Load();
                 return;
             }
 
-            _authedKeys = new SingleFileStorage<HttpAuthentificationKey>(Directories.GetDataPath("AuthedHttpKeys", "authed_keys"));
-            _authedKeys.Load();
+            _authedKeys = new SaveFile<CollectionSaveData<HttpAuthentificationKey>>(Directories.GetDataPath("HttpKeys", "httpKeys"));
         }
 
         public static HttpAuthentificationResult TryAuthentificate(string id, string perm)
@@ -57,7 +56,9 @@ namespace Compendium.HttpServer.Authentification
                 Permits = permits
             };
 
-            _authedKeys.Add(authKey);
+            _authedKeys.Data.Add(authKey);
+            _authedKeys.Save();
+
             return authKey;
         }
 
@@ -79,7 +80,10 @@ namespace Compendium.HttpServer.Authentification
             if (!TryGetKey(keyId, out var key))
             {
                 key = new HttpAuthentificationKey() { Id = keyId, Permits = new string[] { permit } };
-                _authedKeys.Add(key);
+
+                _authedKeys.Data.Add(key);
+                _authedKeys.Save();
+
                 return $"Generated a new auth key: {key.Id}";
             }
             else
@@ -90,6 +94,7 @@ namespace Compendium.HttpServer.Authentification
                     list.Add(permit);
 
                 key.Permits = list.ToArray();
+
                 _authedKeys.Save();
 
                 return $"Added perm '{permit}' to key.";

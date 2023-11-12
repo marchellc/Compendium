@@ -1,10 +1,7 @@
-﻿using Compendium;
-using Compendium.Features;
+﻿using Compendium.Features;
 using Compendium.Constants;
 using Compendium.Events;
-
-using helpers;
-using helpers.IO.Storage;
+using Compendium.IO.Saving;
 
 using PlayerRoles;
 
@@ -16,25 +13,22 @@ namespace Compendium.PersistentOverwatch
     {
         public override string Name => "Persistent Overwatch";
 
-        public static string StoragePath => $"{Directories.ThisData}/SavedOverwatchPlayers";
-
-        public static SingleFileStorage<string> Storage { get; set; }
+        public static SaveFile<CollectionSaveData<string>> Storage { get; set; }
 
         public override void Load()
         {
             base.Load();
 
-            Storage = new SingleFileStorage<string>(StoragePath);
-            Storage.Reload();
+            Storage = new SaveFile<CollectionSaveData<string>>(Directories.GetDataPath("SavedOverwatchPlayers", "overwatchPlayers"));
 
-            Reflection.TryAddHandler<PlayerRoleManager.RoleChanged>(typeof(PlayerRoleManager), "OnRoleChanged", OnRoleChanged);
+            PlayerRoleManager.OnRoleChanged += OnRoleChanged;
 
             FLog.Info($"Overwatch storage loaded.");
         }
 
         public override void Reload()
         {
-            Storage?.Reload();
+            Storage?.Load();
             FLog.Info($"Reloaded.");
         }
 
@@ -45,7 +39,8 @@ namespace Compendium.PersistentOverwatch
             Storage?.Save();
             Storage = null;
 
-            Reflection.TryRemoveHandler<PlayerRoleManager.RoleChanged>(typeof(PlayerRoleManager), "OnRoleChanged", OnRoleChanged);
+            PlayerRoleManager.OnRoleChanged -= OnRoleChanged;
+
             FLog.Info($"Unloaded.");
         }
 
@@ -59,7 +54,7 @@ namespace Compendium.PersistentOverwatch
                 if (newRole.RoleTypeId is RoleTypeId.Overwatch)
                     return;
 
-                if (Storage.Delete(hub.characterClassManager.UserId))
+                if (Storage.Data.Remove(hub.UserId()))
                 {
                     Storage.Save();
                     hub.Hint($"\n\n<b>Persistent Overwatch is now <color={Colors.RedValue}>disabled</color>.", 5f);
@@ -69,9 +64,11 @@ namespace Compendium.PersistentOverwatch
             {
                 if (newRole.RoleTypeId is RoleTypeId.Overwatch)
                 {
-                    if (Storage.Append(hub.characterClassManager.UserId))
+                    if (!Storage.Data.Contains(hub.UserId()))
                     {
+                        Storage.Data.Add(hub.UserId());
                         Storage.Save();
+
                         hub.Hint($"\n\n<b>Persistent Overwatch is now <color={Colors.GreenValue}>active</color>.</b>", 5f);
                     }
                 }
@@ -81,10 +78,10 @@ namespace Compendium.PersistentOverwatch
         [Event]
         private static void OnPlayerJoined(PlayerJoinedEvent ev)
         {
-            if (!FeatureManager.GetFeature<PersistentOverwatchFeature>().IsEnabled || Storage is null)
+            if (Storage is null)
                 return;
 
-            if (Storage.Contains(ev.Player.UserId))
+            if (Storage.Data.Contains(ev.Player.UserId))
             {
                 Calls.Delay(0.7f, () =>
                 {

@@ -34,7 +34,7 @@ namespace Compendium.RemoteKeycard.Handlers
                 {
                     if (!ReferenceHub.TryGetHubNetID(destructible.NetworkId, out var targetHub) 
                         || !targetHub.playerEffectsController.GetEffect<Invisible>().IsEnabled)
-                        Hitmarker.SendHitmarker(__instance.Conn, 1f);
+                        Hitmarker.SendHitmarkerDirectly(__instance.Conn, 1f);
 
                     __instance.ShowHitIndicator(destructible.NetworkId, damage, ray.origin);
                     __instance.PlaceBloodDecal(ray, hit, destructible);

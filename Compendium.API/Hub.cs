@@ -1,7 +1,5 @@
 ﻿using Compendium.Extensions;
 using Compendium.PlayerData;
-using Compendium.Custom.Stats.Health;
-using Compendium.Scheduling;
 using Compendium.Messages;
 using Compendium;
 using Compendium.Npc;
@@ -56,6 +54,9 @@ using RemoteAdmin;
 
 using VoiceChat;
 using Compendium.Attributes;
+using CentralAuth;
+using Utils.Networking;
+using Compendium.Constants;
 
 namespace Compendium
 {
@@ -368,7 +369,7 @@ namespace Compendium
             => hub.SendFakeTargetRpc(AlphaWarheadController.Singleton.netIdentity, typeof(AlphaWarheadController), nameof(AlphaWarheadController.RpcShake), achieve);
 
         public static void SendHitmarker(this ReferenceHub hub, float size = 1f)
-            => Hitmarker.SendHitmarker(hub, size);
+            => Hitmarker.SendHitmarkerDirectly(hub.connectionToClient, size);
 
         public static void SendDimScreen(this ReferenceHub hub)
             => hub.SendFakeTargetRpc(RoundSummary.singleton.netIdentity, typeof(RoundSummary), nameof(RoundSummary.RpcDimScreen));
@@ -393,12 +394,6 @@ namespace Compendium
                 scpKills,
                 roundCd,
                 durationSeconds);
-
-        public static void SendCloseRemoteAdmin(this ReferenceHub hub)
-            => hub.serverRoles.TargetCloseRemoteAdmin();
-
-        public static void SendOpenRemoteAdmin(this ReferenceHub hub, bool isPassword = false)
-            => hub.serverRoles.TargetOpenRemoteAdmin(isPassword);
 
         public static void SendHiddenRole(this ReferenceHub hub, string text)
             => hub.serverRoles.TargetSetHiddenRole(hub.connectionToClient, text);
@@ -456,10 +451,10 @@ namespace Compendium
             => hub.Mode != ClientInstanceMode.Unverified;
 
         public static bool IsNorthwoodStaff(this ReferenceHub hub)
-            => hub.serverRoles.Staff || hub.serverRoles.RaEverywhere;
+            => hub.authManager.NorthwoodStaff;
 
         public static bool IsNorthwoodModerator(this ReferenceHub hub)
-            => hub.serverRoles.RaEverywhere;
+            => hub.authManager.RemoteAdminGlobalAccess;
 
         public static bool IsStaff(this ReferenceHub hub, bool countNwStaff = true)
         {
@@ -476,7 +471,7 @@ namespace Compendium
         }
 
         public static string UserId(this ReferenceHub hub)
-            => hub.characterClassManager.UserId;
+            => hub.authManager.UserId;
 
         public static string UniqueId(this ReferenceHub hub)
             => PlayerDataRecorder.GetData(hub)?.Id ?? "";
@@ -484,21 +479,8 @@ namespace Compendium
         public static UserIdValue ParsedUserId(this ReferenceHub hub)
             => UserIdValue.TryParse(hub.UserId(), out var parsed) ? parsed : throw new Exception($"Failed to parse user ID of {hub.UserId()}");
 
-        public static string UserId2(this ReferenceHub hub, string userId2 = null)
-        {
-            if (!string.IsNullOrWhiteSpace(userId2))
-            {
-                hub.characterClassManager.UserId2 = userId2;
-                return userId2;
-            }
-
-            return hub.characterClassManager.UserId2;
-        }
-
         public static string Ip(this ReferenceHub hub)
-        {
-            return hub.connectionToClient.address;
-        }
+            => hub.connectionToClient.address;
 
         public static bool HasReservedSlot(this ReferenceHub hub, bool countBypass = false)
             => ReservedSlot.HasReservedSlot(hub.UserId(), out var bypass) || (countBypass && bypass);
@@ -585,7 +567,7 @@ namespace Compendium
                 BanHandler.IssueBan(new BanDetails
                 {
                     Expires = (DateTime.Now + TimeSpan.FromSeconds(dur)).Ticks,
-                    Id = hub.characterClassManager.UserId,
+                    Id = hub.UserId(),
                     IssuanceTime = DateTime.Now.Ticks,
                     Issuer = "Dedicated Server",
                     OriginalName = hub.Nick(),
@@ -671,19 +653,10 @@ namespace Compendium
             return (hp.CurValue = newValue.Value);
         }
 
-        public static float MaxHealth(this ReferenceHub hub, float? newValue = null, bool resetOnChange = true)
+        public static float MaxHealth(this ReferenceHub hub)
         {
             if (!hub.playerStats.TryGetModule<HealthStat>(out var hp))
                 return 0f;
-
-            if (!newValue.HasValue)
-                return hp.MaxValue;
-
-            if (hp is CustomHealthStat stat)
-            {
-                stat.MaxHealth = newValue.Value;
-                stat.ShouldReset = resetOnChange;
-            }
 
             return hp.MaxValue;
         }
@@ -771,6 +744,44 @@ namespace Compendium
 
             return hub.roleManager.CurrentRole;
         }
+
+        public static string GetRoleColorHex(this ReferenceHub hub)
+            => hub.RoleId().GetRoleColorHex();
+
+        public static string GetRoleColorHexPrefixed(this ReferenceHub hub)
+            => hub.GetRoleId().GetRoleColorHexPrefixed();
+
+        public static string GetRoleColorHexPrefixed(this RoleTypeId role)
+        {
+            try
+            {
+                if (!PlayerRoleLoader.TryGetRoleTemplate<PlayerRoleBase>(role, out var r))
+                    return Colors.GreenValue;
+
+                return r.RoleColor.ToHex();
+            }
+            catch (Exception ex)
+            {
+                Plugin.Error(ex);
+                return Colors.GreenValue;
+            }
+        }
+
+        public static string GetRoleColorHex(this RoleTypeId role)
+        {
+            try
+            {
+                if (!PlayerRoleLoader.TryGetRoleTemplate<PlayerRoleBase>(role, out var r))
+                    return Colors.GreenValue.Remove("#");
+
+                return r.RoleColor.ToHex().Remove("#");
+            }
+            catch (Exception ex)
+            {
+                Plugin.Error(ex);
+                return Colors.GreenValue.Remove("#");
+            }
+        }
     }
 
     public static class HubWorldExtensions
@@ -794,9 +805,9 @@ namespace Compendium
         public static void Message(this ReferenceHub hub, object content, bool isRemoteAdmin = false)
         {
             if (!isRemoteAdmin)
-                hub.characterClassManager.ConsolePrint(content.ToString(), "red");
+                hub.gameConsoleTransmission.SendToClient(content.ToString(), "red");
             else
-                hub.queryProcessor.TargetReply(hub.connectionToClient, content.ToString(), true, false, string.Empty);
+                hub.queryProcessor.SendToClient(content.ToString(), true, false, string.Empty);
         }
 
         public static Vector3 Position(this ReferenceHub hub, Vector3? newPos = null, Quaternion? newRot = null)
@@ -909,13 +920,35 @@ namespace Compendium
             => hub.GetCuffed() != null;
 
         public static void Handcuff(this ReferenceHub hub, ReferenceHub cuffer = null)
-            => hub.inventory.SetDisarmedStatus(cuffer?.inventory ?? ReferenceHub.HostHub.inventory);
+        {
+            if (cuffer != null)
+                hub.inventory.SetDisarmedStatus(cuffer.inventory);
+            else
+            {
+                hub.inventory.SetDisarmedStatus(null);
+                DisarmedPlayers.Entries.Add(new DisarmedPlayers.DisarmedEntry(hub.netId, 0));
+                new DisarmedPlayersListMessage(DisarmedPlayers.Entries).SendToAuthenticated();
+            }
+        }
 
         public static void Uncuff(this ReferenceHub hub)
             => hub.inventory.SetDisarmedStatus(null);
 
         public static ReferenceHub GetCuffer(this ReferenceHub hub)
-            => Hub.GetHub(DisarmedPlayers.Entries.FirstOrDefault(x => x.DisarmedPlayer == hub.netId).Disarmer);
+        {
+            foreach (var entry in DisarmedPlayers.Entries)
+            {
+                if (entry.DisarmedPlayer == hub.netId)
+                {
+                    if (entry.Disarmer == 0)
+                        return ReferenceHub.HostHub;
+
+                    return Hub.GetHub(entry.Disarmer);
+                }
+            }
+
+            return null;
+        }
 
         public static ReferenceHub GetCuffed(this ReferenceHub hub)
             => Hub.GetHub(DisarmedPlayers.Entries.FirstOrDefault(x => x.Disarmer == hub.netId).DisarmedPlayer);
@@ -1169,7 +1202,7 @@ namespace Compendium
             var viewHiddenGlobalBadges = CommandProcessor.CheckPermissions(sender, PlayerPermissions.ViewHiddenGlobalBadges);
             var playerCommandSender = sender as PlayerCommandSender;
 
-            if (playerCommandSender != null && playerCommandSender.ServerRoles.Staff)
+            if (playerCommandSender != null && playerCommandSender.ReferenceHub.authManager.NorthwoodStaff)
             {
                 viewHiddenBadges = true;
                 viewHiddenGlobalBadges = true;
@@ -1189,7 +1222,7 @@ namespace Compendium
                 var flag3 = VoiceChatMutes.IsMuted(referenceHub, false);
                 var hasIcon = referenceHub.TryGetRaIcon(out var icon);
 
-                stringBuilder.Append(__instance.GetPrefix(referenceHub, viewHiddenBadges, viewHiddenGlobalBadges));
+                stringBuilder.Append(RaPlayerList.GetPrefix(referenceHub, viewHiddenBadges, viewHiddenGlobalBadges));
 
                 if (isInOverwatch || (hasIcon && icon == RemoteAdminIconType.Overwatch))
                     stringBuilder.Append("<link=RA_OverwatchEnabled><color=white>[</color><color=#03f8fc></color><color=white>]</color></link> ");

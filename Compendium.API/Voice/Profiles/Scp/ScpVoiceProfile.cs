@@ -3,10 +3,10 @@
 using Compendium.Extensions;
 using Compendium.Input;
 using Compendium.Constants;
+using Compendium.IO.Saving;
 
 using helpers.Attributes;
 using helpers.Extensions;
-using helpers.IO.Storage;
 using helpers.Pooling.Pools;
 using helpers;
 
@@ -22,7 +22,7 @@ namespace Compendium.Voice.Profiles.Scp
 {
     public class ScpVoiceProfile : BaseProfile
     {
-        private static SingleFileStorage<string> _mutes;
+        private static SaveFile<CollectionSaveData<string>> _mutes;
 
         public ScpVoiceProfile(ReferenceHub owner) : base(owner) { }
 
@@ -78,7 +78,7 @@ namespace Compendium.Voice.Profiles.Scp
 
                     if (p.Key.RoleId() is RoleTypeId.Overwatch
                         && Owner.IsSpectatedBy(p.Key)
-                        && !_mutes.Contains(p.Key.UserId()))
+                        && !_mutes.Data.Contains(p.Key.UserId()))
                     {
                         destinations[p.Key] = VoiceChatChannel.RoundSummary;
                         continue;
@@ -104,7 +104,7 @@ namespace Compendium.Voice.Profiles.Scp
                         }
                         else
                         {
-                            if (!_mutes.Contains(p.Key.UserId()))
+                            if (!_mutes.Data.Contains(p.Key.UserId()))
                             {
                                 if (Plugin.Config.VoiceSettings.AllowedScpChat.Contains(Owner.RoleId()))
                                 {
@@ -129,7 +129,7 @@ namespace Compendium.Voice.Profiles.Scp
                     }
                     else if (Flag is ScpVoiceFlag.ProximityChatOnly)
                     {
-                        if (!_mutes.Contains(p.Key.UserId()))
+                        if (!_mutes.Data.Contains(p.Key.UserId()))
                         {
                             if (Plugin.Config.VoiceSettings.AllowedScpChat.Contains(Owner.RoleId()))
                             {
@@ -183,20 +183,20 @@ namespace Compendium.Voice.Profiles.Scp
         [Description("Mutes SCP proximity chat.")]
         private static string MuteProximityCommand(ReferenceHub sender)
         {
-            if (_mutes is null)
-            {
-                _mutes = new SingleFileStorage<string>($"{Directories.ThisData}/SavedProximityMutes");
-                _mutes.Load();
-            }
+            _mutes ??= new SaveFile<CollectionSaveData<string>>(Directories.GetDataPath("SavedProximityMutes", "proxMutes"));
 
-            if (_mutes.Contains(sender.UserId()))
+            if (_mutes.Data.Contains(sender.UserId()))
             {
-                _mutes.Remove(sender.UserId());
+                _mutes.Data.Remove(sender.UserId());
+                _mutes.Save();
+
                 return "SCP proximity chat unmuted.";
             }
             else
             {
-                _mutes.Add(sender.UserId());
+                _mutes.Data.Add(sender.UserId());
+                _mutes.Save();
+
                 return "SCP proximity chat muted.";
             }
         }
@@ -207,11 +207,7 @@ namespace Compendium.Voice.Profiles.Scp
             if (!InputManager.TryGetHandler<ScpVoiceKeybind>(out _))
                 InputManager.Register<ScpVoiceKeybind>();
 
-            if (_mutes is null)
-            {
-                _mutes = new SingleFileStorage<string>($"{Directories.ThisData}/SavedProximityMutes");
-                _mutes.Load();
-            }
+            _mutes ??= new SaveFile<CollectionSaveData<string>>(Directories.GetDataPath("SavedProximityMutes", "proxMutes"));
         }
     }
 }

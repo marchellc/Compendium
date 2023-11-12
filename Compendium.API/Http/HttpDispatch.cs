@@ -1,5 +1,5 @@
-﻿using Compendium.Events;
-using Compendium.Scheduling.Update;
+﻿using Compendium.Updating;
+
 using helpers;
 using helpers.Attributes;
 using helpers.Extensions;
@@ -40,9 +40,6 @@ namespace Compendium.Http
             request.Headers.Add("User-Agent", "Other");
 
             _dispatchQueue.Enqueue(new HttpDispatchData(address, request, callback));
-
-            if (Plugin.Config.ApiSetttings.HttpSettings.Debug)
-                Plugin.Debug($"Enqueued POST request to {address}.");
         }
 
         public static void Get(string address, Action<HttpDispatchData> callback, params KeyValuePair<string, string>[] headers)
@@ -69,9 +66,6 @@ namespace Compendium.Http
                 request.Content = content;
 
             _dispatchQueue.Enqueue(new HttpDispatchData(address, request, callback));
-
-            if (Plugin.Config.ApiSetttings.HttpSettings.Debug)
-                Plugin.Debug($"Enqueued GET request to {address}.");
         }
 
         [Load]
@@ -82,38 +76,12 @@ namespace Compendium.Http
             _handler.UseProxy = false;
 
             _client = new HttpClient(_handler);
-
-            if (Plugin.Config.ApiSetttings.HttpSettings.Debug)
-                Plugin.Debug($"HTTP dispatch client initialized.");
-        }
-
-        [Unload]
-        private static void Unload()
-        {
-            _dispatchQueue.Clear();
-            _client.Dispose();
-            _client = null;
-
-            if (Plugin.Config.ApiSetttings.HttpSettings.Debug)
-                Plugin.Debug($"HTTP dispatch client unloaded.");
-        }
-
-        [Reload]
-        private static void Reload()
-        {
-            _dispatchQueue.Clear();
-
-            if (Plugin.Config.ApiSetttings.HttpSettings.Debug)
-                Plugin.Debug($"HTTP dispatch client reloaded.");
         }
 
         private static void OnRequestFailed(HttpDispatchData httpDispatchData, Exception exception)
         {
-            if (Plugin.Config.ApiSetttings.HttpSettings.Debug)
-            {
-                Plugin.Warn($"Request to \"{httpDispatchData.Target}\" failed!");
-                Plugin.Warn($"{exception.Message}");
-            }
+            Plugin.Warn($"Request to \"{httpDispatchData.Target}\" failed!");
+            Plugin.Warn($"{exception.Message}");
 
             if (Plugin.Config.ApiSetttings.HttpSettings.MaxRequeueCount is 0)
                 return;
@@ -122,6 +90,7 @@ namespace Compendium.Http
                 return;
 
             _dispatchQueue.Enqueue(httpDispatchData);
+
             httpDispatchData.OnRequeued();
         }
 
@@ -137,19 +106,17 @@ namespace Compendium.Http
                 return;
 
             _dispatchQueue.Enqueue(httpDispatchData);
+
             httpDispatchData.OnRequeued();
         }
 
-        [Update(Type = UpdateSchedulerType.SideThread)]
+        [Update(IsUnity = false, PauseRestarting = false, PauseWaiting = false)]
         private static async void Update()
         {
             if (_dispatchQueue.TryDequeue(out var data))
             {
                 try
                 {
-                    if (Plugin.Config.ApiSetttings.HttpSettings.Debug)
-                        Plugin.Debug($"Sending {data.Request.Method.Method} request to {data.Request.RequestUri} ..");
-
                     data.RefreshRequest();
 
                     using (var response = await _client.SendAsync(data.Request))
@@ -160,12 +127,7 @@ namespace Compendium.Http
                             return;
                         }
 
-                        var result = await response.Content.ReadAsStringAsync();
-
-                        if (Plugin.Config.ApiSetttings.HttpSettings.Debug)
-                            Plugin.Debug($"Received response for {data.Request.Method.Method} request to {data.Request.RequestUri}:\n{result}");
-
-                        data.OnReceived(result);
+                        data.OnReceived(await response.Content.ReadAsStringAsync());
                     }
                 }
                 catch (Exception ex)
