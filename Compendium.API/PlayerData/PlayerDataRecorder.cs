@@ -9,7 +9,6 @@ using PluginAPI.Events;
 using BetterCommands;
 
 using Compendium.Events;
-using Compendium.TokenCache;
 using Compendium.Generation;
 using Compendium.Comparison;
 using Compendium.Attributes;
@@ -26,7 +25,7 @@ namespace Compendium.PlayerData
     {
         private static SaveFile<CollectionSaveData<PlayerDataRecord>> _records;
 
-        private static Dictionary<ReferenceHub, TokenData> _tokenRecords = new Dictionary<ReferenceHub, TokenData>();
+        private static Dictionary<ReferenceHub, AuthenticationToken> _tokenRecords = new Dictionary<ReferenceHub, AuthenticationToken>();
         private static Dictionary<ReferenceHub, PlayerDataRecord> _activeRecords = new Dictionary<ReferenceHub, PlayerDataRecord>();
 
         public static readonly EventProvider OnRecordUpdated = new EventProvider();
@@ -80,21 +79,21 @@ namespace Compendium.PlayerData
             return false;
         }
 
-        public static TokenData GetToken(ReferenceHub hub)
+        public static AuthenticationToken GetToken(ReferenceHub hub)
         {
-            if (!hub.IsPlayer() || !VerifyUtils.VerifyString(hub.authManager.GetAuthToken()))
+            if (!hub.IsPlayer() || hub.authManager.AuthenticationResponse.AuthToken is null)
                 return null;
 
             if (_tokenRecords.TryGetValue(hub, out var tokenData))
                 return tokenData;
 
-            if (TokenParser.TryParse(hub.authManager.GetAuthToken(), out tokenData))
-                return (_tokenRecords[hub] = tokenData);
+            if (!hub.authManager.AuthenticationResponse.SignedAuthToken.TryGetToken("Authentification", out tokenData, out _, out _))
+                return null;
 
-            return null;
+            return _tokenRecords[hub] = tokenData;
         }
 
-        public static PlayerDataRecord GetData(TokenData token)
+        public static PlayerDataRecord GetData(AuthenticationToken token)
         {
             if (token is null)
                 return null;

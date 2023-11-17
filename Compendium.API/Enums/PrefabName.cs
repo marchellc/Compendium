@@ -13,9 +13,6 @@
         BinaryTarget,
 
         Tantrum,
-        BrownCandyTantrum,
-
-        PrismaticCloud,
 
         PrimitiveObject,
         LightSource,

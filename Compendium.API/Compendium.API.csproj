@@ -277,6 +277,7 @@
     <Compile Include="Custom\Commands\FunCommands.cs" />
     <Compile Include="Custom\Commands\StaffCommands.cs" />
     <Compile Include="Custom\Parsers\StaffGroupParser.cs" />
+    <Compile Include="Custom\Patches\Fixes\PreventDisconnectPatch.cs" />
     <Compile Include="Generation\UniqueIdSaveFile.cs" />
     <Compile Include="HalloweenUtils.cs" />
     <Compile Include="Health\CustomHealthController.cs" />
@@ -322,17 +323,6 @@
     <Compile Include="Settings\EventSettings.cs" />
     <Compile Include="Settings\GuardSettings.cs" />
     <Compile Include="Settings\LevelSettings.cs" />
-    <Compile Include="Spawning\SpawnChanceHandler.cs" />
-    <Compile Include="Spawning\SpawnChanceInfo.cs" />
-    <Compile Include="Spawning\SpawnConfig.cs" />
-    <Compile Include="Spawning\SpawnHandler.cs" />
-    <Compile Include="Spawning\SpawnHistory.cs" />
-    <Compile Include="Spawning\SpawnInfo.cs" />
-    <Compile Include="Spawning\SpawnPartyHandler.cs" />
-    <Compile Include="Spawning\SpawnPartyInfo.cs" />
-    <Compile Include="Spawning\SpawnPositionChooser.cs" />
-    <Compile Include="Spawning\SpawnRoleChooser.cs" />
-    <Compile Include="Spawning\SpawnRoleInfo.cs" />
     <Compile Include="Staff\StaffActivity.cs" />
     <Compile Include="Staff\StaffActivityData.cs" />
     <Compile Include="Extensions\ColorExtensions.cs" />
@@ -399,8 +389,6 @@
     <Compile Include="Staff\StaffReader.cs" />
     <Compile Include="Staff\StaffUtils.cs" />
     <Compile Include="Staff\StaffWriter.cs" />
-    <Compile Include="Tokens\TokenData.cs" />
-    <Compile Include="Tokens\TokenParser.cs" />
     <Compile Include="UnitHelper.cs" />
     <Compile Include="Updating\UpdateAttribute.cs" />
     <Compile Include="Updating\UpdateCall.cs" />

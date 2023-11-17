@@ -7,7 +7,7 @@ using helpers.Random;
 
 using InventorySystem.Disarming;
 using InventorySystem.Items;
-
+using JetBrains.Annotations;
 using Mirror;
 
 using PlayerRoles;
@@ -66,6 +66,9 @@ namespace Compendium.Escapes
                     return;
 
                 if ((hub.Position() - Escape.WorldPos).sqrMagnitude > EscapeRadius)
+                    return;
+
+                if (hub.Role() is null || hub.Role().ActiveTime <= 15f)
                     return;
 
                 var cuffer = hub.GetCuffer();

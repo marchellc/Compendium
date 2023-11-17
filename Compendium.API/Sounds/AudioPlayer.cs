@@ -126,8 +126,8 @@ namespace Compendium.Sounds
 
             if (clear)
             {
-                Collections.Clear(_dataQueue);
-                Collections.Clear(_queryQueue);
+                _dataQueue.Clear();
+                _queryQueue.Clear();
             }
 
             ShouldStopTrack = true;
@@ -259,8 +259,8 @@ namespace Compendium.Sounds
             _buffer.Clear();
             _buffer = null;
 
-            Collections.Clear(_queryQueue);
-            Collections.Clear(_dataQueue);
+            _queryQueue.Clear();
+            _dataQueue.Clear();
 
             _queryQueue = null;
             _dataQueue = null;

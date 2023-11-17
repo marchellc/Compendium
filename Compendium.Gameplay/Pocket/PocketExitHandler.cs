@@ -27,6 +27,7 @@ using CustomPlayerEffects;
 using PlayerStatsSystem;
 
 using MapGeneration;
+using Compendium.Features;
 
 namespace Compendium.Gameplay.Pocket
 {
@@ -84,6 +85,11 @@ namespace Compendium.Gameplay.Pocket
                 if (array[i]._type != PocketDimensionTeleport.PDTeleportType.Exit)
                     array[i].SetType(PocketDimensionTeleport.PDTeleportType.Killer);
             }
+
+            FLog.Info($"Pocket Dimension generated!");
+
+            for (int i = 0; i < array.Length; i++)
+                FLog.Info($"[{i}]: {array[i]._type}");
 
             return false;
         }
@@ -173,10 +179,10 @@ namespace Compendium.Gameplay.Pocket
 
             if (EscapedScpHint != null && EscapedScpHint.IsValid)
                 Hub.ForEach(h => h.Hint(EscapedScpHint.Value
-                    .Replace("%player%", h.Nick())
-                    .Replace("%role%", h.RoleId().ToString().SpaceByPascalCase()
-                    .Replace("%zone%", h.Zone().ToString().SpaceByPascalCase()
-                    .Replace("%room%", h.RoomId().ToString().SpaceByPascalCase()))), (float)EscapedScpHint.Duration), PlayerRoles.RoleTypeId.Scp106);
+                    .Replace("%player%", hub.Nick())
+                    .Replace("%role%", hub.RoleId().ToString().SpaceByPascalCase()
+                    .Replace("%zone%", hub.Zone().ToString().SpaceByPascalCase()
+                    .Replace("%room%", hub.RoomId().ToString().SpaceByPascalCase()))), (float)EscapedScpHint.Duration), PlayerRoles.RoleTypeId.Scp106);
 
             if (RegenerateAfterEscapes > 0 && _totalEscapes >= RegenerateAfterEscapes)
             {

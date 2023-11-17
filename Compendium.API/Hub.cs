@@ -1015,8 +1015,9 @@ namespace Compendium
     }
 
     public static class Hub
-    { 
+    {
         public static IReadOnlyList<ReferenceHub> Hubs => ReferenceHub.AllHubs.Where(hub => hub.IsPlayer()).ToList();
+
         public static int Count => Hubs.Count;
 
         public static ReferenceHub GetHub(this PlayerDataRecord record, bool supplyServer = true)

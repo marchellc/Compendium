@@ -88,6 +88,7 @@
     <Compile Include="Pocket\PocketExitHandler.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Respawning\RespawnController.cs" />
+    <Compile Include="Spawning\SpawnHandler.cs" />
     <Compile Include="Tutorial\TutorialHandler.cs" />
   </ItemGroup>
   <ItemGroup>

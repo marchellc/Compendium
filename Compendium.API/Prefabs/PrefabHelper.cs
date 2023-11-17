@@ -100,8 +100,6 @@ namespace Compendium.Prefabs
             [PrefabName.PrimitiveObject] = "PrimitiveObjectToy",
             [PrefabName.LightSource] = "LightSourceToy",
 
-            [PrefabName.PrismaticCloud] = "PrismaticCloud",
-            [PrefabName.BrownCandyTantrum] = "TantrumObj (Brown Candy)",
             [PrefabName.Lantern] = "LanternPickup",
             [PrefabName.Scp3114Ragdoll] = "Scp3114_Ragdoll",
 
@@ -180,6 +178,12 @@ namespace Compendium.Prefabs
                 {
                     Plugin.Warn($"Failed to retrieve prefab name: {prefab.name}");
                 }
+            }
+
+            foreach (var prefab in m_Names)
+            {
+                if (!m_Prefabs.ContainsKey(prefab.Key))
+                    Plugin.Warn($"Prefab '{prefab.Key}' ({prefab.Value}) is missing or has been renamed!");
             }
 
             Plugin.Info($"Loaded {m_Prefabs.Count} / {m_Names.Count} prefabs.");
