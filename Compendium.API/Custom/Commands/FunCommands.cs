@@ -1,5 +1,5 @@
 ﻿using BetterCommands;
-
+using BetterCommands.Permissions;
 using Compendium.Processors;
 
 using PlayerRoles.FirstPersonControl;
@@ -10,6 +10,7 @@ namespace Compendium.Custom.Commands
     {
         [Command("bones", CommandType.GameConsole, CommandType.RemoteAdmin)]
         [Description("Spawns a skeleton at the specified player.")]
+        [Permission(PermissionLevel.Lowest)]
         public static string BonesCommand(ReferenceHub sender, ReferenceHub target)
         {
             if (target.roleManager.CurrentRole is not IFpcRole fpcRole)
@@ -19,8 +20,9 @@ namespace Compendium.Custom.Commands
             return $"Spawned a skeleton at {target.Nick()}";
         }
 
-        [Command("rocket", CommandType.RemoteAdmin, CommandType.GameConsole)]
+        [Command("rocket", CommandType.RemoteAdmin)]
         [Description("Sends a player into space.")]
+        [Permission(PermissionLevel.Lowest)]
         public static string RocketCommand(ReferenceHub sender, ReferenceHub target)
         {
             if (RocketProcessor.IsActive(target))

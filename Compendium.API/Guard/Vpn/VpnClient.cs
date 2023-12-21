@@ -1,8 +1,8 @@
 ﻿using Compendium.Http;
 
-using System.Collections.Generic;
 using System;
 using System.Text.Json;
+using System.Collections.Generic;
 
 namespace Compendium.Guard.Vpn
 {
@@ -23,7 +23,7 @@ namespace Compendium.Guard.Vpn
                 {
                     var response = JsonSerializer.Deserialize<VpnResponse>(data.Response);
                     var id = hub.UserId();
-                    var ip = response.Ip;
+                    var ip = hub.Ip();
 
                     if (response.BlockLevel == 0)
                     {
@@ -33,7 +33,13 @@ namespace Compendium.Guard.Vpn
 
                     if (response.BlockLevel == 1 || (response.BlockLevel == 2 && Plugin.Config.GuardSettings.VpnStrictMode))
                     {
-                        hub.Kick(Plugin.Config.GuardSettings.VpnKickMessage);
+                        Plugin.Warn($"Kicked and flagged user '{hub.Nick()}' (UID: {hub.UserId()}; IP: {hub.Ip()}) due to having a positive VPN check result (status: {response.BlockLevel})");
+
+                        hub.Kick(
+                            $"Byl jsi vyhozen kvůli detekované VPN / proxy síti.\n" +
+                            $"Vypni VPN program a zkus se připojit znova." +
+                            $"\nPokud nevyužíváš žádný VPN program, tak se připoj na náš Discord server (adresa je v infu) a podej si žádost o whitelist v kanále #support.");
+
                         ServerGuard.Flag(id, ip);
                     }
                 }

@@ -57,6 +57,7 @@ using Compendium.Attributes;
 using CentralAuth;
 using Utils.Networking;
 using Compendium.Constants;
+using PluginAPI.Core;
 
 namespace Compendium
 {
@@ -1020,6 +1021,21 @@ namespace Compendium
 
         public static int Count => Hubs.Count;
 
+        public static IEnumerable<ReferenceHub> GetHubs(Faction faction)
+            => Hubs.Where(h => h.GetFaction() == faction);
+
+        public static IEnumerable<ReferenceHub> GetHubs(Team team)
+            => Hubs.Where(h => h.GetTeam() == team);
+
+        public static IEnumerable<ReferenceHub> GetHubs(RoleTypeId role)
+            => Hubs.Where(h => h.RoleId() == role);
+
+        public static IEnumerable<ReferenceHub> GetHubs(FacilityZone zone)
+            => Hubs.Where(h => h.Zone() == zone);
+
+        public static IEnumerable<ReferenceHub> GetHubs(RoomName room)
+            => Hubs.Where(h => h.RoomId() == room);
+
         public static ReferenceHub GetHub(this PlayerDataRecord record, bool supplyServer = true)
             => TryGetHub(record, out var hub) ? hub : (supplyServer ? ReferenceHub.HostHub : null);
 
@@ -1028,9 +1044,9 @@ namespace Compendium
 
         public static bool TryGetHub(this PlayerDataRecord record, out ReferenceHub hub)
             => Hubs.TryGetFirst(h => 
-                    record.Id == h.UniqueId() ||
                     record.UserId == h.UserId() ||
-                    record.Ip == h.Ip(), out hub);
+                    record.Ip == h.Ip() ||
+                    record.Id == h.UniqueId(), out hub);
 
         public static void TryInvokeHub(this PlayerDataRecord record, Action<ReferenceHub> target)
         {
@@ -1095,7 +1111,7 @@ namespace Compendium
         }
 
         public static void ForEach(this Action<ReferenceHub> action, params RoleTypeId[] roleFilter)
-            => ForEach(action, hub => roleFilter.Contains(hub.GetRoleId()));
+            => ForEach(action, hub => roleFilter.Length > 0 ? roleFilter.Contains(hub.GetRoleId()) : true);
 
         public static void ForEachZone(this Action<ReferenceHub> action, bool includeUnknown, params FacilityZone[] zoneFilter)
             => ForEach(action, hub =>

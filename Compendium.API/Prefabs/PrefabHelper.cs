@@ -115,6 +115,14 @@ namespace Compendium.Prefabs
             [PrefabName.Scp173Ragdoll] = "SCP-173_Ragdoll",
             [PrefabName.Scp939Ragdoll] = "SCP-939_Ragdoll",
             [PrefabName.TutorialRagdoll] = "Ragdoll_Tut",
+
+            // CHRISTMAS EVENT
+            [PrefabName.Snowball] = "SnowballProjectile",
+            [PrefabName.CoalPickup] = "CoalPickup",
+            [PrefabName.TapePlayerPickup] = "TapePlayerPickup",
+            [PrefabName.Coal] = "CoalProjectile",
+            [PrefabName.Scp2536] = "Scp2536Projectile",
+            [PrefabName.Scp1507Ragdoll] = "SCP-1507_Ragdoll"
         };
 
         private static readonly Dictionary<PrefabName, GameObject> m_Prefabs = new Dictionary<PrefabName, GameObject>();

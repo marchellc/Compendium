@@ -9,13 +9,16 @@ using helpers.Attributes;
 
 using PluginAPI.Events;
 
-using System.Net;
 using System;
+using System.Net;
+using System.Collections.Generic;
 
 namespace Compendium.Guard
 {
     public static class ServerGuard
     {
+        private static HashSet<string> preAuthCounter = new HashSet<string>();
+
         public static SaveFile<CollectionSaveData<string>> Flagged;
         public static SaveFile<CollectionSaveData<string>> Clean;
 
@@ -51,26 +54,41 @@ namespace Compendium.Guard
         }
 
         [Event(Priority = helpers.Priority.Highest)]
-        public static void OnPreauthentificating(PlayerPreauthEvent ev)
+        public static PreauthCancellationData OnPreauthentificating(PlayerPreauthEvent ev)
         {
             if (ev.CentralFlags.HasFlagFast(CentralAuthPreauthFlags.NorthwoodStaff)
                 || ev.CentralFlags.HasFlagFast(CentralAuthPreauthFlags.IgnoreBans)
                 || ev.CentralFlags.HasFlagFast(CentralAuthPreauthFlags.IgnoreGeoblock)
                 || ev.CentralFlags.HasFlagFast(CentralAuthPreauthFlags.IgnoreWhitelist))
+                return PreauthCancellationData.Accept();
+
+            if (preAuthCounter.Contains(ev.UserId) || preAuthCounter.Contains(ev.IpAddress))
             {
-                Plugin.Debug($"Ignoring preauth request - flags {ev.CentralFlags}");
-                return;
+                preAuthCounter.Remove(ev.UserId);
+                preAuthCounter.Remove(ev.IpAddress);
+
+                Flagged.Data.Remove(ev.UserId);
+                Flagged.Data.Remove(ev.IpAddress);
+
+                Plugin.Info($"Removed flags for IP '{ev.IpAddress}' (ID: {ev.UserId}): user attempting reconnection.");
+
+                return PreauthCancellationData.Accept();
             }
-
-            if (Clean.Data.Contains(ev.UserId) || Clean.Data.Contains(ev.IpAddress))
-                return;
-
-            if (Flagged.Data.Contains(ev.UserId) || Flagged.Data.Contains(ev.IpAddress))
+            else if (Flagged.Data.Contains(ev.UserId) || Flagged.Data.Contains(ev.IpAddress))
             {
-                ev.ConnectionRequest.Result = LiteNetLib.ConnectionRequestResult.RejectForce;
-                ev.ConnectionRequest.RejectForce();
+                preAuthCounter.Add(ev.UserId);
+                preAuthCounter.Add(ev.IpAddress);
 
-                Plugin.Warn($"Rejected connection request of previously flagged user: {ev.UserId} {ev.IpAddress}");
+                Plugin.Warn($"Rejecting connection from IP '{ev.IpAddress}' (ID: {ev.UserId}) due to it being saved as flagged.");
+
+                return PreauthCancellationData.Reject(
+                    $"VPN / proxy sítě nejsou na tomto serveru povoleny." +
+                    $"\nPokud je tohle tvůj druhý pokus o připojení PO vypnutí VPN programu, zkus se připojit ještě jednou." +
+                    $"\nPokud to stále nepůjde, připoj se na náš Discord server (adresa je v infu) a udělej si žádost v kanále #support.", true);
+            }
+            else
+            {
+                return PreauthCancellationData.Accept();
             }
         }
 

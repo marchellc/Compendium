@@ -18,6 +18,7 @@ using Compendium.IO.Saving;
 using System.Collections.Generic;
 using System.Text;
 using System.Net;
+using System;
 
 namespace Compendium.PlayerData
 {
@@ -28,7 +29,7 @@ namespace Compendium.PlayerData
         private static Dictionary<ReferenceHub, AuthenticationToken> _tokenRecords = new Dictionary<ReferenceHub, AuthenticationToken>();
         private static Dictionary<ReferenceHub, PlayerDataRecord> _activeRecords = new Dictionary<ReferenceHub, PlayerDataRecord>();
 
-        public static readonly EventProvider OnRecordUpdated = new EventProvider();
+        public static event Action<ReferenceHub, PlayerDataRecord> OnRecordUpdated;
 
         public static bool TryQuery(string query, bool queryNick, out PlayerDataRecord record)
         {
@@ -81,13 +82,13 @@ namespace Compendium.PlayerData
 
         public static AuthenticationToken GetToken(ReferenceHub hub)
         {
-            if (!hub.IsPlayer() || hub.authManager.AuthenticationResponse.AuthToken is null)
+            if (!hub.IsPlayer() || hub.authManager.AuthenticationResponse.SignedAuthToken is null)
                 return null;
 
             if (_tokenRecords.TryGetValue(hub, out var tokenData))
                 return tokenData;
 
-            if (!hub.authManager.AuthenticationResponse.SignedAuthToken.TryGetToken("Authentification", out tokenData, out _, out _))
+            if (!hub.authManager.AuthenticationResponse.SignedAuthToken.TryGetToken("Authentication", out tokenData, out _, out _))
                 return null;
 
             return _tokenRecords[hub] = tokenData;
@@ -148,7 +149,7 @@ namespace Compendium.PlayerData
 
             _records.Save();
 
-            OnRecordUpdated.Invoke(hub, data);
+            OnRecordUpdated?.Invoke(hub, data);
         }
 
         [Load]

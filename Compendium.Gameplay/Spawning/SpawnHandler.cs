@@ -1,107 +1,134 @@
-﻿using helpers;
+﻿using BetterCommands;
+
+using Compendium.Attributes;
+using Compendium.Features;
+using Compendium.PlayerData;
+
 using helpers.Configuration;
-using helpers.Patching;
-using helpers.Pooling.Pools;
+using helpers.Random;
 
 using PlayerRoles;
-using PlayerRoles.PlayableScps;
-using PlayerRoles.RoleAssign;
-using System.Linq;
-using UnityEngine;
+using PlayerRoles.PlayableScps.Scp3114;
+
+using System.Collections.Generic;
 
 namespace Compendium.Gameplay.Spawning
 {
     public static class SpawnHandler
     {
+        private static int roundsSinceReset = 0;
+        private static List<string> scp3114Players = new List<string>();
+
         [Config(Name = "SCP-3114 Spawn Chance", Description = "The chance of SCP-3114 spawning.")]
-        public static float Scp3114Chance { get; set; } = 1f;
+        public static int Scp3114Chance { get; set; } = 30;
 
-        public static bool EnableScp3114Spawn => Scp3114Chance > 0f;
+        [Config(Name = "SCP-3114 Player Chance", Description = "The chance for a player to be chosen as SCP-3114")]
+        public static int PlayerChance { get; set; } = 5;
 
-        [Patch(typeof(ScpSpawner), nameof(ScpSpawner.NextScp), PatchType.Prefix, PatchMethodType.PropertyGetter)]
-        private static bool GetNextScpPatch(ref RoleTypeId __result)
+        public static bool IsForced;
+        public static string ForcedUserId;
+
+        public static ReferenceHub Chosen3114;
+
+        [RoundStateChanged(Enums.RoundState.InProgress)]
+        public static void Spawn3114()
         {
-            var chance = 0f;
-            var count = ScpSpawner.SpawnableScps.Length;
+            roundsSinceReset++;
 
-            for (int i = 0; i < count; i++)
+            if (roundsSinceReset >= 5)
             {
-                var role = ScpSpawner.SpawnableScps[i];
+                roundsSinceReset = 0;
+                scp3114Players.Clear();
+            }
 
-                if (ScpSpawner.EnqueuedScps.Contains(role.RoleTypeId))
-                    ScpSpawner._chancesArray[i] = 0f;
-                else if (role is ISpawnableScp spawnableScp)
+            Choose3114();
+
+            if (Chosen3114 is null)
+                return;
+
+            Chosen3114.roleManager.ServerSetRole(RoleTypeId.Scp3114, RoleChangeReason.RoundStart, RoleSpawnFlags.All);
+
+            Scp3114Spawner.SpawnRagdolls(Chosen3114.Nick());
+
+            FLog.Info($"Spawned {Chosen3114.Nick()} as SCP-3114");
+        }
+
+        public static void Choose3114()
+        {
+            if ((IsForced || !string.IsNullOrWhiteSpace(ForcedUserId))
+                || (Scp3114Chance > 0 && Hub.Count >= 10))
+            {
+                if (!string.IsNullOrWhiteSpace(ForcedUserId) && Hub.TryGetHub(ForcedUserId, out Chosen3114))
                 {
-                    ScpSpawner._chancesArray[i] = Mathf.Max(spawnableScp.GetSpawnChance(ScpSpawner.EnqueuedScps), 0f);
-                    chance += ScpSpawner._chancesArray[i];
+                    FLog.Info($"Chosen {Chosen3114.Nick()} as SCP-3114; forced");
+                    return;
                 }
                 else
                 {
-                    if (!EnableScp3114Spawn || role.RoleTypeId != RoleTypeId.Scp3114
-                        || Hub.Count <= 2 || Hub.Hubs.Count(h => h.IsSCP()) <= 1)
+                    if (WeightedRandomGeneration.Default.GetBool(Scp3114Chance))
                     {
-                        ScpSpawner._chancesArray[i] = 0f;
-                        continue;
+                        foreach (var hub in Hub.Hubs)
+                        {
+                            if (Chosen3114 != null)
+                                continue;
+
+                            if (hub.RoleId() is RoleTypeId.Overwatch)
+                                continue;
+
+                            if (scp3114Players.Contains(hub.UserId()))
+                                continue;
+
+                            var chance = Scp3114Chance - PlayerChance;
+
+                            if (chance <= 0 || !WeightedRandomGeneration.Default.GetBool(chance))
+                                continue;
+
+                            Chosen3114 = hub;
+                            scp3114Players.Add(hub.UserId());
+                            FLog.Info($"Chosen {Chosen3114.Nick()} as SCP-3114; chance");
+                            break;
+                        }
                     }
-
-                    ScpSpawner._chancesArray[i] = Scp3114Chance;
                 }
+
+                if (Chosen3114 is null)
+                    FLog.Warn($"SCP-3114 is not spawning this round; no players meet conditions.");
             }
-
-            if (chance == 0f)
-            {
-                __result = ScpSpawner.RandomLeastFrequentScp;
-                return false;
-            }
-
-            var rnd = Random.Range(0f, count);
-
-            for (int i = 0; i < count; i++)
-            {
-                rnd -= ScpSpawner._chancesArray[i];
-
-                if (rnd < 0f)
-                {
-                    __result = ScpSpawner.SpawnableScps[i].RoleTypeId;
-                    return false;
-                }
-            }
-
-            __result = ScpSpawner.SpawnableScps[count - 1].RoleTypeId;
-            return false;
+            else
+                FLog.Warn($"SCP-3114 is not spawning this round; conditions not met.");
         }
 
-        [Patch(typeof(ScpSpawner), nameof(ScpSpawner.SpawnableScps), PatchType.Prefix, PatchMethodType.PropertyGetter)]
-        private static bool GetSpawnableScpsPatch(ref PlayerRoleBase[] __result)
+        [Command("force3114spawn", CommandType.RemoteAdmin, CommandType.GameConsole)]
+        [Description("Forces SCP-3114 to spawn next round.")]
+        public static string Force3114SpawnCommand(ReferenceHub sender)
         {
-            if (ScpSpawner._cacheSet)
+            IsForced = !IsForced;
+
+            if (!IsForced)
+                return "Disabled force spawning of SCP-3114.";
+            else
             {
-                __result = ScpSpawner._cachedSpawnableScps;
-                return false;
+                if (RoundHelper.IsStarted)
+                    return "SCP-3114 will spawn next round.";
+                else
+                    return "SCP-3114 will spawn this round.";
             }
+        }
 
-            var list = ListPool<PlayerRoleBase>.Pool.Get();
-
-            foreach (var role in PlayerRoleLoader.AllRoles.Values)
+        [Command("force3114player", CommandType.RemoteAdmin, CommandType.GameConsole)]
+        [Description("Forces SCP-3114 to spawn next round as a specific player.")]
+        public static string Force3114PlayerCommand(ReferenceHub sender, PlayerDataRecord target)
+        {
+            if (ForcedUserId != null && ForcedUserId == target.UserId)
             {
-                if (role is null)
-                    continue;
-
-                if (role is not ISpawnableScp && (!EnableScp3114Spawn || role.RoleTypeId != RoleTypeId.Scp3114))
-                    continue;
-
-                list.Add(role);
+                ForcedUserId = null;
+                return $"Disabled forced SCP-3114 spawning for '{target.NameTracking.LastValue}'";
             }
-
-            ScpSpawner._chancesArray = new float[list.Count];
-            ScpSpawner._cacheSet = true;
-            ScpSpawner._cachedSpawnableScps = list.ToArray();
-
-            list.ReturnList();
-            list = null;
-
-            __result = ScpSpawner._cachedSpawnableScps;
-            return false;
+            else
+            {
+                ForcedUserId = target.UserId;
+                return $"Enabled forced SCP-3114 spawning for '{target.NameTracking.LastValue}'";
+            }
         }
     }
 }

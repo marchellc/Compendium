@@ -178,11 +178,16 @@ namespace Compendium.Gameplay.Pocket
                 EscapeSuccessHint.Send(hub);
 
             if (EscapedScpHint != null && EscapedScpHint.IsValid)
-                Hub.ForEach(h => h.Hint(EscapedScpHint.Value
-                    .Replace("%player%", hub.Nick())
-                    .Replace("%role%", hub.RoleId().ToString().SpaceByPascalCase()
-                    .Replace("%zone%", hub.Zone().ToString().SpaceByPascalCase()
-                    .Replace("%room%", hub.RoomId().ToString().SpaceByPascalCase()))), (float)EscapedScpHint.Duration), PlayerRoles.RoleTypeId.Scp106);
+                Hub.ForEach(h =>
+                {
+                    h.Hint(EscapedScpHint.Value
+                        .Replace("%player%", hub.Nick())
+                        .Replace("%role%", $"<color={hub.GetRoleColorHexPrefixed()}>{hub.RoleId().ToString().SpaceByPascalCase()}</color>")
+                        .Replace("%zone%", hub.Zone().ToString().SpaceByPascalCase())
+                        .Replace("%room%", hub.RoomId().ToString().SpaceByPascalCase()), (float)EscapedScpHint.Duration);
+                }, PlayerRoles.RoleTypeId.Scp106);
+
+            _totalEscapes++;
 
             if (RegenerateAfterEscapes > 0 && _totalEscapes >= RegenerateAfterEscapes)
             {

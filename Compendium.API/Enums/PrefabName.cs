@@ -104,6 +104,14 @@
         Scp096Ragdoll,
         Scp939Ragdoll,
         Scp3114Ragdoll,
-        TutorialRagdoll
+        TutorialRagdoll,
+
+        // CHRISTMAS EVENT
+        Snowball,
+        Coal,
+        CoalPickup,
+        TapePlayerPickup,
+        Scp2536,
+        Scp1507Ragdoll
     }
 }

@@ -10,11 +10,81 @@ using System.Linq;
 using System.Net;
 
 using Compendium.Mutes;
+using Compendium.Positions;
+
+using helpers.Extensions;
 
 namespace Compendium.Custom.Commands
 {
     public static class ModerationCommands
     {
+        [Command("postp", CommandType.RemoteAdmin)]
+        [Description("Teleports a player to a predefined position.")]
+        public static string PosTpCommand(ReferenceHub sender, ReferenceHub target, string position)
+        {
+            for (int i = 0; i < PositionHelper.Positions.Count; i++)
+            {
+                if (PositionHelper.Positions[i].Name.GetSimilarity(position) >= 0.7)
+                {
+                    target.Position(PositionHelper.Positions[i].GetPosition());
+                    return $"Teleported {target.Nick()} to position: {PositionHelper.Positions[i].Name}";
+                }
+            }
+
+            return $"That position doesn't exist. Use listpos to view all positions.";
+        }
+
+        [Command("listpos", CommandType.RemoteAdmin)]
+        [Description("Lists all predefined positions.")]
+        public static string ListPosCommand(ReferenceHub sender)
+        {
+            if (PositionHelper.Positions.Count <= 0)
+                return "There aren't any positions. You need to create some using the addpos command.";
+
+            var sb = Pools.PoolStringBuilder();
+
+            sb.AppendLines(PositionHelper.Positions, pos => $"{pos.Name} ({pos.Description}) {pos.GetPosition()}");
+
+            return sb.ReturnStringBuilderValue();
+        }
+
+        [Command("addpos", CommandType.RemoteAdmin)]
+        [Description("Adds a position.")]
+        public static string AddPosCommand(ReferenceHub sender, string name, string description = "Výchozí popis.")
+        {
+            if (PositionHelper.Positions.Any(p => p.Name.GetSimilarity(name) >= 0.7))
+                return "There already is a position with a similar name. Use delpos to remove it.";
+
+            var pos = sender.Position();
+
+            PositionHelper.Positions.Add(new Position
+            {
+               Name = name,
+               Description = description,
+
+               X = pos.x,
+               Y = pos.y + 1f,
+               Z = pos.z
+            });
+
+            PositionHelper.Config?.Save();
+
+            return $"Position saved.";
+        }
+
+        [Command("delpos", CommandType.RemoteAdmin)]
+        [Description("Deletes a predefined position.")]
+        public static string DelPosCommand(ReferenceHub sender, string name)
+        {
+            if (PositionHelper.Positions.RemoveAll(p => p.Name.GetSimilarity(name) >= 0.7) > 0)
+            {
+                PositionHelper.Config?.Save();
+                return $"Position deleted.";
+            }
+
+            return $"Failed to find/remove position.";
+        }
+
         [Command("oban", CommandType.RemoteAdmin, CommandType.PlayerConsole)]
         [Description("Issues an offline ban.")]
         public static string OfflineBanCommand(ReferenceHub sender, string target, string duration, string reason, bool searchRecords = true)

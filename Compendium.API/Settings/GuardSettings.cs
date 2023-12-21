@@ -10,10 +10,10 @@ namespace Compendium.Settings
         [Description("IP Hub API key.")]
         public string VpnClientKey { get; set; } = "none";
 
-        [Description("The message to display to kicked users.")]
-        public string VpnKickMessage { get; set; } = "Your IP was flagged as a VPN or a proxy network!";
-
         [Description("Use strict mode for VPN filtering.")]
-        public bool VpnStrictMode { get; set; }
+        public bool VpnStrictMode { get; set; } = true;
+
+        [Description("Whether or not to enable pre-authentification counters to enable users to reset their VPN status.")]
+        public bool PreAuthCounter { get; set; } = true;
     }
 }
